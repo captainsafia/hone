@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Hone Changelog</title>
+    <link>https://hone.app/appcast.xml</link>
+    <description>Most recent updates to Hone</description>
+    <language>en</language>
+    <item>
+      <title>Version 1.0.0</title>
+      <link>https://hone.app/</link>
+      <sparkle:version>1.0.0</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <description>
+        <![CDATA[
+          <h2>Initial Release</h2>
+          <ul>
+            <li>Menu bar app for creating GitHub issues</li>
+            <li>GitHub OAuth device flow authentication</li>
+            <li>Freeform text input with AI structuring</li>
+            <li>Drag and drop attachment support</li>
+            <li>Global hotkey (⌘⇧Space)</li>
+            <li>Support for OpenAI, Anthropic, and Gemini</li>
+          </ul>
+        ]]>
+      </description>
+      <pubDate>Sat, 04 Jan 2026 00:00:00 +0000</pubDate>
+      <enclosure url="https://hone.app/releases/Hone-1.0.0.zip" 
+                 sparkle:version="1.0.0" 
+                 sparkle:shortVersionString="1.0.0"
+                 sparkle:edSignature="PLACEHOLDER_SIGNATURE"
+                 length="0" 
+                 type="application/octet-stream" />
+    </item>
+  </channel>
+</rss>
