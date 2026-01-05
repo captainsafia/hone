@@ -4,7 +4,7 @@
  * Main entry point for running hone tests.
  */
 
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { resolve, dirname, basename } from "node:path";
 import { glob } from "glob";
 import {
@@ -57,20 +57,26 @@ interface FileRunResult {
 }
 
 /**
- * Run tests from a path or glob pattern
+ * Run tests from paths, directories, or glob patterns
  */
 export async function runTests(
-  pattern: string,
+  patterns: string[],
   options: RunnerOptions = {}
 ): Promise<TestResults> {
   const reporter = options.reporter ?? new DefaultReporter({ verbose: options.verbose });
   const cwd = options.cwd ?? process.cwd();
 
-  // Resolve files from pattern
-  const files = await resolveFiles(pattern, cwd);
+  // Resolve files from all patterns
+  const allFiles: string[] = [];
+  for (const pattern of patterns) {
+    const files = await resolveFiles(pattern, cwd);
+    allFiles.push(...files);
+  }
+
+  const files = [...new Set(allFiles)].sort();
 
   if (files.length === 0) {
-    reporter.onWarning(`No test files found matching: ${pattern}`);
+    reporter.onWarning(`No test files found matching: ${patterns.join(", ")}`);
     return {
       totalFiles: 0,
       passedFiles: 0,
@@ -151,12 +157,24 @@ export async function runTests(
 }
 
 /**
- * Resolve files from a pattern
+ * Resolve files from a pattern, file path, or directory
  */
 async function resolveFiles(pattern: string, cwd: string): Promise<string[]> {
-  // Check if it's a direct file path
-  if (pattern.endsWith(".hone") && !pattern.includes("*")) {
-    return [resolve(cwd, pattern)];
+  const resolved = resolve(cwd, pattern);
+
+  const stats = await stat(resolved).catch(() => null);
+
+  if (stats?.isFile() && pattern.endsWith(".hone")) {
+    return [resolved];
+  }
+
+  if (stats?.isDirectory()) {
+    const dirMatches = await glob("**/*.hone", {
+      cwd: resolved,
+      absolute: true,
+      nodir: true,
+    });
+    return dirMatches.sort();
   }
 
   // Use glob for pattern matching

@@ -160,8 +160,20 @@ ASSERT test.stdout contains "PASSED"
 # Run a single test file
 hone run tests/integration.hone
 
-# Run all test files matching a pattern
-hone run 'tests/*.hone'
+# Run multiple test files
+hone run tests/cli.hone tests/api.hone
+
+# Run all files in a directory (recursively)
+hone run tests/
+
+# Run with a glob pattern (shell expands the glob)
+hone run tests/*.hone
+
+# Use a custom shell
+hone run --shell /bin/zsh tests/
+
+# Show verbose output on failures
+hone run --verbose tests/
 
 # Show version
 hone --version

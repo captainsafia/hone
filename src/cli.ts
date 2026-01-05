@@ -24,12 +24,12 @@ program
 program
   .command("run", { isDefault: true })
   .description("Run test files")
-  .argument("<pattern>", "Test file path or glob pattern")
+  .argument("<patterns...>", "Test file paths, directories, or glob patterns")
   .option("--shell <path>", "Override shell executable")
   .option("--verbose", "Include full stdout/stderr dumps on failure")
-  .action(async (pattern: string, options: { shell?: string; verbose?: boolean }) => {
+  .action(async (patterns: string[], options: { shell?: string; verbose?: boolean }) => {
     try {
-      const results = await runTests(pattern, {
+      const results = await runTests(patterns, {
         shell: options.shell,
         verbose: options.verbose,
         reporter: new DefaultReporter({ verbose: options.verbose }),
