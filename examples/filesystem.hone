@@ -1,0 +1,37 @@
+# Filesystem assertion examples
+
+#! shell: /bin/bash
+
+TEST "file exists assertion"
+
+RUN touch /tmp/hone-test-exists.txt
+ASSERT file "/tmp/hone-test-exists.txt" exists
+
+TEST "file content assertions"
+
+RUN echo "test content here" > /tmp/hone-test-content.txt
+ASSERT file "/tmp/hone-test-content.txt" exists
+ASSERT file "/tmp/hone-test-content.txt" contains "test content"
+ASSERT file "/tmp/hone-test-content.txt" contains "here"
+
+TEST "file exact match"
+
+RUN printf "exact file content" > /tmp/hone-test-exact.txt
+ASSERT file "/tmp/hone-test-exact.txt" == "exact file content"
+
+TEST "file regex match"
+
+RUN echo "Version: 2.0.1" > /tmp/hone-test-version.txt
+ASSERT file "/tmp/hone-test-version.txt" matches /Version: \d+\.\d+\.\d+/
+
+TEST "directory operations"
+
+RUN mkdir -p /tmp/hone-test-dir
+RUN touch /tmp/hone-test-dir/nested-file.txt
+ASSERT file "/tmp/hone-test-dir/nested-file.txt" exists
+
+TEST "cleanup files"
+
+RUN rm -f /tmp/hone-test-exists.txt /tmp/hone-test-content.txt /tmp/hone-test-exact.txt /tmp/hone-test-version.txt
+RUN rm -rf /tmp/hone-test-dir
+ASSERT exit_code == 0

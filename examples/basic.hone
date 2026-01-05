@@ -1,0 +1,22 @@
+# Example hone test file
+
+#! shell: /bin/bash
+
+TEST "echo test"
+
+RUN echo: echo "hello world"
+ASSERT exit_code == 0
+ASSERT stdout contains "hello"
+ASSERT stdout contains "world"
+
+TEST "file creation"
+
+RUN echo "test content" > /tmp/hone-test-file.txt
+ASSERT exit_code == 0
+ASSERT file "/tmp/hone-test-file.txt" exists
+ASSERT file "/tmp/hone-test-file.txt" contains "test content"
+
+TEST "error handling"
+
+RUN false
+ASSERT exit_code != 0

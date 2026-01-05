@@ -1,0 +1,69 @@
+{
+  "name": "@captainsafia/hone",
+  "version": "1.0.0",
+  "description": "A CLI integration test runner for command-line applications",
+  "module": "src/cli.ts",
+  "type": "module",
+  "keywords": [
+    "testing",
+    "cli",
+    "integration",
+    "typescript",
+    "bun"
+  ],
+  "homepage": "https://github.com/captainsafia/hone",
+  "bugs": {
+    "url": "https://github.com/captainsafia/hone/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/captainsafia/hone.git"
+  },
+  "license": "MIT",
+  "author": "Safia Abdalla",
+  "main": "dist/cli.js",
+  "bin": {
+    "hone": "dist/cli.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "bun build ./src/cli.ts --outdir ./dist --target bun",
+    "build:compile": "bun build --compile --minify --sourcemap ./src/cli.ts --outfile hone",
+    "build:linux-x64": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/cli.ts --outfile hone-linux-x64",
+    "build:linux-arm64": "bun build --compile --minify --sourcemap --target=bun-linux-arm64 ./src/cli.ts --outfile hone-linux-arm64",
+    "build:darwin-x64": "bun build --compile --minify --sourcemap --target=bun-darwin-x64 ./src/cli.ts --outfile hone-darwin-x64",
+    "build:darwin-arm64": "bun build --compile --minify --sourcemap --target=bun-darwin-arm64 ./src/cli.ts --outfile hone-darwin-arm64",
+    "dev": "bun run src/cli.ts",
+    "clean": "rm -rf dist hone hone-*",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:unit": "bun test tests/unit",
+    "test:integration": "bun run build:compile && ./hone run 'examples/*.hone'",
+    "test:watch": "bun test --watch",
+    "test:coverage": "bun test --coverage",
+    "lint": "eslint src --ext .ts",
+    "compile": "bun build src/cli.ts --outdir dist --target bun"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^14.0.0",
+    "glob": "^13.0.0",
+    "strip-ansi": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^8.32.0",
+    "@typescript-eslint/parser": "^8.32.0",
+    "eslint": "^9.27.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

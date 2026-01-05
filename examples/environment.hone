@@ -1,0 +1,30 @@
+# Environment variable tests
+
+#! shell: /bin/bash
+#! env: MY_VAR=hello
+
+TEST "environment from pragma"
+
+RUN echo $MY_VAR
+ASSERT exit_code == 0
+ASSERT stdout contains "hello"
+
+TEST "environment from ENV statement"
+
+ENV GREETING=world
+RUN echo $GREETING
+ASSERT exit_code == 0
+ASSERT stdout contains "world"
+
+TEST "environment variable expansion"
+
+ENV NAME=hone
+RUN echo "Testing $NAME framework"
+ASSERT stdout contains "Testing hone framework"
+
+TEST "multiple env vars"
+
+ENV FOO=bar
+ENV BAZ=qux
+RUN echo "$FOO $BAZ"
+ASSERT stdout contains "bar qux"

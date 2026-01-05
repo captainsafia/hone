@@ -1,0 +1,44 @@
+# Shell state persistence tests
+
+#! shell: /bin/bash
+
+TEST "working directory persists"
+
+RUN cd /tmp
+RUN pwd
+ASSERT stdout contains "/tmp"
+
+TEST "shell variables persist"
+
+RUN MY_SHELL_VAR="persistent value"
+RUN echo $MY_SHELL_VAR
+ASSERT stdout contains "persistent value"
+
+TEST "command chaining"
+
+RUN echo "step1" && echo "step2"
+ASSERT stdout contains "step1"
+ASSERT stdout contains "step2"
+
+TEST "pipeline commands"
+
+RUN echo "hello world" | tr 'a-z' 'A-Z'
+ASSERT stdout contains "HELLO WORLD"
+
+TEST "command substitution"
+
+RUN echo "Current shell: $(basename $SHELL)"
+ASSERT stdout contains "Current shell:"
+
+TEST "arithmetic in shell"
+
+RUN echo $((2 + 3))
+ASSERT stdout contains "5"
+
+TEST "conditional execution"
+
+RUN true && echo "success"
+ASSERT stdout contains "success"
+
+RUN false || echo "fallback"
+ASSERT stdout contains "fallback"

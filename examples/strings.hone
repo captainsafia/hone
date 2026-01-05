@@ -1,0 +1,43 @@
+# String literal and escape sequence tests
+
+#! shell: /bin/bash
+
+TEST "double quoted strings with escapes"
+
+RUN echo "line1\nline2"
+ASSERT stdout contains "line1"
+
+TEST "single quoted strings are literal"
+
+RUN echo 'no escape: \n stays as-is'
+# In the assertion, use \\n to match a literal backslash-n
+ASSERT stdout contains "\\n"
+
+TEST "tab escape sequence"
+
+RUN printf "col1\tcol2"
+ASSERT stdout contains "col1"
+ASSERT stdout contains "col2"
+
+TEST "special characters in strings"
+
+RUN echo "hello 'world'"
+ASSERT stdout contains "hello 'world'"
+
+TEST "unicode characters"
+
+RUN echo "Unicode: ✓ ✗ → ←"
+ASSERT stdout contains "✓"
+ASSERT stdout contains "→"
+
+TEST "empty output handling"
+
+RUN printf ""
+ASSERT exit_code == 0
+
+TEST "multiline output"
+
+RUN printf "line1\nline2\nline3"
+ASSERT stdout contains "line1"
+ASSERT stdout contains "line2"
+ASSERT stdout contains "line3"

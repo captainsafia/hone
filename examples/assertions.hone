@@ -1,0 +1,56 @@
+# Comprehensive assertion examples
+
+#! shell: /bin/bash
+
+TEST "stdout contains assertion"
+
+RUN echo "Hello, World!"
+ASSERT stdout contains "Hello"
+ASSERT stdout contains "World"
+ASSERT stdout contains ","
+
+TEST "stdout equals assertion"
+
+RUN printf "exact output"
+ASSERT stdout == "exact output"
+
+TEST "stdout not equals assertion"
+
+RUN echo "some output"
+ASSERT stdout != "different output"
+
+TEST "stdout regex matching"
+
+RUN echo "Version 1.2.3"
+ASSERT stdout matches /Version \d+\.\d+\.\d+/
+
+TEST "case insensitive regex"
+
+RUN echo "Hello World"
+ASSERT stdout matches /hello world/i
+
+TEST "exit code assertions"
+
+RUN true
+ASSERT exit_code == 0
+
+RUN false
+ASSERT exit_code != 0
+
+# Use subshell for exit to prevent killing the shell session
+RUN (exit 42)
+ASSERT exit_code == 42
+
+TEST "stderr capture"
+
+RUN sh -c 'echo "error message" >&2'
+ASSERT stderr contains "error message"
+
+TEST "named run targets"
+
+RUN first: echo "first command"
+RUN second: echo "second command"
+ASSERT first.stdout contains "first"
+ASSERT second.stdout contains "second"
+ASSERT first.exit_code == 0
+ASSERT second.exit_code == 0
