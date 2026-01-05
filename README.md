@@ -19,9 +19,6 @@ Write tests in a simple, line-oriented DSL that executes real shell commands and
 # Install latest release
 curl https://i.captainsafia.sh/captainsafia/hone | sh
 
-# Install to /usr/local/bin (may require sudo)
-curl "https://i.captainsafia.sh/captainsafia/hone?move=1" | sh
-
 # Install a specific version
 curl https://i.captainsafia.sh/captainsafia/hone/v1.0.0 | sh
 
