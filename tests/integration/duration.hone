@@ -1,0 +1,18 @@
+#! shell: /bin/bash
+
+TEST "quick command duration"
+RUN echo "fast"
+ASSERT duration >= 0ms
+ASSERT duration < 1000ms
+
+TEST "timed sleep"
+RUN sleep 0.1
+ASSERT duration >= 100ms
+ASSERT duration < 300ms
+
+TEST "duration comparison operators"
+RUN sleep 0.01
+ASSERT duration > 0ms
+ASSERT duration >= 0ms
+ASSERT duration < 999999s
+ASSERT duration <= 999999s

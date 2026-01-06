@@ -1,0 +1,26 @@
+#! shell: /bin/bash
+
+TEST "file existence"
+RUN echo "content" > testfile.txt
+ASSERT file "testfile.txt" exists
+
+TEST "file content check"
+RUN echo "test content" > contentfile.txt
+ASSERT file "contentfile.txt" contains "test content"
+
+TEST "file exact content"
+RUN printf "exact" > exactfile.txt
+ASSERT file "exactfile.txt" == "exact"
+
+TEST "file regex match"
+RUN echo "file123.txt" > regexfile.txt
+ASSERT file "regexfile.txt" matches /file\d+\.txt/
+
+TEST "empty file"
+RUN touch emptyfile.txt
+ASSERT file "emptyfile.txt" exists
+ASSERT file "emptyfile.txt" == ""
+
+TEST "file not equals"
+RUN echo "content" > neqfile.txt
+ASSERT file "neqfile.txt" != "different"

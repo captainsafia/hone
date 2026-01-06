@@ -1,0 +1,14 @@
+#! shell: /bin/bash
+
+TEST "emoji support"
+RUN echo "Hello 🌍"
+ASSERT stdout contains "🌍"
+
+TEST "multi-language text"
+RUN echo "Hello 世界 مرحبا"
+ASSERT stdout contains "世界"
+ASSERT stdout contains "مرحبا"
+
+TEST "combining characters"
+RUN echo "café"
+ASSERT stdout contains "café"

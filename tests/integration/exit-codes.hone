@@ -1,0 +1,21 @@
+#! shell: /bin/bash
+
+TEST "exit code zero"
+RUN true
+ASSERT exit_code == 0
+
+TEST "exit code non-zero"
+RUN false
+ASSERT exit_code != 0
+
+TEST "specific exit code"
+RUN bash -c 'exit 42'
+ASSERT exit_code == 42
+
+TEST "maximum exit code"
+RUN bash -c 'exit 255'
+ASSERT exit_code == 255
+
+TEST "exit code wraparound"
+RUN bash -c 'exit 256'
+ASSERT exit_code == 0

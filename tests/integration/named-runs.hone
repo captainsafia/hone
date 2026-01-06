@@ -1,0 +1,15 @@
+#! shell: /bin/bash
+
+TEST "named run targets"
+RUN cmd1: echo "first"
+RUN cmd2: echo "second"
+ASSERT cmd1.stdout contains "first"
+ASSERT cmd2.stdout contains "second"
+ASSERT cmd1.exit_code == 0
+ASSERT cmd2.exit_code == 0
+
+TEST "named run duration"
+RUN quick: echo "instant"
+RUN slow: sleep 0.05
+ASSERT quick.duration < 100ms
+ASSERT slow.duration >= 50ms

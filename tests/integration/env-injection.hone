@@ -1,0 +1,41 @@
+#! shell: /bin/bash
+
+TEST "ENV single quote escaping"
+ENV QUOTE_VAR=it's a test
+RUN echo "$QUOTE_VAR"
+ASSERT stdout contains "it's a test"
+
+TEST "ENV multiple single quotes"
+ENV MULTI_QUOTE=don't won't can't
+RUN echo "$MULTI_QUOTE"
+ASSERT stdout contains "don't won't can't"
+
+TEST "ENV semicolon literal"
+ENV INJECT_SEMI=test;whoami
+RUN echo "$INJECT_SEMI"
+ASSERT stdout contains "test;whoami"
+
+TEST "ENV command substitution prevented"
+ENV INJECT_CMD=$(whoami)
+RUN echo "value: $INJECT_CMD"
+ASSERT stdout contains "value: $(whoami)"
+
+TEST "ENV backtick literal"
+ENV INJECT_BACKTICK=`pwd`
+RUN echo "value: $INJECT_BACKTICK"
+ASSERT stdout contains "value: `pwd`"
+
+TEST "ENV ampersand literal"
+ENV INJECT_AMP=test&whoami
+RUN echo "$INJECT_AMP"
+ASSERT stdout contains "test&whoami"
+
+TEST "ENV pipe literal"
+ENV INJECT_PIPE=test|whoami
+RUN echo "$INJECT_PIPE"
+ASSERT stdout contains "test|whoami"
+
+TEST "ENV dollar sign literal"
+ENV INJECT_VAR=$HOME
+RUN echo "$INJECT_VAR"
+ASSERT stdout contains "$HOME"

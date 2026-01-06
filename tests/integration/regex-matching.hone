@@ -1,0 +1,21 @@
+#! shell: /bin/bash
+
+TEST "case insensitive regex"
+RUN echo "TeSt"
+ASSERT stdout matches /test/i
+
+TEST "regex with escaping"
+RUN echo "test.string"
+ASSERT stdout matches /test\.string/
+
+TEST "string contains"
+RUN echo "Hello World"
+ASSERT stdout contains "World"
+
+TEST "string exact equals"
+RUN echo "exact"
+ASSERT stdout == "exact\n"
+
+TEST "string not equals"
+RUN echo "test"
+ASSERT stdout != "different"

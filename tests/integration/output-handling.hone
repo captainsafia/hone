@@ -1,0 +1,34 @@
+#! shell: /bin/bash
+
+TEST "large output handling"
+RUN seq 1 10000
+ASSERT exit_code == 0
+
+TEST "stderr capture"
+RUN echo "error message" >&2
+ASSERT stderr contains "error message"
+ASSERT stdout == ""
+
+TEST "mixed output streams"
+RUN bash -c 'echo "out"; echo "err" >&2'
+ASSERT stdout contains "out"
+ASSERT stderr contains "err"
+
+TEST "empty stdout"
+RUN true
+ASSERT stdout == ""
+ASSERT exit_code == 0
+
+TEST "whitespace preservation"
+RUN echo "   "
+ASSERT stdout contains " "
+
+TEST "newline handling"
+RUN printf "line1\nline2\nline3"
+ASSERT stdout contains "line1"
+ASSERT stdout contains "line2"
+ASSERT stdout contains "line3"
+
+TEST "tab character preservation"
+RUN printf "col1\tcol2\tcol3"
+ASSERT stdout contains "col1"

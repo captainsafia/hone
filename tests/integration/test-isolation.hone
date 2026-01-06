@@ -1,0 +1,44 @@
+# Test isolation between TEST blocks
+# Each TEST block runs in its own shell session
+
+#! shell: /bin/bash
+
+TEST "first test sets state"
+
+# Set a shell variable and change directory
+RUN MY_VAR="from_first_test"
+RUN cd /tmp
+RUN pwd
+ASSERT stdout contains "/tmp"
+
+TEST "second test has fresh environment"
+
+# The variable from the first test should not exist
+RUN echo "MY_VAR is: [$MY_VAR]"
+ASSERT stdout == "MY_VAR is: []\n"
+
+# pwd should be back to the original directory (not /tmp)
+RUN pwd
+ASSERT stdout != "/tmp\n"
+
+TEST "ENV vars work within a test"
+
+ENV EXPORTED_VAR="test_value"
+RUN echo $EXPORTED_VAR
+ASSERT stdout contains "test_value"
+
+TEST "ENV vars do not leak to next test"
+
+# The exported var from previous test should not exist
+RUN echo "EXPORTED_VAR is: [$EXPORTED_VAR]"
+ASSERT stdout == "EXPORTED_VAR is: []\n"
+
+TEST "working directory persists within same test"
+
+RUN cd /tmp
+RUN mkdir -p hone_test_subdir
+RUN cd hone_test_subdir
+RUN pwd
+ASSERT stdout contains "/tmp/hone_test_subdir"
+RUN cd ..
+RUN rm -rf hone_test_subdir

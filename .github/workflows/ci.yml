@@ -44,6 +44,9 @@ jobs:
         run: bun run build:compile
 
       - name: Run integration tests
+        run: ./hone run tests/integration --verbose
+
+      - name: Run example tests
         run: ./hone run examples --verbose
 
       - name: Upload build artifacts

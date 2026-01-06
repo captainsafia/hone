@@ -35,3 +35,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 **/.hone
 hone*
+
+# test-generated files
+tests/integration/*.txt
+tests/integration/wd_test_dir

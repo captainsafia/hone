@@ -1,0 +1,9 @@
+#! shell: /bin/bash
+
+TEST "ansi codes stripped from stdout"
+RUN echo -e "\e[31mred text\e[0m"
+ASSERT stdout contains "red text"
+
+TEST "ansi codes preserved in raw"
+RUN echo -e "\e[32mgreen\e[0m"
+ASSERT stdout.raw contains "[32m"
