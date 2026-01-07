@@ -1,15 +1,8 @@
-/**
- * Filesystem Assertions
- */
-
 import { readFile, stat, realpath } from "node:fs/promises";
 import { resolve, basename } from "node:path";
 import type { FilePredicate, StringLiteral, RegexLiteral } from "../parser/index.ts";
 import type { AssertionResult } from "./output.ts";
 
-/**
- * Evaluate file predicate
- */
 export async function evaluateFilePredicate(
   filePath: StringLiteral,
   predicate: FilePredicate,
@@ -36,9 +29,6 @@ export async function evaluateFilePredicate(
   }
 }
 
-/**
- * Check file existence with case sensitivity validation
- */
 async function checkFileExists(
   filePath: string,
   _cwd: string
@@ -61,9 +51,6 @@ async function checkFileExists(
   }
 }
 
-/**
- * Evaluate file exists predicate
- */
 async function evaluateFileExists(
   filePath: string,
   pathRaw: string,
@@ -87,9 +74,6 @@ async function evaluateFileExists(
   };
 }
 
-/**
- * Read file with validation
- */
 async function readFileContent(
   filePath: string,
   pathRaw: string,
@@ -135,9 +119,6 @@ async function readFileContent(
   }
 }
 
-/**
- * Evaluate file contains predicate
- */
 async function evaluateFileContains(
   filePath: string,
   value: StringLiteral,
@@ -155,9 +136,6 @@ async function evaluateFileContains(
   };
 }
 
-/**
- * Evaluate file matches predicate
- */
 async function evaluateFileMatches(
   filePath: string,
   value: RegexLiteral,
@@ -185,9 +163,6 @@ async function evaluateFileMatches(
   }
 }
 
-/**
- * Normalize whitespace for file content comparison
- */
 function normalizeFileContent(content: string): string {
   return content
     .replace(/\r\n/g, "\n")
@@ -197,9 +172,6 @@ function normalizeFileContent(content: string): string {
     .trim();
 }
 
-/**
- * Evaluate file equals predicate
- */
 async function evaluateFileEquals(
   filePath: string,
   operator: "==" | "!=",

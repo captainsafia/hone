@@ -1,9 +1,3 @@
-/**
- * Line-based Lexer for hone DSL
- *
- * Handles tokenization of individual lines and string parsing.
- */
-
 import type {
   StringLiteral,
   RegexLiteral,
@@ -28,9 +22,6 @@ export interface Token {
   line: number;
 }
 
-/**
- * Classify a line into its token type
- */
 export function classifyLine(line: string, lineNumber: number): Token {
   const trimmed = line.trim();
 
@@ -65,10 +56,6 @@ export function classifyLine(line: string, lineNumber: number): Token {
   return { type: "UNKNOWN", content: trimmed, line: lineNumber };
 }
 
-/**
- * Parse a string literal (single or double quoted)
- * Returns the parsed value and the number of characters consumed
- */
 export function parseStringLiteral(
   input: string,
   startIndex: number = 0
@@ -134,9 +121,6 @@ export function parseStringLiteral(
   return null;
 }
 
-/**
- * Parse a regex literal (/pattern/flags)
- */
 export function parseRegexLiteral(
   input: string,
   startIndex: number = 0
@@ -186,9 +170,6 @@ export function parseRegexLiteral(
   return null;
 }
 
-/**
- * Parse a duration value (e.g., "200ms", "1.5s")
- */
 export function parseDuration(
   input: string,
   startIndex: number = 0
@@ -243,9 +224,6 @@ export function parseDuration(
   };
 }
 
-/**
- * Parse a number
- */
 export function parseNumber(
   input: string,
   startIndex: number = 0
@@ -282,9 +260,6 @@ export function parseNumber(
   return { value, endIndex: i };
 }
 
-/**
- * Skip whitespace in input
- */
 export function skipWhitespace(input: string, startIndex: number): number {
   let i = startIndex;
   while (i < input.length && input[i] === " ") {
@@ -293,9 +268,6 @@ export function skipWhitespace(input: string, startIndex: number): number {
   return i;
 }
 
-/**
- * Match a word at current position
- */
 export function matchWord(
   input: string,
   startIndex: number,
@@ -310,9 +282,6 @@ export function matchWord(
   return nextChar === undefined || nextChar === " " || nextChar === ".";
 }
 
-/**
- * Parse a comparison operator
- */
 export function parseComparisonOperator(
   input: string,
   startIndex: number

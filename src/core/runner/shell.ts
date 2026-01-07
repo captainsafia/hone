@@ -1,9 +1,3 @@
-/**
- * Shell Session Management
- *
- * Manages a persistent PTY-backed shell session for test execution.
- */
-
 import { spawn, type Subprocess } from "bun";
 import { mkdir, readFile } from "node:fs/promises";
 import { join, basename } from "node:path";
@@ -16,9 +10,6 @@ import {
 } from "./sentinel.ts";
 import type { PragmaNode } from "../parser/index.ts";
 
-/**
- * Shell configuration
- */
 export interface ShellConfig {
   shell: string;
   env: Record<string, string>;
@@ -27,9 +18,6 @@ export interface ShellConfig {
   filename: string;
 }
 
-/**
- * Run result
- */
 export interface RunResult {
   runId: string;
   stdout: string;
@@ -40,35 +28,22 @@ export interface RunResult {
   stderrPath: string;
 }
 
-/**
- * Supported shells with their initialization flags
- */
 const SHELL_FLAGS: Record<string, string[]> = {
   bash: ["--norc", "--noprofile"],
   zsh: ["--no-rcs"],
   sh: [],
 };
 
-/**
- * Get shell flags for initialization
- */
 function getShellFlags(shellPath: string): string[] {
   const shellName = basename(shellPath);
   return SHELL_FLAGS[shellName] ?? [];
 }
 
-/**
- * Check if a shell is supported
- */
 export function isShellSupported(shellPath: string): boolean {
   const shellName = basename(shellPath);
   return shellName in SHELL_FLAGS;
 }
 
-/**
- * Shell Session class
- * Manages a persistent shell session for running test commands
- */
 export class ShellSession {
   private process: Subprocess<"pipe", "pipe", "pipe"> | null = null;
   private outputBuffer: string = "";
@@ -94,9 +69,6 @@ export class ShellSession {
     return now.toISOString().replace(/[:.]/g, "-").replace("T", "_").substring(0, 19);
   }
 
-  /**
-   * Start the shell session
-   */
   async start(): Promise<void> {
     const shellFlags = getShellFlags(this.config.shell);
 
@@ -126,9 +98,6 @@ export class ShellSession {
     await this.waitForReady();
   }
 
-  /**
-   * Start reading stdout continuously into buffer
-   */
   private startOutputReader(): void {
     if (!this.process?.stdout || this.reading) {
       return;
@@ -159,9 +128,6 @@ export class ShellSession {
     })();
   }
 
-  /**
-   * Wait for a string to appear in the output buffer
-   */
   private async waitForString(marker: string, timeoutMs: number): Promise<boolean> {
     const startTime = Date.now();
 
@@ -175,16 +141,10 @@ export class ShellSession {
     return false;
   }
 
-  /**
-   * Clear the output buffer
-   */
   private clearBuffer(): void {
     this.outputBuffer = "";
   }
 
-  /**
-   * Wait for shell to be ready (initial prompt)
-   */
   private async waitForReady(): Promise<void> {
     // Send a simple echo command and wait for response
     const readyMarker = `__HONE_READY_${Date.now()}__`;
@@ -202,16 +162,10 @@ export class ShellSession {
     this.clearBuffer();
   }
 
-  /**
-   * Set the current test name for run ID generation
-   */
   setCurrentTest(testName: string | undefined): void {
     this.currentTestName = testName;
   }
 
-  /**
-   * Set test-level environment variables
-   */
   async setEnvVars(vars: Array<{ key: string; value: string }>): Promise<void> {
     for (const { key, value } of vars) {
       await this.writeToShell(`export ${key}='${value.replace(/'/g, "'\\''")}'\n`);
@@ -221,9 +175,6 @@ export class ShellSession {
     await this.flush();
   }
 
-  /**
-   * Flush pending input and clear buffer
-   */
   private async flush(): Promise<void> {
     const flushMarker = `__HONE_FLUSH_${Date.now()}__`;
     await this.writeToShell(`echo "${flushMarker}"\n`);
@@ -232,9 +183,6 @@ export class ShellSession {
     this.clearBuffer();
   }
 
-  /**
-   * Execute a RUN command
-   */
   async run(command: string, name?: string): Promise<RunResult> {
     if (!this.process) {
       throw new Error("Shell session not started");
@@ -280,9 +228,6 @@ export class ShellSession {
     };
   }
 
-  /**
-   * Wait for sentinel to appear in output
-   */
   private async waitForSentinel(
     runId: string
   ): Promise<{ output: string; sentinel?: SentinelData }> {
@@ -308,9 +253,6 @@ export class ShellSession {
     );
   }
 
-  /**
-   * Get current working directory of the shell
-   */
   async getCwd(): Promise<string> {
     const marker = `__HONE_CWD_${Date.now()}__`;
     await this.writeToShell(`echo "${marker}$PWD${marker}"\n`);
@@ -329,9 +271,6 @@ export class ShellSession {
     return this.config.cwd; // Fallback
   }
 
-  /**
-   * Write to shell stdin
-   */
   private async writeToShell(data: string): Promise<void> {
     if (!this.process?.stdin) {
       throw new Error("Shell stdin not available");
@@ -340,9 +279,6 @@ export class ShellSession {
     this.process.stdin.write(data);
   }
 
-  /**
-   * Stop the shell session
-   */
   async stop(): Promise<void> {
     this.reading = false;
 
@@ -370,17 +306,11 @@ export class ShellSession {
     }
   }
 
-  /**
-   * Symbol.dispose for automatic cleanup
-   */
   [Symbol.dispose](): void {
     this.stop().catch(() => {});
   }
 }
 
-/**
- * Create shell config from pragmas
- */
 export function createShellConfig(
   pragmas: PragmaNode[],
   filename: string,

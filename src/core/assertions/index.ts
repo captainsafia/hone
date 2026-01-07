@@ -1,7 +1,3 @@
-/**
- * Assertions Module Exports
- */
-
 export * from "./output.ts";
 export * from "./exitcode.ts";
 export * from "./timing.ts";

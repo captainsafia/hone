@@ -1,11 +1,3 @@
-/**
- * AST Type Definitions for hone DSL
- *
- * Uses discriminated union types for TypeScript-friendly exhaustive checking.
- * All nodes include line numbers for error diagnostics.
- */
-
-// String literal types
 export type StringLiteral = {
   value: string;
   raw: string; // Original string including quotes

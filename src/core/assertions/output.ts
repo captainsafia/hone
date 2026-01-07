@@ -1,16 +1,9 @@
-/**
- * Output Assertions (stdout/stderr)
- */
-
 import type {
   OutputPredicate,
   RegexLiteral,
   StringLiteral,
 } from "../parser/index.ts";
 
-/**
- * Run result type (subset needed for assertions)
- */
 export interface RunResult {
   stdout: string;
   stdoutRaw: string;
@@ -19,9 +12,6 @@ export interface RunResult {
   durationMs: number;
 }
 
-/**
- * Assertion result
- */
 export interface AssertionResult {
   passed: boolean;
   expected: string;
@@ -29,9 +19,6 @@ export interface AssertionResult {
   error?: string;
 }
 
-/**
- * Get output value based on selector
- */
 export function getOutputValue(
   result: RunResult,
   selector: "stdout" | "stdout.raw" | "stderr"
@@ -46,9 +33,6 @@ export function getOutputValue(
   }
 }
 
-/**
- * Evaluate an output predicate
- */
 export function evaluateOutputPredicate(
   output: string,
   predicate: OutputPredicate
@@ -63,9 +47,6 @@ export function evaluateOutputPredicate(
   }
 }
 
-/**
- * Evaluate contains predicate
- */
 function evaluateContains(
   output: string,
   value: StringLiteral
@@ -78,9 +59,6 @@ function evaluateContains(
   };
 }
 
-/**
- * Evaluate matches predicate (regex)
- */
 function evaluateMatches(
   output: string,
   value: RegexLiteral
@@ -103,9 +81,6 @@ function evaluateMatches(
   }
 }
 
-/**
- * Evaluate equals predicate (== or !=)
- */
 function evaluateEquals(
   output: string,
   operator: "==" | "!=",
@@ -125,11 +100,6 @@ function evaluateEquals(
   };
 }
 
-/**
- * Normalize whitespace for comparison
- * - Trim trailing whitespace from each line
- * - Normalize line endings to \n
- */
 function normalizeWhitespace(str: string): string {
   return str
     .replace(/\r\n/g, "\n") // Normalize line endings
