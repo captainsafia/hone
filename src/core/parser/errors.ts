@@ -1,7 +1,3 @@
-/**
- * Parse Error Collection and Reporting
- */
-
 import type { ParseError, ParseWarning } from "./ast.ts";
 
 export class ParseErrorCollector {
@@ -41,16 +37,10 @@ export class ParseErrorCollector {
     return [...this.warnings];
   }
 
-  /**
-   * Format error for display
-   */
   static formatError(error: ParseError): string {
     return `${error.filename}:${error.line} :: ${error.message}`;
   }
 
-  /**
-   * Format warning for display
-   */
   static formatWarning(warning: ParseWarning): string {
     return `${warning.filename}:${warning.line} :: Warning: ${warning.message}`;
   }

@@ -1,9 +1,3 @@
-/**
- * Test Runner Orchestration
- *
- * Main entry point for running hone tests.
- */
-
 import { readFile, stat } from "node:fs/promises";
 import { resolve, dirname, basename } from "node:path";
 import { glob } from "glob";
@@ -35,9 +29,6 @@ import {
 
 export { DefaultReporter, type Reporter, type TestResults };
 
-/**
- * Runner options
- */
 export interface RunnerOptions {
   shell?: string;
   verbose?: boolean;
@@ -45,9 +36,6 @@ export interface RunnerOptions {
   cwd?: string;
 }
 
-/**
- * Run result for a single file
- */
 interface FileRunResult {
   filename: string;
   passed: boolean;
@@ -56,9 +44,6 @@ interface FileRunResult {
   failure?: TestFailure;
 }
 
-/**
- * Run tests from paths, directories, or glob patterns
- */
 export async function runTests(
   patterns: string[],
   options: RunnerOptions = {}
@@ -156,9 +141,6 @@ export async function runTests(
   return testResults;
 }
 
-/**
- * Resolve files from a pattern, file path, or directory
- */
 async function resolveFiles(pattern: string, cwd: string): Promise<string[]> {
   const resolved = resolve(cwd, pattern);
 
@@ -187,9 +169,6 @@ async function resolveFiles(pattern: string, cwd: string): Promise<string[]> {
   return matches.sort();
 }
 
-/**
- * Run a single test file
- */
 async function runFile(
   parsed: ParsedFile,
   filename: string,
@@ -271,18 +250,12 @@ async function runFile(
   };
 }
 
-/**
- * A test block with its nodes
- */
 interface TestBlock {
   testName?: string;
   testNode?: ASTNode;
   nodes: ASTNode[];
 }
 
-/**
- * Group nodes by TEST block
- */
 function groupNodesByTest(nodes: ASTNode[]): TestBlock[] {
   const blocks: TestBlock[] = [];
   let currentBlock: TestBlock = { nodes: [] };
@@ -313,17 +286,11 @@ function groupNodesByTest(nodes: ASTNode[]): TestBlock[] {
   return blocks;
 }
 
-/**
- * Execute result
- */
 interface ExecuteResult {
   assertionsPassed: number;
   failure?: TestFailure;
 }
 
-/**
- * Execute a single test block
- */
 async function executeTestBlock(
   block: TestBlock,
   session: ShellSession,
@@ -412,9 +379,6 @@ async function executeTestBlock(
   return { assertionsPassed };
 }
 
-/**
- * Evaluate an assertion
- */
 async function evaluateAssertion(
   node: AssertNode,
   lastRunResult: RunResult | undefined,

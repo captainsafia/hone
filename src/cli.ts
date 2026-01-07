@@ -1,11 +1,5 @@
 #!/usr/bin/env bun
 
-/**
- * hone - CLI Integration Test Runner
- *
- * A testing tool for command-line applications.
- */
-
 import { Command } from "commander";
 import chalk from "chalk";
 import { runTests, DefaultReporter } from "./core/runner/index.ts";

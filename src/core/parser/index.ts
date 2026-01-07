@@ -1,10 +1,3 @@
-/**
- * Main Parser for hone DSL
- *
- * Hand-written, line-based parser that builds an AST with line numbers
- * for error diagnostics.
- */
-
 import type {
   ASTNode,
   PragmaNode,
@@ -34,9 +27,6 @@ import {
 export * from "./ast.ts";
 export * from "./errors.ts";
 
-/**
- * Parse a hone DSL file
- */
 export function parseFile(content: string, filename: string): ParseResult {
   const lines = content.split("\n");
   const collector = new ParseErrorCollector(filename);
@@ -143,9 +133,6 @@ export function parseFile(content: string, filename: string): ParseResult {
   };
 }
 
-/**
- * Parse a pragma line
- */
 function parsePragma(
   content: string,
   line: number,
@@ -225,9 +212,6 @@ function parsePragma(
   }
 }
 
-/**
- * Parse a TEST line
- */
 function parseTest(
   content: string,
   line: number,
@@ -263,9 +247,6 @@ function parseTest(
   };
 }
 
-/**
- * Parse a RUN line
- */
 function parseRun(
   content: string,
   line: number,
@@ -318,9 +299,6 @@ function parseRun(
   };
 }
 
-/**
- * Parse an ENV line
- */
 function parseEnv(
   content: string,
   line: number,
@@ -360,9 +338,6 @@ function parseEnv(
   };
 }
 
-/**
- * Parse an ASSERT line
- */
 function parseAssert(
   content: string,
   line: number,
@@ -384,9 +359,6 @@ function parseAssert(
   };
 }
 
-/**
- * Parse an assertion expression
- */
 function parseAssertionExpression(
   input: string,
   line: number,
@@ -456,9 +428,6 @@ function parseAssertionExpression(
   return null;
 }
 
-/**
- * Parse an output assertion (stdout/stderr)
- */
 function parseOutputAssertion(
   input: string,
   startIndex: number,
@@ -545,9 +514,6 @@ function parseOutputAssertion(
   return null;
 }
 
-/**
- * Parse an exit code assertion
- */
 function parseExitCodeAssertion(
   input: string,
   startIndex: number,
@@ -584,9 +550,6 @@ function parseExitCodeAssertion(
   };
 }
 
-/**
- * Parse a duration assertion
- */
 function parseDurationAssertion(
   input: string,
   startIndex: number,
@@ -620,9 +583,6 @@ function parseDurationAssertion(
   };
 }
 
-/**
- * Parse a file assertion
- */
 function parseFileAssertion(
   input: string,
   line: number,

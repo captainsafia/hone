@@ -1,15 +1,6 @@
-/**
- * Reporter Interface and Default Implementation
- *
- * Handles progress output and error reporting.
- */
-
 import chalk from "chalk";
 import type { ParseError } from "../parser/index.ts";
 
-/**
- * Test failure information
- */
 export interface TestFailure {
   filename: string;
   line: number;
@@ -21,9 +12,6 @@ export interface TestFailure {
   error?: string;
 }
 
-/**
- * Test results summary
- */
 export interface TestResults {
   totalFiles: number;
   passedFiles: number;
@@ -34,9 +22,6 @@ export interface TestResults {
   failures: TestFailure[];
 }
 
-/**
- * Reporter interface for progress and error output
- */
 export interface Reporter {
   onFileStart(filename: string): void;
   onRunComplete(runId: string, success: boolean): void;
@@ -48,9 +33,6 @@ export interface Reporter {
   onSummary(results: TestResults): void;
 }
 
-/**
- * Default reporter implementation
- */
 export class DefaultReporter implements Reporter {
   private verbose: boolean;
   private currentFile: string = "";

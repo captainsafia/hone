@@ -1,16 +1,6 @@
-/**
- * Sentinel Protocol Implementation
- *
- * Handles command framing and completion detection for persistent shell sessions.
- */
-
-// ASCII Unit Separator
 const UNIT_SEPARATOR = "\x1f";
 const SENTINEL_PREFIX = "__HONE__";
 
-/**
- * Sentinel data parsed from output
- */
 export interface SentinelData {
   runId: string;
   exitCode: number;
@@ -19,9 +9,6 @@ export interface SentinelData {
 
 import { basename } from "node:path";
 
-/**
- * Generate a run ID for a command
- */
 export function generateRunId(
   filename: string,
   testName: string | undefined,
@@ -44,9 +31,6 @@ export function generateRunId(
   return parts.join("-");
 }
 
-/**
- * Generate the shell wrapper command for a RUN
- */
 export function generateShellWrapper(
   command: string,
   runId: string,
@@ -67,9 +51,6 @@ export function generateShellWrapper(
   ].join("\n");
 }
 
-/**
- * Parse a sentinel line from output
- */
 export function parseSentinel(line: string): SentinelData | null {
   // Expected format: __HONE__<US><RUN_ID><US><EXIT_CODE><US><END_TS_MS>
   if (!line.startsWith(SENTINEL_PREFIX)) {
@@ -102,17 +83,10 @@ export function parseSentinel(line: string): SentinelData | null {
   };
 }
 
-/**
- * Check if a line contains a sentinel
- */
 export function containsSentinel(line: string): boolean {
   return line.includes(SENTINEL_PREFIX);
 }
 
-/**
- * Extract sentinel from output buffer, returning output before sentinel
- * and the sentinel data
- */
 export function extractSentinel(
   buffer: string,
   expectedRunId: string

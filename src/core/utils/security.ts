@@ -1,12 +1,5 @@
-/**
- * Path Validation and Security Utilities
- */
-
 import { resolve, normalize, isAbsolute } from "node:path";
 
-/**
- * Validate that a file path does not traverse outside the allowed directory
- */
 export function validatePathSecurity(
   filePath: string,
   baseDir: string
@@ -29,9 +22,6 @@ export function validatePathSecurity(
   return { valid: true, normalizedPath };
 }
 
-/**
- * Check if a path contains dangerous patterns
- */
 export function containsDangerousPatterns(filePath: string): boolean {
   // Check for common dangerous patterns
   const dangerousPatterns = [

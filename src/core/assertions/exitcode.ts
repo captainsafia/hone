@@ -1,13 +1,6 @@
-/**
- * Exit Code Assertions
- */
-
 import type { ExitCodePredicate } from "../parser/index.ts";
 import type { AssertionResult } from "./output.ts";
 
-/**
- * Evaluate exit code predicate
- */
 export function evaluateExitCodePredicate(
   exitCode: number,
   predicate: ExitCodePredicate
