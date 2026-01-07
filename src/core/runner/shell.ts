@@ -78,7 +78,6 @@ export class ShellSession {
   private runIndex: number = 0;
   private currentTestName: string | undefined;
   private artifactDir: string;
-  private testEnvVars: Set<string> = new Set();
 
   constructor(config: ShellConfig) {
     this.config = config;
@@ -184,19 +183,6 @@ export class ShellSession {
   }
 
   /**
-   * Get and clear the buffer up to a marker
-   */
-  private consumeBufferUntil(marker: string): string {
-    const idx = this.outputBuffer.indexOf(marker);
-    if (idx === -1) {
-      return "";
-    }
-    const content = this.outputBuffer.substring(0, idx + marker.length);
-    this.outputBuffer = this.outputBuffer.substring(idx + marker.length);
-    return content;
-  }
-
-  /**
    * Wait for shell to be ready (initial prompt)
    */
   private async waitForReady(): Promise<void> {
@@ -229,23 +215,10 @@ export class ShellSession {
   async setEnvVars(vars: Array<{ key: string; value: string }>): Promise<void> {
     for (const { key, value } of vars) {
       await this.writeToShell(`export ${key}='${value.replace(/'/g, "'\\''")}'\n`);
-      this.testEnvVars.add(key);
     }
 
     // Wait a bit for the exports to complete
     await this.flush();
-  }
-
-  /**
-   * Unset test-level environment variables
-   */
-  async clearTestEnvVars(): Promise<void> {
-    if (this.testEnvVars.size > 0) {
-      const vars = Array.from(this.testEnvVars).join(" ");
-      await this.writeToShell(`unset ${vars}\n`);
-      this.testEnvVars.clear();
-      await this.flush();
-    }
   }
 
   /**
