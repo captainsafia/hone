@@ -208,61 +208,109 @@ async function runFile(
     options.shell
   );
 
-  // Start shell session
-  const session = new ShellSession(shellConfig);
+  // Group nodes by TEST block - each TEST gets its own shell session
+  const testBlocks = groupNodesByTest(parsed.nodes);
 
-  try {
-    await session.start();
+  let totalAssertionsPassed = 0;
+  let failure: TestFailure | undefined;
 
-    // Execute nodes
-    const result = await executeNodes(
-      parsed.nodes,
-      session,
-      filename,
-      reporter,
-      cwd
-    );
+  for (const block of testBlocks) {
+    // Create a fresh shell session for each TEST block
+    const session = new ShellSession(shellConfig);
 
-    console.log(); // Newline after progress dots
+    try {
+      await session.start();
 
-    if (result.failure) {
-      return {
+      const result = await executeTestBlock(
+        block,
+        session,
         filename,
-        passed: false,
-        assertionsPassed: result.assertionsPassed,
-        assertionsFailed: 1,
-        failure: result.failure,
+        reporter
+      );
+
+      totalAssertionsPassed += result.assertionsPassed;
+
+      if (result.failure) {
+        failure = result.failure;
+        break;
+      }
+    } catch (e) {
+      failure = {
+        filename,
+        line: block.testNode?.line ?? 0,
+        testName: block.testName,
+        error: (e as Error).message,
       };
+      break;
+    } finally {
+      await session.stop();
     }
+  }
 
-    console.log(
-      `PASS ${basename(filename)} (${result.assertionsPassed} assertion${result.assertionsPassed !== 1 ? "s" : ""})`
-    );
+  console.log(); // Newline after progress dots
 
-    return {
-      filename,
-      passed: true,
-      assertionsPassed: result.assertionsPassed,
-      assertionsFailed: 0,
-    };
-  } catch (e) {
-    const failure: TestFailure = {
-      filename,
-      line: 0,
-      error: (e as Error).message,
-    };
-    reporter.onFailure(failure);
-
+  if (failure) {
     return {
       filename,
       passed: false,
-      assertionsPassed: 0,
+      assertionsPassed: totalAssertionsPassed,
       assertionsFailed: 1,
       failure,
     };
-  } finally {
-    await session.stop();
   }
+
+  console.log(
+    `PASS ${basename(filename)} (${totalAssertionsPassed} assertion${totalAssertionsPassed !== 1 ? "s" : ""})`
+  );
+
+  return {
+    filename,
+    passed: true,
+    assertionsPassed: totalAssertionsPassed,
+    assertionsFailed: 0,
+  };
+}
+
+/**
+ * A test block with its nodes
+ */
+interface TestBlock {
+  testName?: string;
+  testNode?: ASTNode;
+  nodes: ASTNode[];
+}
+
+/**
+ * Group nodes by TEST block
+ */
+function groupNodesByTest(nodes: ASTNode[]): TestBlock[] {
+  const blocks: TestBlock[] = [];
+  let currentBlock: TestBlock = { nodes: [] };
+
+  for (const node of nodes) {
+    if (node.type === "test") {
+      // Start a new block
+      if (currentBlock.nodes.length > 0 || currentBlock.testName) {
+        blocks.push(currentBlock);
+      }
+      currentBlock = {
+        testName: node.name,
+        testNode: node,
+        nodes: [],
+      };
+    } else if (node.type === "pragma" || node.type === "comment") {
+      // Skip pragmas and comments - they're already processed
+    } else {
+      currentBlock.nodes.push(node);
+    }
+  }
+
+  // Push the last block
+  if (currentBlock.nodes.length > 0 || currentBlock.testName) {
+    blocks.push(currentBlock);
+  }
+
+  return blocks;
 }
 
 /**
@@ -274,37 +322,25 @@ interface ExecuteResult {
 }
 
 /**
- * Execute nodes in order
+ * Execute a single test block
  */
-async function executeNodes(
-  nodes: ASTNode[],
+async function executeTestBlock(
+  block: TestBlock,
   session: ShellSession,
   filename: string,
-  reporter: Reporter,
-  cwd: string
+  reporter: Reporter
 ): Promise<ExecuteResult> {
-  let currentTestName: string | undefined;
+  if (block.testName) {
+    session.setCurrentTest(block.testName);
+  }
+
   let lastRunResult: RunResult | undefined;
   const runResults = new Map<string, RunResult>();
   let assertionsPassed = 0;
   const pendingEnvVars: Array<{ key: string; value: string }> = [];
 
-  for (const node of nodes) {
+  for (const node of block.nodes) {
     switch (node.type) {
-      case "pragma":
-      case "comment":
-        // Already processed or ignored
-        break;
-
-      case "test": {
-        // Clear test-level env vars from previous test
-        await session.clearTestEnvVars();
-
-        currentTestName = node.name;
-        session.setCurrentTest(currentTestName);
-        break;
-      }
-
       case "env": {
         pendingEnvVars.push({ key: node.key, value: node.value });
         break;
@@ -333,7 +369,7 @@ async function executeNodes(
             failure: {
               filename,
               line: node.line,
-              testName: currentTestName,
+              testName: block.testName,
               runCommand: node.command,
               error: (e as Error).message,
             },
@@ -347,8 +383,7 @@ async function executeNodes(
           node,
           lastRunResult,
           runResults,
-          session,
-          cwd
+          session
         );
 
         if (!result.passed) {
@@ -357,7 +392,7 @@ async function executeNodes(
             failure: {
               filename,
               line: node.line,
-              testName: currentTestName,
+              testName: block.testName,
               runCommand: lastRunResult?.runId,
               assertion: node.raw,
               expected: result.expected,
@@ -384,8 +419,7 @@ async function evaluateAssertion(
   node: AssertNode,
   lastRunResult: RunResult | undefined,
   runResults: Map<string, RunResult>,
-  session: ShellSession,
-  _cwd: string
+  session: ShellSession
 ): Promise<AssertionResult> {
   const expr = node.expression;
 
