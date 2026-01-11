@@ -45,7 +45,7 @@ pub fn parse_file(content: &str, filename: &str) -> ParseResult {
 
             TokenType::Test => {
                 in_pragma_section = false;
-                if let Some(test) = parse_test(&token.content, line_number, &mut collector) {
+                if let Some(test) = parse_test(&token.content, line_number) {
                     nodes.push(ASTNode::Test(test));
                 }
             }
@@ -175,29 +175,12 @@ fn parse_pragma(
     }
 }
 
-fn parse_test(content: &str, line: usize, collector: &mut ParseErrorCollector) -> Option<TestNode> {
+fn parse_test(content: &str, line: usize) -> Option<TestNode> {
     // TEST "name"
     let rest = &content[5..]; // After "TEST "
     let result = parse_string_literal(rest, 0)?;
 
     let name = result.0.value.clone();
-
-    // Validate name characters
-    let valid = name
-        .chars()
-        .all(|c| c.is_alphanumeric() || c == ' ' || c == '_' || c == '-');
-
-    if !valid {
-        collector.add_error(
-            format!(
-                "Invalid test name: \"{}\". Names can only contain alphanumeric characters, spaces, dashes, and underscores",
-                name
-            ),
-            line,
-        );
-        return None;
-    }
-
     Some(TestNode { name, line })
 }
 
@@ -664,8 +647,37 @@ fn parse_file_assertion(
     }
 
     collector.add_error(
-        "Expected predicate (exists, contains, matches, ==, !=) after file path".to_string(),
+        "Expected predicate (exists, contains, ==, !=) after file path".to_string(),
         line,
     );
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse_test_name(name: &str) -> bool {
+        let content = format!("TEST \"{}\"", name);
+        parse_test(&content, 1).is_some()
+    }
+
+    #[test]
+    fn test_names_accept_any_characters() {
+        assert!(parse_test_name("simple"));
+        assert!(parse_test_name("Test123"));
+        assert!(parse_test_name("my test name"));
+        assert!(parse_test_name("test-with-dashes"));
+        assert!(parse_test_name("test_with_underscores"));
+        assert!(parse_test_name("test with equals = sign"));
+        assert!(parse_test_name("test with 'single quotes'"));
+        assert!(parse_test_name("test: with colon"));
+        assert!(parse_test_name("is this valid?"));
+        assert!(parse_test_name("test with @ symbol"));
+        assert!(parse_test_name("test with # hash"));
+        assert!(parse_test_name("test with $ dollar"));
+        assert!(parse_test_name("test with * asterisk"));
+        assert!(parse_test_name("test with | pipe"));
+        assert!(parse_test_name("émojis 🎉 work too"));
+    }
 }
