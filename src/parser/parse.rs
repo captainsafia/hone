@@ -669,6 +669,3 @@ fn parse_file_assertion(
     );
     None
 }
-
-// Convenience wrapper for backward compatibility
-pub use crate::parser::ast::HoneFile;

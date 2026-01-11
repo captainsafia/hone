@@ -1,8 +1,8 @@
 pub mod ast;
 pub mod errors;
 pub mod lexer;
-pub mod parser;
+mod parse;
 
 pub use ast::*;
 pub use errors::ParseError;
-pub use parser::parse_file;
+pub use parse::parse_file;

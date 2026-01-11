@@ -12,19 +12,10 @@ use crate::runner::shell::{create_shell_config, RunResult, ShellSession};
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RunnerOptions {
     pub shell: Option<String>,
     pub verbose: bool,
-}
-
-impl Default for RunnerOptions {
-    fn default() -> Self {
-        Self {
-            shell: None,
-            verbose: false,
-        }
-    }
 }
 
 struct FileRunResult {

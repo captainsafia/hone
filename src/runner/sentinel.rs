@@ -45,7 +45,7 @@ pub fn generate_shell_wrapper(command: &str, run_id: &str, stderr_path: &str) ->
     // (working directory, variables, etc.) across commands.
     // Note: Commands that would exit the shell (like bare `exit`) should
     // be wrapped in a subshell by the test: (exit 42) instead of exit 42
-    vec![
+    [
         format!(": > '{}'", escaped_stderr_path),
         format!("{{ {} ; }} 2> '{}'", command, escaped_stderr_path),
         "HONE_EC=$?".to_string(),
@@ -119,19 +119,18 @@ pub fn extract_sentinel(buffer: &str, expected_run_id: &str) -> SentinelExtractR
     let after_sentinel = &buffer[sentinel_index..];
     let newline_index = after_sentinel.find('\n');
 
-    let (sentinel_line, remaining) = if newline_index.is_none() {
+    let (sentinel_line, remaining) = if let Some(newline_index) = newline_index {
+        (
+            &after_sentinel[..newline_index],
+            &after_sentinel[newline_index + 1..],
+        )
+    } else {
         return SentinelExtractResult {
             found: false,
             output: buffer.to_string(),
             sentinel: None,
             remaining: String::new(),
         };
-    } else {
-        let newline_index = newline_index.unwrap();
-        (
-            &after_sentinel[..newline_index],
-            &after_sentinel[newline_index + 1..],
-        )
     };
 
     let parsed = parse_sentinel(sentinel_line.trim());
@@ -145,11 +144,7 @@ pub fn extract_sentinel(buffer: &str, expected_run_id: &str) -> SentinelExtractR
         };
     }
 
-    let clean_output = if output.ends_with('\n') {
-        &output[..output.len() - 1]
-    } else {
-        output
-    };
+    let clean_output = output.strip_suffix('\n').unwrap_or(output);
 
     SentinelExtractResult {
         found: true,

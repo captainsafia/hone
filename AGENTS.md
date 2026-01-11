@@ -10,6 +10,7 @@ This project is a Rust-based CLI tool for integration testing of command-line ap
 - Use `cargo run --release -- <args>` for optimized builds
 - Use `cargo clippy` for linting
 - Use `cargo fmt` for formatting
+- **Always run `cargo clippy` before considering code changes complete** to catch warnings and ensure code quality
 
 ## Running Integration Tests
 

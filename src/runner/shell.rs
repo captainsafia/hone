@@ -349,6 +349,7 @@ pub fn create_shell_config(
     );
 
     let mut timeout_ms = 30000; // 30 seconds default
+    let timeout_re = regex::Regex::new(r"^(\d+(?:\.\d+)?)(ms|s)$").unwrap();
 
     for pragma in pragmas {
         match pragma.pragma_type {
@@ -363,9 +364,7 @@ pub fn create_shell_config(
                 }
             }
             PragmaType::Timeout => {
-                // Parse timeout value
-                let re = regex::Regex::new(r"^(\d+(?:\.\d+)?)(ms|s)$").unwrap();
-                if let Some(captures) = re.captures(&pragma.value) {
+                if let Some(captures) = timeout_re.captures(&pragma.value) {
                     if let Ok(value) = captures.get(1).unwrap().as_str().parse::<f64>() {
                         let unit = captures.get(2).unwrap().as_str();
                         timeout_ms = if unit == "s" {
