@@ -45,6 +45,7 @@ pub fn parse_file(content: &str, filename: &str) -> ParseResult {
 
             TokenType::Test => {
                 in_pragma_section = false;
+                run_names.clear();
                 if let Some(test) = parse_test(&token.content, line_number) {
                     nodes.push(ASTNode::Test(test));
                 }
@@ -203,7 +204,7 @@ fn parse_run(
         if run_names.contains(&name) {
             collector.add_error(
                 format!(
-                    "Duplicate RUN name: \"{}\". RUN names must be unique across the entire file",
+                    "Duplicate RUN name: \"{}\". RUN names must be unique within a test",
                     name
                 ),
                 line,
