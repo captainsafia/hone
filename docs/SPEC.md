@@ -11,7 +11,7 @@ Tests are written in a **line-oriented DSL** that:
 * captures stdout and stderr separately,
 * and asserts on output, filesystem effects, exit codes, and timing.
 
-The runner is implemented as a **Bun binary written in TypeScript** and executes commands in a **PTY-backed shell** to preserve terminal-realistic behavior.
+The runner is implemented in **Rust** and executes commands in a **PTY-backed shell** to preserve terminal-realistic behavior.
 
 Windows is out of scope for v1.
 
@@ -641,91 +641,89 @@ Structure:
 
 ## Implementation Architecture
 
-This section documents the technical implementation approach based on patterns from the maintainer's other CLI tools (grove, burrow).
+This section documents the technical implementation approach.
 
 ### Technology Stack
 
-* **Runtime**: Bun (JavaScript runtime with built-in bundler, test runner, and TypeScript support)
-* **CLI Framework**: Commander.js v14
+* **Language**: Rust with Tokio async runtime
+* **CLI Framework**: clap v4 with derive macros
   * Make `run` the default command: `hone test.hone` and `hone run test.hone` both work
   * Leaves room for future commands (`hone validate`, `hone init`, etc.)
-* **Terminal Colors**: chalk with automatic TTY detection
+* **Terminal Colors**: owo-colors for colored output
+  * Automatically detects TTY support
   * Colored output in interactive terminals
-  * Plain output in CI environments (via `chalk.supportsColor`)
-* **ANSI Stripping**: strip-ansi package for removing escape codes
-* **Update Notifications**: gh-release-update-notifier
-  * Check for updates silently (no user-facing notifications)
-  * Log to debug output only
+  * Plain output in CI environments
+* **ANSI Stripping**: strip-ansi-escapes crate for removing escape codes
+* **Error Handling**: anyhow for error propagation, thiserror for custom error types
 
 ### Project Structure
 
 ```
 hone/
 ├── src/
-│   ├── cli.ts                 # Entry point, Commander setup, arg parsing
-│   └── core/
-│       ├── parser/
-│       │   ├── index.ts       # Main parser entry point
-│       │   ├── lexer.ts       # Line-based tokenization
-│       │   ├── ast.ts         # AST type definitions (discriminated unions)
-│       │   └── errors.ts      # Parse error collection and reporting
-│       ├── runner/
-│       │   ├── index.ts       # Test runner orchestration
-│       │   ├── shell.ts       # Shell session management
-│       │   ├── sentinel.ts    # Sentinel protocol implementation
-│       │   └── reporter.ts    # Progress/error reporting interface
-│       ├── pty/
-│       │   └── index.ts       # Direct Bun.Terminal usage (no abstraction)
-│       ├── assertions/
-│       │   ├── output.ts      # stdout/stderr assertions
-│       │   ├── filesystem.ts  # file assertions
-│       │   ├── timing.ts      # duration assertions
-│       │   └── exitcode.ts    # exit_code assertions
-│       └── utils/
-│           ├── ansi.ts        # ANSI code stripping utilities
-│           ├── cleanup.ts     # Resource cleanup with Symbol.dispose
-│           └── security.ts    # Path traversal validation
-├── tests/                     # Bun test files for unit tests
+│   ├── main.rs                # Entry point, clap setup, arg parsing
+│   ├── lib.rs                 # Library exports
+│   ├── parser/
+│   │   ├── mod.rs             # Parser module exports
+│   │   ├── parser.rs          # Main parser entry point
+│   │   ├── lexer.rs           # Line-based tokenization
+│   │   ├── ast.rs             # AST type definitions (enums)
+│   │   └── errors.rs          # Parse error collection and reporting
+│   ├── runner/
+│   │   ├── mod.rs             # Runner module exports
+│   │   ├── executor.rs        # Test runner orchestration
+│   │   ├── shell.rs           # Shell session management
+│   │   ├── sentinel.rs        # Sentinel protocol implementation
+│   │   └── reporter.rs        # Progress/error reporting interface
+│   ├── assertions/
+│   │   ├── mod.rs             # Assertions module exports
+│   │   ├── output.rs          # stdout/stderr assertions
+│   │   ├── filesystem.rs      # file assertions
+│   │   ├── timing.rs          # duration assertions
+│   │   └── exitcode.rs        # exit_code assertions
+│   └── utils/
+│       ├── mod.rs             # Utils module exports
+│       └── ansi.rs            # ANSI code stripping utilities
+├── tests/integration/         # .hone integration test files
 ├── examples/                  # .hone example files (living documentation)
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml            # Multi-OS testing, security audits
-│       └── release.yml       # Cross-compilation, code signing, releases
-├── package.json
-├── tsconfig.json
+│       ├── ci.yml             # Multi-OS testing, security audits
+│       └── release.yml        # Cross-compilation, releases
+├── Cargo.toml
+├── Cargo.lock
 └── README.md
 ```
 
 ### AST Design
 
-Use **discriminated union types** for TypeScript-friendly exhaustive checking:
+Use **Rust enums** for exhaustive pattern matching:
 
-```typescript
-type ASTNode =
-  | TestNode
-  | RunNode
-  | AssertNode
-  | EnvNode
-  | PragmaNode
-  | CommentNode;
-
-interface TestNode {
-  type: 'test';
-  name: string;
-  line: number;
+```rust
+pub enum ASTNode {
+    Test(TestNode),
+    Run(RunNode),
+    Assert(AssertNode),
+    Env(EnvNode),
+    Pragma(PragmaNode),
+    Comment(CommentNode),
 }
 
-interface RunNode {
-  type: 'run';
-  name?: string;
-  command: string;
-  line: number;
+pub struct TestNode {
+    pub name: String,
+    pub line: usize,
+}
+
+pub struct RunNode {
+    pub name: Option<String>,
+    pub command: String,
+    pub line: usize,
 }
 
 // ... etc
 ```
 
-* All nodes include `line: number` for error reporting
+* All nodes include `line: usize` for error reporting
 * Parser validates entire file and **collects all parse errors** before failing
 * Errors formatted as `filename:line` for editor/CI integration
 
@@ -741,17 +739,17 @@ interface RunNode {
 
 ### PTY and Shell Management
 
-* **Direct Bun.Terminal usage** (no abstraction layer)
-* One `ShellSession` class per test file
+* Uses Tokio's async process management with stdin/stdout/stderr pipes
+* One `ShellSession` struct per test file
 * Shell detection strategy:
   * **Allowlist**: bash, zsh (fast path)
   * **Probe**: unknown shells tested for capabilities (PS1, $?, printf)
   * Fail fast if shell doesn't meet requirements
 * Wait for first prompt using shell-specific detection
-* Resource cleanup via **hybrid approach**:
-  * `Symbol.dispose` pattern for normal cleanup
+* Resource cleanup via **Drop trait**:
+  * Implements `Drop` for automatic cleanup
   * SIGINT/SIGTERM handlers for graceful shutdown
-  * Ensures PTY and temp files are cleaned up
+  * Ensures processes and temp files are cleaned up
 
 ### Sentinel Protocol
 
@@ -789,13 +787,14 @@ Security hardening:
 
 Abstract progress/error reporting for clean separation:
 
-```typescript
-interface Reporter {
-  onFileStart(filename: string): void;
-  onRunComplete(runId: string, success: boolean): void;
-  onTestComplete(testName: string, passed: boolean): void;
-  onFailure(error: TestFailure): void;
-  onSummary(results: TestResults): void;
+```rust
+pub trait Reporter {
+    fn on_file_start(&self, filename: &str);
+    fn on_run_complete(&self, run_id: &str, success: bool);
+    fn on_assertion_pass(&self);
+    fn on_parse_errors(&self, errors: &[ParseErrorDetail]);
+    fn on_warning(&self, message: &str);
+    fn on_summary(&self, results: &TestResults);
 }
 ```
 
@@ -808,7 +807,7 @@ Default implementation:
 
 ### Multi-File Execution
 
-* **Parallel parsing**: parse all matched files concurrently using `Promise.all()`
+* **Parallel parsing**: parse all matched files concurrently using `futures::future::join_all()`
 * **Sequential execution**: run test files one at a time, isolated shells
 * **Failure collection**: continue running all files even if some fail
 * Final exit code: 0 for all pass, 1 if any fail
@@ -823,49 +822,32 @@ Default implementation:
 
 ### Resource Cleanup
 
-Hybrid cleanup strategy:
+Cleanup via Drop trait:
 
-```typescript
-class ShellSession {
-  [Symbol.dispose]() {
-    this.cleanup();
-  }
-
-  private cleanup() {
-    this.pty?.kill();
-    this.tempFiles.forEach(f => unlink(f));
-  }
+```rust
+impl Drop for ShellSession {
+    fn drop(&mut self) {
+        if let Some(mut process) = self.process.take() {
+            let _ = process.start_kill();
+        }
+    }
 }
-
-// Usage with 'using' declaration
-using session = new ShellSession(shell);
 ```
 
-Plus process signal handlers:
-
-```typescript
-process.on('SIGINT', () => {
-  // Cleanup all active sessions
-  activeSessions.forEach(s => s.cleanup());
-  process.exit(130);
-});
-```
+Plus process signal handlers for graceful shutdown on SIGINT/SIGTERM.
 
 ### Distribution
 
 * **Compiled standalone binaries** for all platforms:
   * Linux: x64, ARM64
   * macOS: x64 (Intel), ARM64 (Apple Silicon)
-* **Bundle all dependencies** with `bun build --compile`
-  * No node_modules required at runtime
-  * Single binary includes Bun runtime
-* **macOS code signing and notarization**:
-  * Sign binaries with Apple Developer certificate
-  * Notarize for Gatekeeper compatibility
-  * Prevents "untrusted developer" warnings
+* **Statically linked Rust binaries**:
+  * No runtime dependencies required
+  * Single binary with all code compiled in
+  * Cross-compiled using `cross` tool for different architectures
 * **GitHub Actions CI/CD**:
   * Multi-OS testing matrix (Linux, macOS)
-  * Security audits and dependency scanning
+  * Security audits with cargo-audit
   * Automated releases on git tags
   * Cross-compilation for all target platforms
 
@@ -874,13 +856,14 @@ process.on('SIGINT', () => {
 * **Dogfooding**: Use hone to test itself
   * Write `.hone` test files for integration testing
   * Proves the tool works for real-world use cases
-* **Bun test runner** for unit tests:
+* **Cargo test** for unit tests:
   * Parser tests (valid/invalid syntax)
   * Assertion logic tests
   * Utility function tests
 * Test structure:
-  * `tests/unit/` - Bun test files for core logic
+  * Unit tests inline with code using `#[test]` annotations
   * `tests/integration/` - `.hone` files testing the CLI end-to-end
+  * `examples/` - `.hone` files serving as documentation and smoke tests
 
 ### Configuration
 
@@ -892,14 +875,14 @@ process.on('SIGINT', () => {
 
 ### Error Handling
 
-* **Centralized error handlers** like grove/burrow:
-  * Global `uncaughtException` handler
-  * Global `unhandledRejection` handler
+* **Centralized error handling with anyhow**:
+  * Error propagation using `?` operator
+  * Context added at each layer for debugging
   * Graceful shutdown with cleanup
-* Error output with chalk:
+* Error output with owo-colors:
   * Red for failures
   * Yellow for warnings
-  * Dim for context
+  * Dimmed for context
 * Parser errors collected and reported together
 * Runtime errors include full context (file, line, test name, command)
 

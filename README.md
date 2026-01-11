@@ -233,21 +233,21 @@ ASSERT stdout contains "/tmp"
 git clone https://github.com/captainsafia/hone.git
 cd hone
 
-# Install dependencies
-bun install
+# Build the project
+cargo build
 
 # Run tests
-bun test
+cargo test
 
 # Run integration tests
-bun run test:integration
+cargo run -- tests/integration/*.hone
 
-# Type check
-bun run typecheck
+# Run all example tests
+cargo run -- examples/*.hone
 
-# Lint
-bun run lint
+# Build release version
+cargo build --release
 
-# Build executable
-bun run build:compile
+# Install locally
+cargo install --path .
 ```

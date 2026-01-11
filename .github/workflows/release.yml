@@ -24,15 +24,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          bun-version: latest
+          targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
 
-      - name: Install dependencies
-        run: bun install
+      - name: Install cross-compilation tools
+        run: |
+          cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Set version in package.json
+      - name: Set version
         id: version
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
@@ -40,19 +41,27 @@ jobs:
             VERSION="${GITHUB_REF#refs/tags/v}"
           else
             # For main branch, generate prerelease version
-            CURRENT_VERSION=$(bun -e "console.log(require('./package.json').version)")
+            CURRENT_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
             COMMIT_SHA=${GITHUB_SHA::7}
             VERSION="${CURRENT_VERSION}-preview.${COMMIT_SHA}"
           fi
           echo "Setting version to: ${VERSION}"
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
-          npm version "${VERSION}" --no-git-tag-version --allow-same-version
+
+          # Update version in Cargo.toml
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" Cargo.toml
 
       - name: Build for Linux x64
-        run: bun run build:linux-x64
+        run: cross build --release --target x86_64-unknown-linux-gnu
 
       - name: Build for Linux ARM64
-        run: bun run build:linux-arm64
+        run: cross build --release --target aarch64-unknown-linux-gnu
+
+      - name: Rename binaries
+        run: |
+          cp target/x86_64-unknown-linux-gnu/release/hone hone-linux-x64
+          cp target/aarch64-unknown-linux-gnu/release/hone hone-linux-arm64
+          chmod +x hone-linux-x64 hone-linux-arm64
 
       - name: Upload Linux executables
         uses: actions/upload-artifact@v4
@@ -72,22 +81,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          bun-version: latest
+          targets: x86_64-apple-darwin,aarch64-apple-darwin
 
-      - name: Install dependencies
-        run: bun install
-
-      - name: Set version in package.json
-        run: npm version "${{ needs.build-linux.outputs.version }}" --no-git-tag-version --allow-same-version
+      - name: Set version in Cargo.toml
+        run: |
+          VERSION="${{ needs.build-linux.outputs.version }}"
+          sed -i '' "s/^version = .*/version = \"${VERSION}\"/" Cargo.toml
 
       - name: Build for macOS x64
-        run: bun run build:darwin-x64
+        run: cargo build --release --target x86_64-apple-darwin
 
       - name: Build for macOS ARM64
-        run: bun run build:darwin-arm64
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Rename binaries
+        run: |
+          cp target/x86_64-apple-darwin/release/hone hone-darwin-x64
+          cp target/aarch64-apple-darwin/release/hone hone-darwin-arm64
+          chmod +x hone-darwin-x64 hone-darwin-arm64
 
       - name: Upload macOS executables
         uses: actions/upload-artifact@v4
@@ -129,17 +143,19 @@ jobs:
           name: Preview v${{ needs.build-linux.outputs.version }}
           body: |
             ## Preview Release
-            
+
             This is an automated preview release from the `main` branch.
-            
+
             **Commit:** ${{ github.sha }}
-            
+
             ## Installation
-            
-            Download the appropriate binary for your platform below.
-            
+
+            ```
+            curl https://i.captainsafia.sh/captainsafia/hone/v${{ needs.build-linux.outputs.version }} | sh
+            ```
+
             ## Manual Downloads
-            
+
             | Platform | Architecture | Download |
             |----------|--------------|----------|
             | Linux | x64 | `hone-linux-x64` |
@@ -190,20 +206,22 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             ## Installation
-            
-            Download the appropriate binary for your platform below.
-            
+
+            ```
+            curl https://i.captainsafia.sh/captainsafia/hone/v${{ needs.build-linux.outputs.version }} | sh
+            ```
+
             ## Manual Downloads
-            
+
             | Platform | Architecture | Download |
             |----------|--------------|----------|
             | Linux | x64 | `hone-linux-x64` |
             | Linux | ARM64 | `hone-linux-arm64` |
             | macOS | x64 | `hone-darwin-x64` |
             | macOS | ARM64 | `hone-darwin-arm64` |
-            
+
             ## Changes
-            
+
             See the [commits](https://github.com/captainsafia/hone/compare/v${{ steps.version.outputs.VERSION }}...HEAD) for details.
           draft: false
           prerelease: false

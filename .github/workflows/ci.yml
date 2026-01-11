@@ -14,48 +14,58 @@ permissions:
 
 jobs:
   quality:
-    name: Type Check & Build
+    name: Build & Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          bun-version: latest
+          components: rustfmt, clippy
 
-      - name: Install dependencies
-        run: bun install
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Type check
-        run: bun run typecheck
+      - name: Cache Cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Run tests
-        run: bun test
+      - name: Cache Cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Lint
-        run: bun run lint
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
 
       - name: Build
-        run: bun run build
+        run: cargo build --release
 
-      - name: Build single-file executable
-        run: bun run build:compile
+      - name: Run unit tests
+        run: cargo test
 
       - name: Run integration tests
-        run: ./hone run tests/integration --verbose
+        run: cargo run --release -- tests/integration/*.hone --verbose
 
       - name: Run example tests
-        run: ./hone run examples --verbose
+        run: cargo run --release -- examples/*.hone --verbose
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: hone-build
-          path: |
-            dist/
-            hone
+          name: hone-ubuntu-latest
+          path: target/release/hone
 
   security:
     name: Security Audit
@@ -64,13 +74,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Install dependencies
-        run: bun install
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Run security audit
+        run: cargo audit
 
       - name: Check for outdated dependencies
-        run: bun outdated || true
+        run: cargo outdated --exit-code 0 || true
+        continue-on-error: true

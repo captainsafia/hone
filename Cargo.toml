@@ -1,0 +1,31 @@
+[package]
+name = "hone"
+version = "1.0.0"
+edition = "2021"
+authors = ["Safia Abdalla"]
+license = "MIT"
+description = "A CLI integration test runner for command-line applications"
+repository = "https://github.com/captainsafia/hone"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "1"
+regex = "1"
+owo-colors = "4"
+strip-ansi-escapes = "0.2"
+glob = "0.3"
+chrono = "0.4"
+tempfile = "3"
+futures = "0.3"
+
+[dev-dependencies]
+assert_matches = "1"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

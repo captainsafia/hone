@@ -1,41 +1,36 @@
-# dependencies (bun install)
-node_modules
+# Rust / Cargo
+/target
 
-# output
-out
-dist
+# Test artifacts
+**/.hone
+tests/integration/*.txt
+tests/integration/wd_test_dir
+
+# Build artifacts
+dist/
+out/
 *.tgz
 
-# code coverage
-coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
+# Environment files
 .env
 .env.development.local
 .env.test.local
 .env.production.local
 .env.local
 
-# caches
-.eslintcache
-.cache
-*.tsbuildinfo
-
-# IntelliJ based IDEs
+# Editor / IDE
 .idea
+.vscode/
+*.swp
+*.swo
+*~
 
-# Finder (MacOS) folder config
+# OS files
 .DS_Store
+Thumbs.db
 
-**/.hone
+# Logs
+logs/
+*.log
+
 hone*
-
-# test-generated files
-tests/integration/*.txt
-tests/integration/wd_test_dir
