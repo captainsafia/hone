@@ -204,11 +204,7 @@ TEST "build and deploy"
 
 * `TEST` blocks are **optional** - a file can contain bare `RUN` and `ASSERT` statements
   * Bare statements (without a TEST block) are treated as a single implicit test
-* Test names must be quoted and can contain:
-  * Alphanumeric characters
-  * Spaces
-  * Dashes and underscores
-  * **No other special characters** (no quotes, symbols, etc.)
+* Test names must be quoted strings and allow any characters in test names
 * Tests execute **in order** within a file
 * All tests in a file share the **same shell session**
   * Shared working directory and filesystem state
@@ -255,8 +251,9 @@ Rules:
 
 * One command per RUN
 * Optional `name:` allows later assertions to reference this step
-  * Names must be **unique across the entire file** (not just within TEST)
-  * Duplicate names cause a parse error
+  * Names must be **unique within each TEST block**
+  * The same name can be reused in different TEST blocks
+  * Duplicate names within the same test cause a parse error
 * Commands are passed verbatim to the shell
 * Non-zero exit codes **do not** automatically fail the test
   * Tests only fail if an `ASSERT` explicitly checks and fails
