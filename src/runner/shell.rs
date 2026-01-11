@@ -1,5 +1,7 @@
-use crate::runner::sentinel::{extract_sentinel, generate_run_id, generate_shell_wrapper, SentinelData};
 use crate::parser::{PragmaNode, PragmaType};
+use crate::runner::sentinel::{
+    extract_sentinel, generate_run_id, generate_shell_wrapper, SentinelData,
+};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};

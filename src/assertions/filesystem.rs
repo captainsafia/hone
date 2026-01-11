@@ -31,33 +31,31 @@ pub async fn evaluate_file_predicate(
 
 async fn check_file_exists(file_path: &Path) -> FileExistsResult {
     match tokio::fs::metadata(file_path).await {
-        Ok(_) => {
-            match tokio::fs::canonicalize(file_path).await {
-                Ok(real_path) => {
-                    let expected_name = file_path.file_name().and_then(|s| s.to_str());
-                    let actual_name = real_path.file_name().and_then(|s| s.to_str());
+        Ok(_) => match tokio::fs::canonicalize(file_path).await {
+            Ok(real_path) => {
+                let expected_name = file_path.file_name().and_then(|s| s.to_str());
+                let actual_name = real_path.file_name().and_then(|s| s.to_str());
 
-                    if expected_name != actual_name {
-                        FileExistsResult {
-                            exists: true,
-                            casing_match: false,
-                            actual_name: actual_name.map(String::from),
-                        }
-                    } else {
-                        FileExistsResult {
-                            exists: true,
-                            casing_match: true,
-                            actual_name: None,
-                        }
+                if expected_name != actual_name {
+                    FileExistsResult {
+                        exists: true,
+                        casing_match: false,
+                        actual_name: actual_name.map(String::from),
+                    }
+                } else {
+                    FileExistsResult {
+                        exists: true,
+                        casing_match: true,
+                        actual_name: None,
                     }
                 }
-                Err(_) => FileExistsResult {
-                    exists: true,
-                    casing_match: true,
-                    actual_name: None,
-                },
             }
-        }
+            Err(_) => FileExistsResult {
+                exists: true,
+                casing_match: true,
+                actual_name: None,
+            },
+        },
         Err(_) => FileExistsResult {
             exists: false,
             casing_match: true,
