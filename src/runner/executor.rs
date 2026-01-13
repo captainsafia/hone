@@ -173,10 +173,12 @@ async fn resolve_files(pattern: &str, cwd: &str) -> anyhow::Result<Vec<String>> 
             // Use glob to find all .hone files in the directory
             let pattern = format!("{}/**/*.hone", resolved.to_string_lossy());
             let paths = glob::glob(&pattern)?;
-            return Ok(paths
+            let results: Vec<String> = paths
                 .filter_map(Result::ok)
+                .filter(|p| p.is_file())
                 .map(|p| p.to_string_lossy().to_string())
-                .collect());
+                .collect();
+            return Ok(results);
         }
     }
 
@@ -191,10 +193,12 @@ async fn resolve_files(pattern: &str, cwd: &str) -> anyhow::Result<Vec<String>> 
     };
 
     let paths = glob::glob(&glob_pattern)?;
-    Ok(paths
+    let results: Vec<String> = paths
         .filter_map(Result::ok)
+        .filter(|p| p.is_file())
         .map(|p| p.to_string_lossy().to_string())
-        .collect())
+        .collect();
+    Ok(results)
 }
 
 async fn run_file(
