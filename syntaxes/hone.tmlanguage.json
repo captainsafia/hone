@@ -1,0 +1,229 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Hone",
+  "scopeName": "source.hone",
+  "fileTypes": ["hone"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#pragmas" },
+    { "include": "#test-block" },
+    { "include": "#run-statement" },
+    { "include": "#env-statement" },
+    { "include": "#assert-statement" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.hone",
+          "match": "^\\s*#(?!!).*$"
+        }
+      ]
+    },
+    "pragmas": {
+      "patterns": [
+        {
+          "name": "meta.pragma.hone",
+          "match": "^(#!)\\s*(shell|env|timeout)(:)\\s*(.*)$",
+          "captures": {
+            "1": { "name": "punctuation.definition.pragma.hone" },
+            "2": { "name": "keyword.other.pragma.hone" },
+            "3": { "name": "punctuation.separator.pragma.hone" },
+            "4": { "name": "string.unquoted.pragma-value.hone" }
+          }
+        }
+      ]
+    },
+    "test-block": {
+      "patterns": [
+        {
+          "name": "meta.test.hone",
+          "match": "^(TEST)\\s+(\"[^\"]*\"|'[^']*')\\s*$",
+          "captures": {
+            "1": { "name": "keyword.control.test.hone" },
+            "2": { "name": "string.quoted.test-name.hone" }
+          }
+        }
+      ]
+    },
+    "run-statement": {
+      "patterns": [
+        {
+          "comment": "Named RUN statement: RUN name: command",
+          "name": "meta.run.named.hone",
+          "match": "^(RUN)\\s+([a-zA-Z_][a-zA-Z0-9_]*)(:)\\s*(.*)$",
+          "captures": {
+            "1": { "name": "keyword.control.run.hone" },
+            "2": { "name": "entity.name.tag.run-label.hone" },
+            "3": { "name": "punctuation.separator.run.hone" },
+            "4": { "name": "string.unquoted.shell-command.hone" }
+          }
+        },
+        {
+          "comment": "Simple RUN statement: RUN command",
+          "name": "meta.run.hone",
+          "match": "^(RUN)\\s+(.+)$",
+          "captures": {
+            "1": { "name": "keyword.control.run.hone" },
+            "2": { "name": "string.unquoted.shell-command.hone" }
+          }
+        }
+      ]
+    },
+    "env-statement": {
+      "patterns": [
+        {
+          "name": "meta.env.hone",
+          "match": "^(ENV)\\s+([a-zA-Z_][a-zA-Z0-9_]*)(=)(.*)$",
+          "captures": {
+            "1": { "name": "keyword.control.env.hone" },
+            "2": { "name": "variable.other.env-name.hone" },
+            "3": { "name": "keyword.operator.assignment.hone" },
+            "4": { "name": "string.unquoted.env-value.hone" }
+          }
+        }
+      ]
+    },
+    "assert-statement": {
+      "patterns": [
+        {
+          "comment": "File assertion with operator",
+          "name": "meta.assert.file.hone",
+          "begin": "^(ASSERT)\\s+(file)\\s+",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.assert.hone" },
+            "2": { "name": "support.type.assertion-target.hone" }
+          },
+          "end": "$",
+          "patterns": [
+            { "include": "#strings" },
+            { "include": "#file-operators" },
+            { "include": "#comparison-operators" },
+            { "include": "#regex-pattern" }
+          ]
+        },
+        {
+          "comment": "Named target assertion (e.g., build.exit_code)",
+          "name": "meta.assert.named.hone",
+          "begin": "^(ASSERT)\\s+([a-zA-Z_][a-zA-Z0-9_]*)(\\.)([a-zA-Z_][a-zA-Z0-9_]*)\\s*",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.assert.hone" },
+            "2": { "name": "entity.name.tag.run-reference.hone" },
+            "3": { "name": "punctuation.accessor.hone" },
+            "4": { "name": "support.type.assertion-target.hone" }
+          },
+          "end": "$",
+          "patterns": [
+            { "include": "#comparison-operators" },
+            { "include": "#string-operators" },
+            { "include": "#strings" },
+            { "include": "#numbers" },
+            { "include": "#duration" },
+            { "include": "#regex-pattern" }
+          ]
+        },
+        {
+          "comment": "Standard assertion (stdout, stderr, exit_code, duration)",
+          "name": "meta.assert.hone",
+          "begin": "^(ASSERT)\\s+(stdout\\.raw|stdout|stderr|exit_code|duration)\\s*",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.assert.hone" },
+            "2": { "name": "support.type.assertion-target.hone" }
+          },
+          "end": "$",
+          "patterns": [
+            { "include": "#comparison-operators" },
+            { "include": "#string-operators" },
+            { "include": "#strings" },
+            { "include": "#numbers" },
+            { "include": "#duration" },
+            { "include": "#regex-pattern" }
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.hone",
+          "begin": "\"",
+          "end": "\"",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.hone" }
+          },
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.hone" }
+          },
+          "patterns": [
+            {
+              "name": "constant.character.escape.hone",
+              "match": "\\\\(?:[\"\\\\nrt]|x[0-9a-fA-F]{2})"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.hone",
+          "begin": "'",
+          "end": "'",
+          "beginCaptures": {
+            "0": { "name": "punctuation.definition.string.begin.hone" }
+          },
+          "endCaptures": {
+            "0": { "name": "punctuation.definition.string.end.hone" }
+          }
+        }
+      ]
+    },
+    "regex-pattern": {
+      "patterns": [
+        {
+          "name": "string.regexp.hone",
+          "match": "/(?:[^/\\\\]|\\\\.)+/[imsx]*",
+          "captures": {
+            "0": { "name": "string.regexp.hone" }
+          }
+        }
+      ]
+    },
+    "comparison-operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.comparison.hone",
+          "match": "==|!=|<=|<|>=|>"
+        }
+      ]
+    },
+    "string-operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.string.hone",
+          "match": "\\b(contains|matches)\\b"
+        }
+      ]
+    },
+    "file-operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.file.hone",
+          "match": "\\b(exists|contains|matches)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hone",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+    "duration": {
+      "patterns": [
+        {
+          "name": "constant.numeric.duration.hone",
+          "match": "\\b\\d+(ms|s|m|h)\\b"
+        }
+      ]
+    }
+  }
+}

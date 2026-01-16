@@ -1,0 +1,41 @@
+{
+  "name": "hone",
+  "displayName": "Hone",
+  "description": "Syntax highlighting for the Hone CLI integration testing DSL",
+  "version": "0.1.0",
+  "publisher": "captainsafia",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/captainsafia/hone"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "hone",
+    "cli",
+    "testing",
+    "integration-testing",
+    "dsl"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "hone",
+        "aliases": ["Hone", "hone"],
+        "extensions": [".hone"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "hone",
+        "scopeName": "source.hone",
+        "path": "./syntaxes/hone.tmlanguage.json"
+      }
+    ]
+  }
+}
