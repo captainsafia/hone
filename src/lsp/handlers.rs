@@ -3,6 +3,7 @@ use async_lsp::{ClientSocket, LanguageClient};
 use std::collections::HashMap;
 
 use crate::lsp::completion::CompletionProvider;
+use crate::lsp::hover::HoverProvider;
 
 #[derive(Debug, Clone)]
 pub struct ServerState {
@@ -10,6 +11,7 @@ pub struct ServerState {
     pub shutdown_requested: bool,
     pub client: Option<ClientSocket>,
     pub completion_provider: CompletionProvider,
+    pub hover_provider: HoverProvider,
 }
 
 impl Default for ServerState {
@@ -19,6 +21,7 @@ impl Default for ServerState {
             shutdown_requested: false,
             client: None,
             completion_provider: CompletionProvider::new(),
+            hover_provider: HoverProvider::new(),
         }
     }
 }
@@ -62,6 +65,7 @@ pub fn handle_initialize(_params: InitializeParams) -> InitializeResult {
                 trigger_characters: Some(vec!["@".to_string(), " ".to_string()]),
                 ..Default::default()
             }),
+            hover_provider: Some(HoverProviderCapability::Simple(true)),
             ..Default::default()
         },
         server_info: Some(ServerInfo {
@@ -174,4 +178,13 @@ pub fn handle_completion(
     state
         .completion_provider
         .provide_completions(&parsed, &params)
+}
+
+pub fn handle_hover(state: &ServerState, params: HoverParams) -> Option<Hover> {
+    let uri = &params.text_document_position_params.text_document.uri;
+    tracing::debug!("Hover requested for: {}", uri);
+
+    let text = state.get_document(uri)?;
+
+    state.hover_provider.provide_hover(text, &params)
 }
