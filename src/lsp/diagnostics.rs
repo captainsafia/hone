@@ -1,4 +1,7 @@
-use crate::parser::{parse_file, ASTNode, ParseResult};
+use crate::parser::{
+    parse_file, ASTNode, AssertionExpression, ComparisonOperator, FilePredicate, OutputPredicate,
+    ParseResult,
+};
 use async_lsp::lsp_types::*;
 
 pub fn generate_diagnostics(uri: &Url, content: &str) -> Vec<Diagnostic> {
@@ -153,6 +156,10 @@ fn analyze_semantics(nodes: &[ASTNode]) -> Vec<Diagnostic> {
                         "Assertion 'expect' can only be used inside a @test block",
                     ));
                 }
+
+                // Type check assertion arguments
+                let type_diagnostics = check_assertion_types(assert_node);
+                diagnostics.extend(type_diagnostics);
             }
             ASTNode::Run(_) => {
                 if !in_test {
@@ -171,6 +178,94 @@ fn analyze_semantics(nodes: &[ASTNode]) -> Vec<Diagnostic> {
                 }
             }
             _ => {}
+        }
+    }
+
+    diagnostics
+}
+
+fn check_assertion_types(assert_node: &crate::parser::AssertNode) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+
+    match &assert_node.expression {
+        AssertionExpression::Output { predicate, .. } => match predicate {
+            OutputPredicate::Contains { value } | OutputPredicate::Equals { value, .. } => {
+                if value.value.is_empty() {
+                    diagnostics.push(create_semantic_diagnostic(
+                        assert_node.line,
+                        "String comparison value cannot be empty",
+                    ));
+                }
+            }
+            OutputPredicate::Matches { value } => {
+                if value.pattern.is_empty() {
+                    diagnostics.push(create_semantic_diagnostic(
+                        assert_node.line,
+                        "Regex pattern cannot be empty",
+                    ));
+                }
+            }
+        },
+        AssertionExpression::ExitCode { predicate, .. } => {
+            if predicate.value < 0 {
+                diagnostics.push(create_semantic_diagnostic(
+                    assert_node.line,
+                    "Exit code must be a non-negative integer (0-255)",
+                ));
+            } else if predicate.value > 255 {
+                diagnostics.push(create_semantic_diagnostic(
+                    assert_node.line,
+                    "Exit code must be in the range 0-255. Note: exit codes wrap around (256 becomes 0)",
+                ));
+            }
+        }
+        AssertionExpression::Duration { predicate, .. } => {
+            if predicate.value.value < 0.0 {
+                diagnostics.push(create_semantic_diagnostic(
+                    assert_node.line,
+                    "Duration value must be non-negative",
+                ));
+            }
+            if predicate.value.value == 0.0
+                && !matches!(
+                    predicate.operator,
+                    ComparisonOperator::GreaterThan
+                        | ComparisonOperator::GreaterThanOrEqual
+                        | ComparisonOperator::Equal
+                        | ComparisonOperator::NotEqual
+                )
+            {
+                diagnostics.push(create_semantic_diagnostic(
+                    assert_node.line,
+                    "Duration value of 0 may produce unexpected results",
+                ));
+            }
+        }
+        AssertionExpression::File { path, predicate } => {
+            if path.value.is_empty() {
+                diagnostics.push(create_semantic_diagnostic(
+                    assert_node.line,
+                    "File path cannot be empty",
+                ));
+            }
+
+            match predicate {
+                FilePredicate::Contains { value } | FilePredicate::Equals { value, .. } => {
+                    // Empty file content is valid, so no check needed
+                    let _ = value;
+                }
+                FilePredicate::Matches { value } => {
+                    if value.pattern.is_empty() {
+                        diagnostics.push(create_semantic_diagnostic(
+                            assert_node.line,
+                            "Regex pattern cannot be empty",
+                        ));
+                    }
+                }
+                FilePredicate::Exists => {
+                    // No type checking needed for exists
+                }
+            }
         }
     }
 
@@ -199,5 +294,102 @@ fn create_semantic_diagnostic(line: usize, message: &str) -> Diagnostic {
         related_information: None,
         tags: None,
         data: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_exit_code_too_large() {
+        let content = r#"TEST "test"
+RUN true
+ASSERT exit_code == 300"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let exit_code_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("Exit code must be in the range 0-255"))
+            .collect();
+
+        assert_eq!(exit_code_errors.len(), 1);
+    }
+
+    #[test]
+    fn test_exit_code_negative() {
+        let content = r#"TEST "test"
+RUN true
+ASSERT exit_code == -1"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let exit_code_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| {
+                d.message
+                    .contains("Exit code must be a non-negative integer")
+            })
+            .collect();
+
+        assert_eq!(exit_code_errors.len(), 1);
+    }
+
+    #[test]
+    fn test_negative_duration() {
+        let content = r#"TEST "test"
+RUN true
+ASSERT duration >= -100ms"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        // The parser itself rejects negative durations, so we should have a parse error instead
+        let parse_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("Expected duration value"))
+            .collect();
+
+        assert_eq!(parse_errors.len(), 1);
+    }
+
+    #[test]
+    fn test_empty_file_path() {
+        let content = r#"TEST "test"
+RUN true
+ASSERT file "" exists"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let file_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("File path cannot be empty"))
+            .collect();
+
+        assert_eq!(file_errors.len(), 1);
+    }
+
+    #[test]
+    fn test_valid_assertions_no_errors() {
+        let content = r#"TEST "test"
+RUN true
+ASSERT exit_code == 0
+ASSERT duration >= 0ms
+ASSERT stdout == "test"
+ASSERT file "test.txt" exists"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        // Should not have any type errors
+        let type_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| {
+                d.message.contains("Exit code")
+                    || d.message.contains("Duration value")
+                    || d.message.contains("File path")
+            })
+            .collect();
+
+        assert_eq!(type_errors.len(), 0);
     }
 }
