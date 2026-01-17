@@ -1,3 +1,44 @@
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub struct Span {
+    pub start: usize,
+    pub end: usize,
+    pub start_line: usize,
+    pub start_col: usize,
+    pub end_line: usize,
+    pub end_col: usize,
+}
+
+impl Span {
+    pub fn new(
+        start: usize,
+        end: usize,
+        start_line: usize,
+        start_col: usize,
+        end_line: usize,
+        end_col: usize,
+    ) -> Self {
+        Self {
+            start,
+            end,
+            start_line,
+            start_col,
+            end_line,
+            end_col,
+        }
+    }
+
+    pub fn single_line(line: usize, start_col: usize, end_col: usize) -> Self {
+        Self {
+            start: 0,
+            end: 0,
+            start_line: line,
+            start_col,
+            end_line: line,
+            end_col,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum QuoteType {
     Single,
@@ -167,6 +208,13 @@ pub struct EnvNode {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ErrorNode {
+    pub message: String,
+    pub span: Span,
+    pub raw: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum ASTNode {
     Pragma(PragmaNode),
     Comment(CommentNode),
@@ -174,6 +222,7 @@ pub enum ASTNode {
     Run(RunNode),
     Assert(AssertNode),
     Env(EnvNode),
+    Error(ErrorNode),
 }
 
 impl ASTNode {
@@ -185,6 +234,7 @@ impl ASTNode {
             ASTNode::Run(node) => node.line,
             ASTNode::Assert(node) => node.line,
             ASTNode::Env(node) => node.line,
+            ASTNode::Error(node) => node.span.start_line,
         }
     }
 }

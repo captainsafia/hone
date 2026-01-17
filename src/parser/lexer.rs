@@ -12,6 +12,7 @@ pub enum TokenType {
     Env,
     Empty,
     Unknown,
+    Error,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -403,6 +404,24 @@ mod tests {
             classify_line("UNKNOWN statement", 1).token_type,
             TokenType::Unknown
         );
+    }
+
+    #[test]
+    fn test_span_creation() {
+        let span = crate::parser::ast::Span::new(0, 10, 1, 0, 1, 10);
+        assert_eq!(span.start, 0);
+        assert_eq!(span.end, 10);
+        assert_eq!(span.start_line, 1);
+        assert_eq!(span.end_line, 1);
+    }
+
+    #[test]
+    fn test_span_single_line() {
+        let span = crate::parser::ast::Span::single_line(5, 10, 20);
+        assert_eq!(span.start_line, 5);
+        assert_eq!(span.end_line, 5);
+        assert_eq!(span.start_col, 10);
+        assert_eq!(span.end_col, 20);
     }
 
     #[test]

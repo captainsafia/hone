@@ -76,7 +76,24 @@ pub fn parse_file(content: &str, filename: &str) -> ParseResult {
 
             TokenType::Unknown => {
                 in_pragma_section = false;
+                let span = Span::single_line(line_number, 0, line.len());
+                nodes.push(ASTNode::Error(ErrorNode {
+                    message: format!("Unknown statement: {}", token.content),
+                    span,
+                    raw: token.content.clone(),
+                }));
                 collector.add_error(format!("Unknown statement: {}", token.content), line_number);
+            }
+
+            TokenType::Error => {
+                in_pragma_section = false;
+                let span = Span::single_line(line_number, 0, line.len());
+                nodes.push(ASTNode::Error(ErrorNode {
+                    message: format!("Lexer error: {}", token.content),
+                    span,
+                    raw: token.content.clone(),
+                }));
+                collector.add_error(format!("Lexer error: {}", token.content), line_number);
             }
         }
     }
@@ -680,5 +697,44 @@ mod tests {
         assert!(parse_test_name("test with * asterisk"));
         assert!(parse_test_name("test with | pipe"));
         assert!(parse_test_name("émojis 🎉 work too"));
+    }
+
+    #[test]
+    fn test_error_node_in_ast() {
+        let content = "TEST \"valid test\"\nINVALID LINE\nRUN echo hello";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Failure { errors, .. } => {
+                assert!(!errors.is_empty());
+                assert!(errors
+                    .iter()
+                    .any(|e| e.message.contains("Unknown statement")));
+            }
+            ParseResult::Success { file } => {
+                let error_nodes: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter(|n| matches!(n, ASTNode::Error(_)))
+                    .collect();
+                assert!(
+                    !error_nodes.is_empty(),
+                    "Expected error nodes in AST for invalid syntax"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_multiple_errors_collected() {
+        let content = "INVALID1\nINVALID2\nTEST \"test\"\nINVALID3";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Failure { errors, .. } => {
+                assert_eq!(errors.len(), 3, "Expected 3 errors for 3 invalid lines");
+            }
+            _ => panic!("Expected parse failure"),
+        }
     }
 }
