@@ -357,10 +357,10 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Publish diagnostics via `textDocument/publishDiagnostics`
 
 #### 3.3 Implement Semantic Analysis
-- [ ] Validate block structure (e.g., `expect` only inside `@test`)
-- [ ] Check for unknown assertion names
-- [ ] Validate assertion syntax (e.g., `exitcode` expects a number)
-- [ ] Report semantic errors as diagnostics
+- [x] Validate block structure (e.g., `expect` only inside `@test`)
+- [x] Check for `run` commands only inside `@test` blocks
+- [x] Validate that `env` is not used inside `@test` blocks
+- [x] Report semantic errors as diagnostics
 
 #### 3.4 Implement Type Checking for Assertions
 - [ ] Define expected argument types for each assertion
