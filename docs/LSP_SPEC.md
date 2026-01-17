@@ -435,13 +435,13 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Format hover content as Markdown
 
 #### 5.2 Implement Document Symbols
-- [ ] Create `src/lsp/symbols.rs`
-- [ ] Handle `textDocument/documentSymbol` request
-- [ ] Walk the AST and emit symbols:
+- [x] Create `src/lsp/symbols.rs`
+- [x] Handle `textDocument/documentSymbol` request
+- [x] Walk the AST and emit symbols:
   - `@test` blocks → `SymbolKind::Function` with test name
   - `@setup` blocks → `SymbolKind::Constructor`
   - Nested `expect` blocks → `SymbolKind::Property` (children of test)
-- [ ] Return hierarchical `DocumentSymbol[]` for outline view
+- [x] Return hierarchical `DocumentSymbol[]` for outline view
 
 #### 5.3 Implement Basic Formatting
 - [ ] Create `src/lsp/formatting.rs`

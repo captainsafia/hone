@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use crate::lsp::completion::CompletionProvider;
 use crate::lsp::hover::HoverProvider;
+use crate::lsp::symbols::SymbolsProvider;
 
 #[derive(Debug, Clone)]
 pub struct ServerState {
@@ -12,6 +13,7 @@ pub struct ServerState {
     pub client: Option<ClientSocket>,
     pub completion_provider: CompletionProvider,
     pub hover_provider: HoverProvider,
+    pub symbols_provider: SymbolsProvider,
 }
 
 impl Default for ServerState {
@@ -22,6 +24,7 @@ impl Default for ServerState {
             client: None,
             completion_provider: CompletionProvider::new(),
             hover_provider: HoverProvider::new(),
+            symbols_provider: SymbolsProvider::new(),
         }
     }
 }
@@ -66,6 +69,7 @@ pub fn handle_initialize(_params: InitializeParams) -> InitializeResult {
                 ..Default::default()
             }),
             hover_provider: Some(HoverProviderCapability::Simple(true)),
+            document_symbol_provider: Some(OneOf::Left(true)),
             ..Default::default()
         },
         server_info: Some(ServerInfo {
@@ -187,4 +191,27 @@ pub fn handle_hover(state: &ServerState, params: HoverParams) -> Option<Hover> {
     let text = state.get_document(uri)?;
 
     state.hover_provider.provide_hover(text, &params)
+}
+
+pub fn handle_document_symbols(
+    state: &ServerState,
+    params: DocumentSymbolParams,
+) -> Option<DocumentSymbolResponse> {
+    let uri = &params.text_document.uri;
+    tracing::debug!("Document symbols requested for: {}", uri);
+
+    let text = state.get_document(uri)?;
+
+    // Parse the document to get the AST
+    let filename = uri.path();
+    let parsed = match crate::parser::parse_file(text, filename) {
+        crate::parser::ParseResult::Success { file } => file,
+        crate::parser::ParseResult::Failure { errors, .. } => {
+            tracing::warn!("Failed to parse document for symbols: {:?}", errors);
+            return None;
+        }
+    };
+
+    let symbols = state.symbols_provider.provide_symbols(&parsed);
+    Some(DocumentSymbolResponse::Nested(symbols))
 }
