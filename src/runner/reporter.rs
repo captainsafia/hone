@@ -318,20 +318,20 @@ impl DefaultReporter {
         }
     }
 
-    fn is_machine_output(&self) -> bool {
-        matches!(self.output_format, OutputFormat::Json)
+    fn is_json(&self) -> bool {
+        self.output_format == OutputFormat::Json
     }
 }
 
 impl Reporter for DefaultReporter {
     fn on_file_start(&self, filename: &str) {
-        if !self.is_machine_output() {
+        if !self.is_json() {
             println!("Running {}", filename);
         }
     }
 
     fn on_run_complete(&self, run_id: &str, success: bool) {
-        if self.is_machine_output() {
+        if self.is_json() {
             return;
         }
         if success {
@@ -347,7 +347,7 @@ impl Reporter for DefaultReporter {
     }
 
     fn on_assertion_pass(&self) {
-        if self.is_machine_output() {
+        if self.is_json() {
             return;
         }
         if self.verbose {
@@ -358,7 +358,7 @@ impl Reporter for DefaultReporter {
     }
 
     fn on_parse_errors(&self, errors: &[ParseErrorDetail]) {
-        if self.is_machine_output() {
+        if self.is_json() {
             return;
         }
         for error in errors {
@@ -372,14 +372,14 @@ impl Reporter for DefaultReporter {
     }
 
     fn on_warning(&self, message: &str) {
-        if self.is_machine_output() {
+        if self.is_json() {
             return;
         }
         eprintln!("{} {}", "Warning:".yellow(), message);
     }
 
     fn on_failure(&self, failure: &TestFailure) {
-        if self.is_machine_output() {
+        if self.is_json() {
             return;
         }
         print_failure(failure, self.verbose);
