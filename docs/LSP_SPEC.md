@@ -322,9 +322,9 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Ensure `hone lsp` starts without errors
 
 #### 2.4 Set Up File Logging
-- [ ] Configure `tracing` to write to `~/.local/state/hone/lsp.log` (Linux) or platform equivalent
-- [ ] Implement log rotation or size limits to prevent unbounded growth
-- [ ] Add startup log message with version info
+- [x] Configure `tracing` to write to `~/.local/state/hone/lsp.log` (Linux) or platform equivalent
+- [x] Implement log rotation or size limits to prevent unbounded growth
+- [x] Add startup log message with version info
 
 #### 2.5 Implement LSP Lifecycle
 - [ ] Handle `initialize` request: return server capabilities
