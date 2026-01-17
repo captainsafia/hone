@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use hone::{run_tests, RunnerOptions};
+use hone::{run_tests, OutputFormat, RunnerOptions};
 
 #[derive(Parser)]
 #[command(name = "hone")]
@@ -20,6 +20,14 @@ struct Cli {
     /// Enable verbose output
     #[arg(long, short)]
     verbose: bool,
+
+    /// Filter tests by name (exact match or /regex/)
+    #[arg(long = "test")]
+    test_filter: Option<String>,
+
+    /// Output format
+    #[arg(long = "output-format", value_enum, default_value = "text")]
+    output_format: OutputFormat,
 }
 
 #[derive(Subcommand)]
@@ -36,6 +44,14 @@ enum Commands {
         /// Enable verbose output
         #[arg(long, short)]
         verbose: bool,
+
+        /// Filter tests by name (exact match or /regex/)
+        #[arg(long = "test")]
+        test_filter: Option<String>,
+
+        /// Output format
+        #[arg(long = "output-format", value_enum, default_value = "text")]
+        output_format: OutputFormat,
     },
 }
 
@@ -43,19 +59,32 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    let (patterns, shell, verbose) = match cli.command {
+    let (patterns, shell, verbose, test_filter, output_format) = match cli.command {
         Some(Commands::Run {
             patterns,
             shell,
             verbose,
-        }) => (patterns, shell, verbose),
-        None => (cli.patterns, cli.shell, cli.verbose),
+            test_filter,
+            output_format,
+        }) => (patterns, shell, verbose, test_filter, output_format),
+        None => (
+            cli.patterns,
+            cli.shell,
+            cli.verbose,
+            cli.test_filter,
+            cli.output_format,
+        ),
     };
 
-    let options = RunnerOptions { shell, verbose };
+    let options = RunnerOptions {
+        shell,
+        verbose,
+        test_filter,
+        output_format,
+    };
 
     let results = run_tests(patterns, options).await?;
 
     // Exit with code 1 if any tests failed
-    std::process::exit(if results.failed_files > 0 { 1 } else { 0 });
+    std::process::exit(if results.has_failures() { 1 } else { 0 });
 }
