@@ -97,20 +97,16 @@ pub fn parse_file(content: &str, filename: &str) -> ParseResult {
         }
     }
 
-    if collector.has_errors() {
-        ParseResult::Failure {
-            errors: collector.get_errors(),
+    // Always return Success with error nodes embedded in the AST
+    // This enables LSP features on partial/invalid files
+    ParseResult::Success {
+        file: ParsedFile {
+            filename: filename.to_string(),
+            pragmas,
+            nodes,
             warnings: collector.get_warnings(),
-        }
-    } else {
-        ParseResult::Success {
-            file: ParsedFile {
-                filename: filename.to_string(),
-                pragmas,
-                nodes,
-                warnings: collector.get_warnings(),
-            },
-        }
+            errors: collector.get_errors(),
+        },
     }
 }
 

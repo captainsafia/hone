@@ -98,20 +98,16 @@ pub fn parse_file(content: &str, filename: &str) -> ParseResult {
         }
     }
 
-    if collector.has_errors() {
-        ParseResult::Failure {
-            errors: collector.get_errors(),
+    // Always return Success with error nodes embedded in the AST
+    // This enables LSP features on partial/invalid files
+    ParseResult::Success {
+        file: ParsedFile {
+            filename: filename.to_string(),
+            pragmas,
+            nodes,
             warnings: collector.get_warnings(),
-        }
-    } else {
-        ParseResult::Success {
-            file: ParsedFile {
-                filename: filename.to_string(),
-                pragmas,
-                nodes,
-                warnings: collector.get_warnings(),
-            },
-        }
+            errors: collector.get_errors(),
+        },
     }
 }
 
@@ -705,13 +701,15 @@ mod tests {
         let result = parse_file(content, "test.hone");
 
         match result {
-            ParseResult::Failure { errors, .. } => {
-                assert!(!errors.is_empty());
-                assert!(errors
+            ParseResult::Success { file } => {
+                // Should have errors in the file
+                assert!(!file.errors.is_empty());
+                assert!(file
+                    .errors
                     .iter()
                     .any(|e| e.message.contains("Unknown statement")));
-            }
-            ParseResult::Success { file } => {
+
+                // Should also have error nodes in AST
                 let error_nodes: Vec<_> = file
                     .nodes
                     .iter()
@@ -722,6 +720,9 @@ mod tests {
                     "Expected error nodes in AST for invalid syntax"
                 );
             }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
         }
     }
 
@@ -731,10 +732,16 @@ mod tests {
         let result = parse_file(content, "test.hone");
 
         match result {
-            ParseResult::Failure { errors, .. } => {
-                assert_eq!(errors.len(), 3, "Expected 3 errors for 3 invalid lines");
+            ParseResult::Success { file } => {
+                assert_eq!(
+                    file.errors.len(),
+                    3,
+                    "Expected 3 errors for 3 invalid lines"
+                );
             }
-            _ => panic!("Expected parse failure"),
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
         }
     }
 }

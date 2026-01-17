@@ -245,6 +245,7 @@ pub struct ParsedFile {
     pub pragmas: Vec<PragmaNode>,
     pub nodes: Vec<ASTNode>,
     pub warnings: Vec<ParseWarning>,
+    pub errors: Vec<ParseErrorDetail>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
