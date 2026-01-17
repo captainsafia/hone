@@ -283,20 +283,20 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Add unit tests for lexer error recovery (invalid characters, unterminated strings)
 
 #### 1.2 Parser Error Recovery
-- [ ] Add `Error` variant to the AST node types in `ast.rs` with associated `Span`
-- [ ] Implement synchronization points at block boundaries (`@test`, `@setup`, EOF)
-- [ ] On parse error, consume tokens until the next sync point and emit an `Error` node
-- [ ] Collect all errors into a vector instead of returning on first error
-- [ ] Add unit tests for parser recovery (incomplete blocks, missing braces, invalid keywords)
+- [x] Add `Error` variant to the AST node types in `ast.rs` with associated `Span`
+- [x] Implement synchronization points at block boundaries (`@test`, `@setup`, EOF)
+- [x] On parse error, consume tokens until the next sync point and emit an `Error` node
+- [x] Collect all errors into a vector instead of returning on first error
+- [x] Add unit tests for parser recovery (incomplete blocks, missing braces, invalid keywords)
 
 #### 1.3 Span Tracking Enhancement
-- [ ] Ensure all AST nodes carry accurate `Span` information (start/end positions)
-- [ ] Include byte offsets, line numbers, and column numbers in spans
-- [ ] Verify spans are correct for both valid and error nodes
+- [x] Ensure all AST nodes carry accurate `Span` information (start/end positions)
+- [x] Include byte offsets, line numbers, and column numbers in spans
+- [x] Verify spans are correct for both valid and error nodes
 
 #### 1.4 Validation
-- [ ] Ensure all existing CLI tests pass with the updated parser
-- [ ] Add integration tests using malformed `.hone` files that verify partial parsing works
+- [x] Ensure all existing CLI tests pass with the updated parser
+- [x] Add integration tests using malformed `.hone` files that verify partial parsing works
 
 **Criteria addressed**: SC#2 (syntax errors as diagnostics)
 

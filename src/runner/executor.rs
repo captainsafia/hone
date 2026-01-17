@@ -146,18 +146,17 @@ pub async fn run_tests(
     for result in parse_results {
         match result {
             Ok((file, parse_result)) => match parse_result {
-                ParseResult::Failure { errors, warnings } => {
-                    if !is_json {
-                        reporter.on_parse_errors(&errors);
-                        for warning in &warnings {
-                            reporter.on_warning(&format!(
-                                "{}:{} :: {}",
-                                warning.filename, warning.line, warning.message
-                            ));
-                        }
-                    }
-                }
                 ParseResult::Success { file: parsed_file } => {
+                    // Report errors if any
+                    if !parsed_file.errors.is_empty() {
+                        if !is_json {
+                            reporter.on_parse_errors(&parsed_file.errors);
+                        }
+                        // Skip files with errors in CLI mode
+                        continue;
+                    }
+
+                    // Report warnings
                     if !is_json {
                         for warning in &parsed_file.warnings {
                             reporter.on_warning(&format!(
@@ -167,6 +166,18 @@ pub async fn run_tests(
                         }
                     }
                     valid_files.push((file, parsed_file.nodes));
+                }
+                ParseResult::Failure { errors, warnings } => {
+                    // Legacy path - should not be reached with new parser
+                    if !is_json {
+                        reporter.on_parse_errors(&errors);
+                        for warning in &warnings {
+                            reporter.on_warning(&format!(
+                                "{}:{} :: {}",
+                                warning.filename, warning.line, warning.message
+                            ));
+                        }
+                    }
                 }
             },
             Err(e) => {
