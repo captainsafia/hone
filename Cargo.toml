@@ -10,6 +10,7 @@ repository = "https://github.com/captainsafia/hone"
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["compat"] }
 anyhow = "1"
 thiserror = "1"
 regex = "1"
@@ -22,6 +23,7 @@ futures = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 async-lsp = "0.2"
+tower = "0.5"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
