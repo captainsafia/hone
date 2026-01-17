@@ -6,9 +6,14 @@ use crate::assertions::{
     AssertionResult,
 };
 use crate::parse_file;
-use crate::parser::ast::{ASTNode, AssertNode, ParseResult};
-use crate::runner::reporter::{DefaultReporter, Reporter, TestFailure, TestResults};
+use crate::parser::ast::{ASTNode, AssertNode, ParseResult, RunNode};
+use crate::runner::reporter::{
+    AssertionOutput, CommandRun, DefaultReporter, FileResult, JsonFormatter, OutputFormat,
+    OutputFormatter, Reporter, Status, Summary, TestFailure, TestResult, TestRunOutput,
+    TextFormatter,
+};
 use crate::runner::shell::{create_shell_config, RunResult, ShellSession};
+use regex::Regex;
 use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 
@@ -16,13 +21,42 @@ use std::path::{Path, PathBuf};
 pub struct RunnerOptions {
     pub shell: Option<String>,
     pub verbose: bool,
+    pub test_filter: Option<String>,
+    pub output_format: OutputFormat,
+}
+
+#[derive(Debug, Clone)]
+pub enum TestFilter {
+    Exact(String),
+    Regex(Regex),
+}
+
+impl TryFrom<&str> for TestFilter {
+    type Error = String;
+
+    fn try_from(pattern: &str) -> Result<Self, Self::Error> {
+        if pattern.starts_with('/') && pattern.ends_with('/') && pattern.len() > 2 {
+            let regex_pattern = &pattern[1..pattern.len() - 1];
+            Regex::new(regex_pattern)
+                .map(TestFilter::Regex)
+                .map_err(|e| format!("Invalid regex pattern: {}", e))
+        } else {
+            Ok(TestFilter::Exact(pattern.to_string()))
+        }
+    }
+}
+
+impl TestFilter {
+    pub fn matches(&self, test_name: &str) -> bool {
+        match self {
+            TestFilter::Exact(pattern) => test_name == pattern,
+            TestFilter::Regex(regex) => regex.is_match(test_name),
+        }
+    }
 }
 
 struct FileRunResult {
-    passed: bool,
-    assertions_passed: usize,
-    assertions_failed: usize,
-    failure: Option<TestFailure>,
+    file_result: FileResult,
 }
 
 #[derive(Default)]
@@ -35,14 +69,18 @@ struct TestBlock {
 struct ExecuteResult {
     assertions_passed: usize,
     failure: Option<TestFailure>,
+    test_result: Option<TestResult>,
 }
+
 
 pub async fn run_tests(
     patterns: Vec<String>,
     options: RunnerOptions,
-) -> anyhow::Result<TestResults> {
-    let reporter = DefaultReporter::new(options.verbose);
+) -> anyhow::Result<TestRunOutput> {
+    let is_json = options.output_format == OutputFormat::Json;
+    let reporter = DefaultReporter::new(options.verbose, options.output_format);
     let cwd = std::env::current_dir()?.to_string_lossy().to_string();
+    let start_time = std::time::Instant::now();
 
     let mut all_files = BTreeSet::new();
     for pattern in &patterns {
@@ -52,19 +90,26 @@ pub async fn run_tests(
     let all_files: Vec<_> = all_files.into_iter().collect();
 
     if all_files.is_empty() {
-        reporter.on_warning(&format!(
-            "No test files found matching: {}",
-            patterns.join(", ")
-        ));
-        return Ok(TestResults {
-            total_files: 0,
-            passed_files: 0,
-            failed_files: 0,
-            total_assertions: 0,
-            passed_assertions: 0,
-            failed_assertions: 0,
-            failures: vec![],
-        });
+        if !is_json {
+            reporter.on_warning(&format!(
+                "No test files found matching: {}",
+                patterns.join(", ")
+            ));
+        }
+        let output = TestRunOutput {
+            files: vec![],
+            summary: Summary {
+                total_tests: 0,
+                passed: 0,
+                failed: 0,
+                duration_ms: start_time.elapsed().as_millis() as u64,
+            },
+        };
+        if is_json {
+            let formatter = JsonFormatter;
+            println!("{}", formatter.format(&output));
+        }
+        return Ok(output);
     }
 
     // Parse all files first (can be done in parallel)
@@ -80,7 +125,6 @@ pub async fn run_tests(
     let parse_results = futures::future::join_all(parse_futures).await;
 
     // Collect parse errors and valid files
-    let mut parse_failures = Vec::new();
     let mut valid_files = Vec::new();
 
     for result in parse_results {
@@ -88,34 +132,24 @@ pub async fn run_tests(
             Ok((file, parse_result)) => {
                 match parse_result {
                     ParseResult::Failure { errors, warnings } => {
-                        reporter.on_parse_errors(&errors);
-                        for error in &errors {
-                            parse_failures.push(TestFailure {
-                                filename: error.filename.clone(),
-                                line: error.line,
-                                test_name: None,
-                                run_command: None,
-                                assertion: None,
-                                expected: None,
-                                actual: None,
-                                error: Some(error.message.clone()),
-                            });
-                        }
-                        // Report warnings too
-                        for warning in &warnings {
-                            reporter.on_warning(&format!(
-                                "{}:{} :: {}",
-                                warning.filename, warning.line, warning.message
-                            ));
+                        if !is_json {
+                            reporter.on_parse_errors(&errors);
+                            for warning in &warnings {
+                                reporter.on_warning(&format!(
+                                    "{}:{} :: {}",
+                                    warning.filename, warning.line, warning.message
+                                ));
+                            }
                         }
                     }
                     ParseResult::Success { file: parsed_file } => {
-                        // Report warnings
-                        for warning in &parsed_file.warnings {
-                            reporter.on_warning(&format!(
-                                "{}:{} :: {}",
-                                warning.filename, warning.line, warning.message
-                            ));
+                        if !is_json {
+                            for warning in &parsed_file.warnings {
+                                reporter.on_warning(&format!(
+                                    "{}:{} :: {}",
+                                    warning.filename, warning.line, warning.message
+                                ));
+                            }
                         }
                         valid_files.push((file, parsed_file.nodes));
                     }
@@ -128,36 +162,45 @@ pub async fn run_tests(
     }
 
     // Run each file sequentially
-    let mut results = Vec::new();
+    let mut file_results = Vec::new();
 
     for (file, ast) in valid_files {
         let result = run_file(&ast, &file, &options, &reporter).await?;
-        results.push(result);
+        file_results.push(result.file_result);
     }
 
-    // Compile final results
-    let total_assertions = results
+    // Build output
+    let total_tests: usize = file_results.iter().map(|f| f.tests.len()).sum();
+    let passed_tests: usize = file_results
         .iter()
-        .map(|r| r.assertions_passed + r.assertions_failed)
-        .sum();
-    let passed_assertions: usize = results.iter().map(|r| r.assertions_passed).sum();
-    let failed_assertions: usize = results.iter().map(|r| r.assertions_failed).sum();
-    let mut failures = parse_failures;
-    failures.extend(results.iter().filter_map(|r| r.failure.clone()));
+        .flat_map(|f| &f.tests)
+        .filter(|t| t.status == Status::Passed)
+        .count();
+    let failed_tests = total_tests - passed_tests;
 
-    let test_results = TestResults {
-        total_files: all_files.len(),
-        passed_files: results.iter().filter(|r| r.passed).count(),
-        failed_files: all_files.len() - results.iter().filter(|r| r.passed).count(),
-        total_assertions,
-        passed_assertions,
-        failed_assertions,
-        failures,
+    let output = TestRunOutput {
+        files: file_results,
+        summary: Summary {
+            total_tests,
+            passed: passed_tests,
+            failed: failed_tests,
+            duration_ms: start_time.elapsed().as_millis() as u64,
+        },
     };
 
-    reporter.on_summary(&test_results);
+    // Format and print output
+    if is_json {
+        let formatter = JsonFormatter;
+        println!("{}", formatter.format(&output));
+    } else {
+        let formatter = TextFormatter {
+            verbose: options.verbose,
+        };
+        println!();
+        println!("{}", formatter.format(&output));
+    }
 
-    Ok(test_results)
+    Ok(output)
 }
 
 async fn resolve_files(pattern: &str, cwd: &str) -> anyhow::Result<Vec<String>> {
@@ -207,6 +250,7 @@ async fn run_file(
     options: &RunnerOptions,
     reporter: &impl Reporter,
 ) -> anyhow::Result<FileRunResult> {
+    let is_json = options.output_format == OutputFormat::Json;
     let cwd = Path::new(filename)
         .parent()
         .unwrap_or(Path::new("."))
@@ -236,12 +280,35 @@ async fn run_file(
     let shell_config = create_shell_config(&pragmas, filename, &cwd, options.shell.as_deref());
 
     // Group nodes by TEST block
-    let test_blocks = group_nodes_by_test(ast);
+    let mut test_blocks = group_nodes_by_test(ast);
+
+    // Apply test filter if specified
+    if let Some(ref filter_pattern) = options.test_filter {
+        match TestFilter::try_from(filter_pattern.as_str()) {
+            Ok(filter) => {
+                test_blocks.retain(|block| {
+                    block
+                        .test_name
+                        .as_ref()
+                        .map(|name| filter.matches(name))
+                        .unwrap_or(false)
+                });
+            }
+            Err(e) => {
+                reporter.on_warning(&format!("Invalid test filter: {}", e));
+            }
+        }
+    }
 
     let mut total_assertions_passed = 0;
     let mut failure: Option<TestFailure> = None;
+    let mut test_results: Vec<TestResult> = Vec::new();
 
     for block in test_blocks {
+        let test_start = std::time::Instant::now();
+        let test_line = block.test_node.as_ref().map(|n| n.line()).unwrap_or(1);
+        let test_name = block.test_name.clone().unwrap_or_default();
+
         // Create a fresh shell session for each TEST block
         let mut session = ShellSession::new(shell_config.clone());
 
@@ -250,13 +317,21 @@ async fn run_file(
             Err(e) => {
                 failure = Some(TestFailure {
                     filename: filename.to_string(),
-                    line: block.test_node.as_ref().map(|n| n.line()).unwrap_or(0),
+                    line: test_line,
                     test_name: block.test_name.clone(),
                     run_command: None,
                     assertion: None,
                     expected: None,
                     actual: None,
                     error: Some(format!("Failed to start shell: {}", e)),
+                });
+
+                test_results.push(TestResult {
+                    name: test_name,
+                    line: test_line,
+                    status: Status::Failed,
+                    duration_ms: test_start.elapsed().as_millis() as u64,
+                    runs: vec![],
                 });
                 break;
             }
@@ -267,44 +342,45 @@ async fn run_file(
 
         total_assertions_passed += result.assertions_passed;
 
+        if let Some(test_result) = result.test_result {
+            test_results.push(test_result);
+        }
+
         if let Some(f) = result.failure {
             failure = Some(f);
             break;
         }
     }
 
-    println!(); // Newline after progress dots
+    if !is_json {
+        println!(); // Newline after progress dots
+    }
+
+    let file_result = FileResult {
+        file: filename.to_string(),
+        shell: shell_config.shell.clone(),
+        tests: test_results,
+    };
 
     if let Some(ref f) = failure {
         reporter.on_failure(f);
-        return Ok(FileRunResult {
-            passed: false,
-            assertions_passed: total_assertions_passed,
-            assertions_failed: 1,
-            failure,
-        });
+    } else if !is_json {
+        let assertions_text = if total_assertions_passed == 1 {
+            "assertion"
+        } else {
+            "assertions"
+        };
+
+        use owo_colors::OwoColorize;
+        println!(
+            "PASS {} ({} {})",
+            basename,
+            total_assertions_passed,
+            assertions_text.green()
+        );
     }
 
-    let assertions_text = if total_assertions_passed == 1 {
-        "assertion"
-    } else {
-        "assertions"
-    };
-
-    use owo_colors::OwoColorize;
-    println!(
-        "PASS {} ({} {})",
-        basename,
-        total_assertions_passed,
-        assertions_text.green()
-    );
-
-    Ok(FileRunResult {
-        passed: true,
-        assertions_passed: total_assertions_passed,
-        assertions_failed: 0,
-        failure: None,
-    })
+    Ok(FileRunResult { file_result })
 }
 
 fn group_nodes_by_test(nodes: &[ASTNode]) -> Vec<TestBlock> {
@@ -340,14 +416,21 @@ async fn execute_test_block(
     filename: &str,
     reporter: &impl Reporter,
 ) -> ExecuteResult {
+    let test_start = std::time::Instant::now();
+
     if let Some(ref test_name) = block.test_name {
         session.set_current_test(Some(test_name.clone()));
     }
 
     let mut last_run_result: Option<RunResult> = None;
+    let mut last_run_node: Option<&RunNode> = None;
     let mut run_results: HashMap<String, RunResult> = HashMap::new();
     let mut assertions_passed = 0;
     let mut pending_env_vars: Vec<(String, String)> = Vec::new();
+
+    // Track runs with their assertions
+    let mut command_runs: Vec<CommandRun> = Vec::new();
+    let mut current_run_assertions: Vec<AssertionOutput> = Vec::new();
 
     for node in &block.nodes {
         match node {
@@ -356,9 +439,39 @@ async fn execute_test_block(
             }
 
             ASTNode::Run(run_node) => {
+                // Finalize previous run if any
+                if let (Some(prev_result), Some(prev_node)) = (&last_run_result, last_run_node) {
+                    let run_status = if current_run_assertions
+                        .iter()
+                        .all(|a| a.status == Status::Passed)
+                    {
+                        Status::Passed
+                    } else {
+                        Status::Failed
+                    };
+                    command_runs.push(CommandRun {
+                        name: prev_node.name.clone(),
+                        command: prev_node.command.clone(),
+                        line: prev_node.line,
+                        status: run_status,
+                        duration_ms: prev_result.duration_ms,
+                        exit_code: prev_result.exit_code,
+                        stdout: prev_result.stdout.clone(),
+                        stderr: prev_result.stderr.clone(),
+                        assertions: std::mem::take(&mut current_run_assertions),
+                    });
+                }
+
                 // Apply any pending env vars before the run
                 if !pending_env_vars.is_empty() {
                     if let Err(e) = session.set_env_vars(&pending_env_vars).await {
+                        let test_result = TestResult {
+                            name: block.test_name.clone().unwrap_or_default(),
+                            line: block.test_node.as_ref().map(|n| n.line()).unwrap_or(1),
+                            status: Status::Failed,
+                            duration_ms: test_start.elapsed().as_millis() as u64,
+                            runs: command_runs,
+                        };
                         return ExecuteResult {
                             assertions_passed,
                             failure: Some(TestFailure {
@@ -371,6 +484,7 @@ async fn execute_test_block(
                                 actual: None,
                                 error: Some(format!("Failed to set environment variables: {}", e)),
                             }),
+                            test_result: Some(test_result),
                         };
                     }
                     pending_env_vars.clear();
@@ -386,9 +500,32 @@ async fn execute_test_block(
                             run_results.insert(name.clone(), result.clone());
                         }
                         last_run_result = Some(result);
+                        last_run_node = Some(run_node);
                     }
                     Err(e) => {
                         reporter.on_run_complete("", false);
+
+                        // Add the failed run
+                        command_runs.push(CommandRun {
+                            name: run_node.name.clone(),
+                            command: run_node.command.clone(),
+                            line: run_node.line,
+                            status: Status::Failed,
+                            duration_ms: 0,
+                            exit_code: -1,
+                            stdout: String::new(),
+                            stderr: e.clone(),
+                            assertions: vec![],
+                        });
+
+                        let test_result = TestResult {
+                            name: block.test_name.clone().unwrap_or_default(),
+                            line: block.test_node.as_ref().map(|n| n.line()).unwrap_or(1),
+                            status: Status::Failed,
+                            duration_ms: test_start.elapsed().as_millis() as u64,
+                            runs: command_runs,
+                        };
+
                         return ExecuteResult {
                             assertions_passed,
                             failure: Some(TestFailure {
@@ -401,6 +538,7 @@ async fn execute_test_block(
                                 actual: None,
                                 error: Some(e),
                             }),
+                            test_result: Some(test_result),
                         };
                     }
                 }
@@ -415,7 +553,52 @@ async fn execute_test_block(
                 )
                 .await;
 
+                let assertion_output = AssertionOutput {
+                    line: assert_node.line,
+                    expression: assert_node.raw.clone(),
+                    status: if result.passed {
+                        Status::Passed
+                    } else {
+                        Status::Failed
+                    },
+                    expected: if result.passed {
+                        None
+                    } else {
+                        Some(result.expected.clone())
+                    },
+                    actual: if result.passed {
+                        None
+                    } else {
+                        Some(result.actual.clone())
+                    },
+                };
+                current_run_assertions.push(assertion_output);
+
                 if !result.passed {
+                    // Finalize the current run
+                    if let (Some(prev_result), Some(prev_node)) = (&last_run_result, last_run_node)
+                    {
+                        command_runs.push(CommandRun {
+                            name: prev_node.name.clone(),
+                            command: prev_node.command.clone(),
+                            line: prev_node.line,
+                            status: Status::Failed,
+                            duration_ms: prev_result.duration_ms,
+                            exit_code: prev_result.exit_code,
+                            stdout: prev_result.stdout.clone(),
+                            stderr: prev_result.stderr.clone(),
+                            assertions: std::mem::take(&mut current_run_assertions),
+                        });
+                    }
+
+                    let test_result = TestResult {
+                        name: block.test_name.clone().unwrap_or_default(),
+                        line: block.test_node.as_ref().map(|n| n.line()).unwrap_or(1),
+                        status: Status::Failed,
+                        duration_ms: test_start.elapsed().as_millis() as u64,
+                        runs: command_runs,
+                    };
+
                     return ExecuteResult {
                         assertions_passed,
                         failure: Some(TestFailure {
@@ -428,6 +611,7 @@ async fn execute_test_block(
                             actual: Some(result.actual),
                             error: result.error,
                         }),
+                        test_result: Some(test_result),
                     };
                 }
 
@@ -439,9 +623,41 @@ async fn execute_test_block(
         }
     }
 
+    // Finalize the last run
+    if let (Some(prev_result), Some(prev_node)) = (&last_run_result, last_run_node) {
+        let run_status = if current_run_assertions
+            .iter()
+            .all(|a| a.status == Status::Passed)
+        {
+            Status::Passed
+        } else {
+            Status::Failed
+        };
+        command_runs.push(CommandRun {
+            name: prev_node.name.clone(),
+            command: prev_node.command.clone(),
+            line: prev_node.line,
+            status: run_status,
+            duration_ms: prev_result.duration_ms,
+            exit_code: prev_result.exit_code,
+            stdout: prev_result.stdout.clone(),
+            stderr: prev_result.stderr.clone(),
+            assertions: current_run_assertions,
+        });
+    }
+
+    let test_result = TestResult {
+        name: block.test_name.clone().unwrap_or_default(),
+        line: block.test_node.as_ref().map(|n| n.line()).unwrap_or(1),
+        status: Status::Passed,
+        duration_ms: test_start.elapsed().as_millis() as u64,
+        runs: command_runs,
+    };
+
     ExecuteResult {
         assertions_passed,
         failure: None,
+        test_result: Some(test_result),
     }
 }
 

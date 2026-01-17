@@ -1,8 +1,8 @@
 {
   "name": "hone",
   "displayName": "Hone",
-  "description": "Syntax highlighting for the Hone CLI integration testing DSL",
-  "version": "0.1.0",
+  "description": "Hone CLI integration testing support for VS Code",
+  "version": "0.2.0",
   "publisher": "captainsafia",
   "repository": {
     "type": "git",
@@ -12,7 +12,8 @@
     "vscode": "^1.75.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Testing"
   ],
   "keywords": [
     "hone",
@@ -20,6 +21,11 @@
     "testing",
     "integration-testing",
     "dsl"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:hone",
+    "workspaceContains:**/*.hone"
   ],
   "contributes": {
     "languages": [
@@ -37,5 +43,19 @@
         "path": "./syntaxes/hone.tmlanguage.json"
       }
     ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.75.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
   }
 }
