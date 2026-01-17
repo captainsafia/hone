@@ -333,10 +333,10 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Test lifecycle with a mock client
 
 #### 2.6 Implement Text Document Synchronization
-- [ ] Handle `textDocument/didOpen`: store document content
-- [ ] Handle `textDocument/didChange`: update stored content (full sync mode)
-- [ ] Handle `textDocument/didClose`: remove document from memory
-- [ ] Maintain a document store (`HashMap<Uri, DocumentState>`)
+- [x] Handle `textDocument/didOpen`: store document content
+- [x] Handle `textDocument/didChange`: update stored content (full sync mode)
+- [x] Handle `textDocument/didClose`: remove document from memory
+- [x] Maintain a document store (`HashMap<Uri, DocumentState>`)
 
 **Criteria addressed**: SC#1 (LSP starts and communicates over stdio)
 

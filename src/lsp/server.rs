@@ -78,7 +78,9 @@ fn init_logging() -> Result<()> {
 }
 
 pub async fn run_lsp_server() -> Result<()> {
-    use async_lsp::lsp_types::notification::{Exit, Initialized};
+    use async_lsp::lsp_types::notification::{
+        DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, Exit, Initialized,
+    };
     use async_lsp::lsp_types::request::{Initialize, Shutdown};
 
     // Initialize logging first
@@ -101,6 +103,18 @@ pub async fn run_lsp_server() -> Result<()> {
             .notification::<Initialized>(|state, params| {
                 tracing::info!("Client initialized");
                 crate::lsp::handlers::handle_initialized(state, params);
+                ControlFlow::Continue(())
+            })
+            .notification::<DidOpenTextDocument>(|state, params| {
+                crate::lsp::handlers::handle_did_open(state, params);
+                ControlFlow::Continue(())
+            })
+            .notification::<DidChangeTextDocument>(|state, params| {
+                crate::lsp::handlers::handle_did_change(state, params);
+                ControlFlow::Continue(())
+            })
+            .notification::<DidCloseTextDocument>(|state, params| {
+                crate::lsp::handlers::handle_did_close(state, params);
                 ControlFlow::Continue(())
             })
             .request::<Shutdown, _>(|state, _params| {
