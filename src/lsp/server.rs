@@ -82,7 +82,7 @@ pub async fn run_lsp_server() -> Result<()> {
         DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, Exit, Initialized,
     };
     use async_lsp::lsp_types::request::{
-        Completion, DocumentSymbolRequest, HoverRequest, Initialize, Shutdown,
+        Completion, DocumentSymbolRequest, Formatting, HoverRequest, Initialize, Shutdown,
     };
 
     // Initialize logging first
@@ -141,6 +141,14 @@ pub async fn run_lsp_server() -> Result<()> {
                 async move {
                     tracing::debug!("Handling document symbols request");
                     let result = crate::lsp::handlers::handle_document_symbols(&state, params);
+                    Ok(result)
+                }
+            })
+            .request::<Formatting, _>(|state, params| {
+                let state = state.clone();
+                async move {
+                    tracing::debug!("Handling formatting request");
+                    let result = crate::lsp::handlers::handle_formatting(&state, params);
                     Ok(result)
                 }
             })

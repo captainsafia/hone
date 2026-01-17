@@ -3,6 +3,7 @@ use async_lsp::{ClientSocket, LanguageClient};
 use std::collections::HashMap;
 
 use crate::lsp::completion::CompletionProvider;
+use crate::lsp::formatting::FormattingProvider;
 use crate::lsp::hover::HoverProvider;
 use crate::lsp::symbols::SymbolsProvider;
 
@@ -14,6 +15,7 @@ pub struct ServerState {
     pub completion_provider: CompletionProvider,
     pub hover_provider: HoverProvider,
     pub symbols_provider: SymbolsProvider,
+    pub formatting_provider: FormattingProvider,
 }
 
 impl Default for ServerState {
@@ -25,6 +27,7 @@ impl Default for ServerState {
             completion_provider: CompletionProvider::new(),
             hover_provider: HoverProvider::new(),
             symbols_provider: SymbolsProvider::new(),
+            formatting_provider: FormattingProvider::new(),
         }
     }
 }
@@ -70,6 +73,7 @@ pub fn handle_initialize(_params: InitializeParams) -> InitializeResult {
             }),
             hover_provider: Some(HoverProviderCapability::Simple(true)),
             document_symbol_provider: Some(OneOf::Left(true)),
+            document_formatting_provider: Some(OneOf::Left(true)),
             ..Default::default()
         },
         server_info: Some(ServerInfo {
@@ -214,4 +218,16 @@ pub fn handle_document_symbols(
 
     let symbols = state.symbols_provider.provide_symbols(&parsed);
     Some(DocumentSymbolResponse::Nested(symbols))
+}
+
+pub fn handle_formatting(
+    state: &ServerState,
+    params: DocumentFormattingParams,
+) -> Option<Vec<TextEdit>> {
+    let uri = &params.text_document.uri;
+    tracing::debug!("Formatting requested for: {}", uri);
+
+    let text = state.get_document(uri)?;
+
+    state.formatting_provider.format_document(text, uri.path())
 }

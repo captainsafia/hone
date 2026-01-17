@@ -444,14 +444,14 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Return hierarchical `DocumentSymbol[]` for outline view
 
 #### 5.3 Implement Basic Formatting
-- [ ] Create `src/lsp/formatting.rs`
-- [ ] Handle `textDocument/formatting` request
-- [ ] Normalize indentation:
+- [x] Create `src/lsp/formatting.rs`
+- [x] Handle `textDocument/formatting` request
+- [x] Normalize indentation:
   - Top-level blocks at column 0
   - Block contents indented one level (2 or 4 spaces, configurable default)
-- [ ] Normalize spacing around braces and keywords
-- [ ] Preserve internal formatting of shell commands and multiline strings
-- [ ] Return `TextEdit[]` with changes
+- [x] Normalize spacing around braces and keywords
+- [x] Preserve internal formatting of shell commands and multiline strings
+- [x] Return `TextEdit[]` with changes
 
 #### 5.4 Implement Semantic Tokens
 - [ ] Create `src/lsp/semantic_tokens.rs`
