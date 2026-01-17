@@ -3,14 +3,19 @@ use async_lsp::lsp_types::{
     Position,
 };
 
+use crate::lsp::shell::ShellCommands;
 use crate::parser::ast::ParsedFile;
 
 #[derive(Debug, Clone)]
-pub struct CompletionProvider;
+pub struct CompletionProvider {
+    shell_commands: ShellCommands,
+}
 
 impl CompletionProvider {
     pub(crate) fn new() -> Self {
-        Self
+        Self {
+            shell_commands: ShellCommands::new(),
+        }
     }
 
     pub(crate) fn provide_completions(
@@ -25,6 +30,7 @@ impl CompletionProvider {
             CompletionContext::TopLevel => self.top_level_completions(),
             CompletionContext::InsideTest => self.inside_test_completions(),
             CompletionContext::AfterExpect => self.assertion_completions(),
+            CompletionContext::AfterRun => self.shell_command_completions(),
             CompletionContext::Unknown => Vec::new(),
         };
 
@@ -63,7 +69,7 @@ impl CompletionProvider {
     }
 
     fn inside_test_completions(&self) -> Vec<CompletionItem> {
-        vec![
+        let mut items = vec![
             CompletionItem {
                 label: "expect".to_string(),
                 kind: Some(CompletionItemKind::KEYWORD),
@@ -80,7 +86,12 @@ impl CompletionProvider {
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
-        ]
+        ];
+
+        // Also suggest shell commands at this level
+        items.extend(self.shell_command_completions());
+
+        items
     }
 
     fn assertion_completions(&self) -> Vec<CompletionItem> {
@@ -142,6 +153,48 @@ impl CompletionProvider {
             },
         ]
     }
+
+    fn shell_command_completions(&self) -> Vec<CompletionItem> {
+        // Get common commands with descriptions
+        let mut items: Vec<CompletionItem> = self
+            .shell_commands
+            .common_with_descriptions()
+            .into_iter()
+            .map(|(name, description)| CompletionItem {
+                label: name.to_string(),
+                kind: Some(CompletionItemKind::FUNCTION),
+                detail: Some("Shell command".to_string()),
+                documentation: Some(async_lsp::lsp_types::Documentation::String(
+                    description.to_string(),
+                )),
+                insert_text: Some(name.to_string()),
+                insert_text_format: Some(InsertTextFormat::PLAIN_TEXT),
+                sort_text: Some(format!("0{}", name)), // Prioritize common commands
+                ..Default::default()
+            })
+            .collect();
+
+        // Add PATH commands (lower priority)
+        let all_commands = self.shell_commands.all_commands();
+        for cmd in all_commands {
+            // Skip if already in common commands
+            if self.shell_commands.get_description(&cmd).is_some() {
+                continue;
+            }
+
+            items.push(CompletionItem {
+                label: cmd.clone(),
+                kind: Some(CompletionItemKind::FUNCTION),
+                detail: Some("Shell command".to_string()),
+                insert_text: Some(cmd.clone()),
+                insert_text_format: Some(InsertTextFormat::PLAIN_TEXT),
+                sort_text: Some(format!("1{}", cmd)), // Lower priority
+                ..Default::default()
+            });
+        }
+
+        items
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -149,5 +202,6 @@ enum CompletionContext {
     TopLevel,
     InsideTest,
     AfterExpect,
+    AfterRun,
     Unknown,
 }

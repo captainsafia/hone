@@ -413,10 +413,10 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [ ] Handle indentation correctly
 
 #### 4.6 Shell Command Completion
-- [ ] Create `src/lsp/shell.rs` with command knowledge
-- [ ] Hardcode common commands: `ls`, `cd`, `cat`, `echo`, `grep`, `git`, `curl`, `npm`, `cargo`, etc.
-- [ ] Scan PATH for available executables (cached on startup)
-- [ ] Suggest shell commands inside `run` blocks or at command positions
+- [x] Create `src/lsp/shell.rs` with command knowledge
+- [x] Hardcode common commands: `ls`, `cd`, `cat`, `echo`, `grep`, `git`, `curl`, `npm`, `cargo`, etc.
+- [x] Scan PATH for available executables (cached on startup)
+- [x] Suggest shell commands inside `run` blocks or at command positions
 
 **Criteria addressed**: SC#4 (completion for keywords, assertions, shell commands), SC#5 (snippets with tab stops)
 
