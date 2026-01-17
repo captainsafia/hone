@@ -63,12 +63,74 @@ pub struct Summary {
     pub passed: usize,
     pub failed: usize,
     pub duration_ms: u64,
+    pub start_time: u64,
+    pub stop_time: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct TestRunOutput {
     pub files: Vec<FileResult>,
     pub summary: Summary,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CtrfReport {
+    pub report_format: &'static str,
+    pub spec_version: &'static str,
+    pub results: CtrfResults,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CtrfResults {
+    pub tool: CtrfTool,
+    pub summary: CtrfSummary,
+    pub tests: Vec<CtrfTest>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CtrfTool {
+    pub name: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<&'static str>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CtrfSummary {
+    pub tests: usize,
+    pub passed: usize,
+    pub failed: usize,
+    pub pending: usize,
+    pub skipped: usize,
+    pub other: usize,
+    pub start: u64,
+    pub stop: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CtrfTest {
+    pub name: String,
+    pub status: CtrfStatus,
+    pub duration: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum CtrfStatus {
+    Passed,
+    Failed,
+    Skipped,
+    Pending,
+    Other,
 }
 
 impl TestRunOutput {
@@ -83,9 +145,102 @@ pub trait OutputFormatter {
 
 pub struct JsonFormatter;
 
+impl JsonFormatter {
+    fn build_failure_message(test: &TestResult) -> Option<String> {
+        for run in &test.runs {
+            for assertion in &run.assertions {
+                if assertion.status == Status::Failed {
+                    let mut parts = vec![assertion.expression.clone()];
+                    if let Some(expected) = &assertion.expected {
+                        parts.push(format!("Expected: {}", expected));
+                    }
+                    if let Some(actual) = &assertion.actual {
+                        parts.push(format!("Actual: {}", actual));
+                    }
+                    return Some(parts.join("\n"));
+                }
+            }
+        }
+        None
+    }
+
+    fn build_trace(test: &TestResult, file: &FileResult) -> Option<String> {
+        if test.status == Status::Failed {
+            let mut trace_parts = vec![];
+            for run in &test.runs {
+                if run.status == Status::Failed {
+                    trace_parts.push(format!(
+                        "Command: {} (exit code: {})\nFile: {}:{}",
+                        run.command, run.exit_code, file.file, run.line
+                    ));
+                    if !run.stderr.is_empty() {
+                        trace_parts.push(format!("Stderr:\n{}", run.stderr));
+                    }
+                }
+            }
+            if !trace_parts.is_empty() {
+                return Some(trace_parts.join("\n\n"));
+            }
+        }
+        None
+    }
+}
+
 impl OutputFormatter for JsonFormatter {
     fn format(&self, output: &TestRunOutput) -> String {
-        serde_json::to_string_pretty(output).unwrap_or_else(|e| format!("{{\"error\": \"{}\"}}", e))
+        let mut ctrf_tests = Vec::new();
+
+        for file in &output.files {
+            for test in &file.tests {
+                let ctrf_status = match test.status {
+                    Status::Passed => CtrfStatus::Passed,
+                    Status::Failed => CtrfStatus::Failed,
+                };
+
+                let message = if test.status == Status::Failed {
+                    Self::build_failure_message(test)
+                } else {
+                    None
+                };
+
+                let trace = Self::build_trace(test, file);
+
+                ctrf_tests.push(CtrfTest {
+                    name: test.name.clone(),
+                    status: ctrf_status,
+                    duration: test.duration_ms,
+                    file_path: Some(file.file.clone()),
+                    line: Some(test.line),
+                    message,
+                    trace,
+                });
+            }
+        }
+
+        let report = CtrfReport {
+            report_format: "CTRF",
+            spec_version: "0.0.0",
+            results: CtrfResults {
+                tool: CtrfTool {
+                    name: "hone",
+                    version: Some(env!("CARGO_PKG_VERSION")),
+                },
+                summary: CtrfSummary {
+                    tests: output.summary.total_tests,
+                    passed: output.summary.passed,
+                    failed: output.summary.failed,
+                    pending: 0,
+                    skipped: 0,
+                    other: 0,
+                    start: output.summary.start_time,
+                    stop: output.summary.stop_time,
+                },
+                tests: ctrf_tests,
+            },
+        };
+
+        serde_json::to_string_pretty(&report)
+            .unwrap_or_else(|e| format!("{{\"error\": \"{}\"}}", e))
     }
 }
 
@@ -182,20 +337,20 @@ impl DefaultReporter {
         }
     }
 
-    fn is_json(&self) -> bool {
-        self.output_format == OutputFormat::Json
+    fn is_machine_output(&self) -> bool {
+        matches!(self.output_format, OutputFormat::Json)
     }
 }
 
 impl Reporter for DefaultReporter {
     fn on_file_start(&self, filename: &str) {
-        if !self.is_json() {
+        if !self.is_machine_output() {
             println!("Running {}", filename);
         }
     }
 
     fn on_run_complete(&self, run_id: &str, success: bool) {
-        if self.is_json() {
+        if self.is_machine_output() {
             return;
         }
         if success {
@@ -211,7 +366,7 @@ impl Reporter for DefaultReporter {
     }
 
     fn on_assertion_pass(&self) {
-        if self.is_json() {
+        if self.is_machine_output() {
             return;
         }
         if self.verbose {
@@ -222,7 +377,7 @@ impl Reporter for DefaultReporter {
     }
 
     fn on_parse_errors(&self, errors: &[ParseErrorDetail]) {
-        if self.is_json() {
+        if self.is_machine_output() {
             return;
         }
         for error in errors {
@@ -236,14 +391,14 @@ impl Reporter for DefaultReporter {
     }
 
     fn on_warning(&self, message: &str) {
-        if self.is_json() {
+        if self.is_machine_output() {
             return;
         }
         eprintln!("{} {}", "Warning:".yellow(), message);
     }
 
     fn on_failure(&self, failure: &TestFailure) {
-        if self.is_json() {
+        if self.is_machine_output() {
             return;
         }
         print_failure(failure, self.verbose);
