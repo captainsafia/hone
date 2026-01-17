@@ -90,8 +90,9 @@ pub async fn run_lsp_server() -> Result<()> {
     tracing::info!("Starting Hone LSP server v{}", env!("CARGO_PKG_VERSION"));
 
     // Create the main loop and setup router
-    let (mainloop, _client) = async_lsp::MainLoop::new_server(|_client: ClientSocket| {
-        let state = ServerState::new();
+    let (mainloop, _client) = async_lsp::MainLoop::new_server(|client: ClientSocket| {
+        let mut state = ServerState::new();
+        state.client = Some(client);
 
         let mut router = Router::new(state);
         router
