@@ -427,12 +427,12 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 **Goal**: Implement hover, outline, formatting, and semantic tokens.
 
 #### 5.1 Implement Hover
-- [ ] Create `src/lsp/hover.rs`
-- [ ] Handle `textDocument/hover` request
-- [ ] Look up the symbol at the cursor position
-- [ ] Return documentation for keywords (`@test`, `@setup`, `expect`)
-- [ ] Return documentation for assertion names with usage examples
-- [ ] Format hover content as Markdown
+- [x] Create `src/lsp/hover.rs`
+- [x] Handle `textDocument/hover` request
+- [x] Look up the symbol at the cursor position
+- [x] Return documentation for keywords (`@test`, `@setup`, `expect`)
+- [x] Return documentation for assertion names with usage examples
+- [x] Format hover content as Markdown
 
 #### 5.2 Implement Document Symbols
 - [ ] Create `src/lsp/symbols.rs`
