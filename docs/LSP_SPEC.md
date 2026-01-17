@@ -277,10 +277,10 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 **Goal**: Make the parser fault-tolerant so it can provide useful information even for incomplete or invalid files.
 
 #### 1.1 Lexer Error Recovery
-- [ ] Modify `lexer.rs` to emit an `Error` token type instead of panicking on unexpected characters
-- [ ] Continue lexing after encountering an error token
-- [ ] Track error spans for precise diagnostic reporting
-- [ ] Add unit tests for lexer error recovery (invalid characters, unterminated strings)
+- [x] Modify `lexer.rs` to emit an `Error` token type instead of panicking on unexpected characters
+- [x] Continue lexing after encountering an error token
+- [x] Track error spans for precise diagnostic reporting
+- [x] Add unit tests for lexer error recovery (invalid characters, unterminated strings)
 
 #### 1.2 Parser Error Recovery
 - [ ] Add `Error` variant to the AST node types in `ast.rs` with associated `Span`

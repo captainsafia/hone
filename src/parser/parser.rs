@@ -75,7 +75,24 @@ pub fn parse_file(content: &str, filename: &str) -> ParseResult {
 
             TokenType::Unknown => {
                 in_pragma_section = false;
+                let span = crate::parser::ast::Span::single_line(line_number, 0, line.len());
+                nodes.push(ASTNode::Error(crate::parser::ast::ErrorNode {
+                    message: format!("Unknown statement: {}", token.content),
+                    span,
+                    raw: token.content.clone(),
+                }));
                 collector.add_error(format!("Unknown statement: {}", token.content), line_number);
+            }
+
+            TokenType::Error => {
+                in_pragma_section = false;
+                let span = crate::parser::ast::Span::single_line(line_number, 0, line.len());
+                nodes.push(ASTNode::Error(crate::parser::ast::ErrorNode {
+                    message: format!("Lexer error: {}", token.content),
+                    span,
+                    raw: token.content.clone(),
+                }));
+                collector.add_error(format!("Lexer error: {}", token.content), line_number);
             }
         }
     }
