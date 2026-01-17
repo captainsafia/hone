@@ -1,10 +1,12 @@
 use async_lsp::lsp_types::*;
+use async_lsp::{ClientSocket, LanguageClient};
 use std::collections::HashMap;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ServerState {
     pub documents: HashMap<Url, String>,
     pub shutdown_requested: bool,
+    pub client: Option<ClientSocket>,
 }
 
 impl ServerState {
@@ -72,20 +74,54 @@ pub fn handle_exit(state: &ServerState) -> i32 {
 }
 
 pub fn handle_did_open(state: &mut ServerState, params: DidOpenTextDocumentParams) {
-    let uri = params.text_document.uri;
-    let text = params.text_document.text;
+    let uri = params.text_document.uri.clone();
+    let text = params.text_document.text.clone();
 
     tracing::info!("Document opened: {}", uri);
-    state.open_document(uri, text);
+    state.open_document(uri.clone(), text.clone());
+
+    // Generate and publish diagnostics
+    if let Some(client) = &mut state.client {
+        let diagnostics = crate::lsp::diagnostics::generate_diagnostics(&uri, &text);
+
+        let diagnostic_params = PublishDiagnosticsParams {
+            uri: uri.clone(),
+            diagnostics,
+            version: Some(params.text_document.version),
+        };
+
+        // Send diagnostics notification
+        if let Err(e) = client.publish_diagnostics(diagnostic_params) {
+            tracing::error!("Failed to publish diagnostics: {:?}", e);
+        }
+    }
 }
 
 pub fn handle_did_change(state: &mut ServerState, params: DidChangeTextDocumentParams) {
-    let uri = params.text_document.uri;
+    let uri = params.text_document.uri.clone();
+    let version = params.text_document.version;
 
     // We're using full document sync, so there should be exactly one change with the full text
     if let Some(change) = params.content_changes.into_iter().next() {
+        let text = change.text.clone();
         tracing::info!("Document changed: {}", uri);
-        state.update_document(&uri, change.text);
+        state.update_document(&uri, text.clone());
+
+        // Generate and publish diagnostics
+        if let Some(client) = &mut state.client {
+            let diagnostics = crate::lsp::diagnostics::generate_diagnostics(&uri, &text);
+
+            let diagnostic_params = PublishDiagnosticsParams {
+                uri: uri.clone(),
+                diagnostics,
+                version: Some(version),
+            };
+
+            // Send diagnostics notification
+            if let Err(e) = client.publish_diagnostics(diagnostic_params) {
+                tracing::error!("Failed to publish diagnostics: {:?}", e);
+            }
+        }
     } else {
         tracing::warn!("Received didChange with no content changes for: {}", uri);
     }

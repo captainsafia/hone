@@ -347,14 +347,14 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 **Goal**: Report syntax, semantic, and type errors to the editor.
 
 #### 3.1 Create Diagnostics Module
-- [ ] Create `src/lsp/diagnostics.rs`
-- [ ] Define internal diagnostic type with severity, message, span, and optional fix suggestion
+- [x] Create `src/lsp/diagnostics.rs`
+- [x] Define internal diagnostic type with severity, message, span, and optional fix suggestion
 
 #### 3.2 Wire Parser Errors to Diagnostics
-- [ ] On document open/change, parse the document
-- [ ] Convert parser `Error` nodes to LSP `Diagnostic` objects
-- [ ] Map spans to LSP `Range` (line/character positions)
-- [ ] Publish diagnostics via `textDocument/publishDiagnostics`
+- [x] On document open/change, parse the document
+- [x] Convert parser `Error` nodes to LSP `Diagnostic` objects
+- [x] Map spans to LSP `Range` (line/character positions)
+- [x] Publish diagnostics via `textDocument/publishDiagnostics`
 
 #### 3.3 Implement Semantic Analysis
 - [ ] Validate block structure (e.g., `expect` only inside `@test`)
