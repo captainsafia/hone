@@ -92,6 +92,11 @@ hone/
 - Prefer `&str` over `String` for function parameters when ownership isn't needed
 - Use `Option` and `Result` idiomatically; avoid sentinel values
 
+### Source Control Conventions
+
+- All commits must follow the Convential Commit format.
+- Commits MUST NOT be co-authored by the agent.
+
 ### Code Organization
 
 - Keep modules focused and cohesive
