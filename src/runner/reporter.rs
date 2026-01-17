@@ -14,6 +14,9 @@ pub enum OutputFormat {
 pub enum Status {
     Passed,
     Failed,
+    Skipped,
+    Pending,
+    Other,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -59,11 +62,21 @@ pub struct AssertionOutput {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Summary {
+    #[serde(rename = "tests")]
     pub total_tests: usize,
     pub passed: usize,
     pub failed: usize,
+    #[serde(default)]
+    pub pending: usize,
+    #[serde(default)]
+    pub skipped: usize,
+    #[serde(default)]
+    pub other: usize,
+    #[serde(skip)]
     pub duration_ms: u64,
+    #[serde(rename = "start")]
     pub start_time: u64,
+    #[serde(rename = "stop")]
     pub stop_time: u64,
 }
 
@@ -75,43 +88,33 @@ pub struct TestRunOutput {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CtrfReport {
+pub struct Report {
     pub report_format: &'static str,
     pub spec_version: &'static str,
-    pub results: CtrfResults,
+    pub results: Results,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct CtrfResults {
-    pub tool: CtrfTool,
-    pub summary: CtrfSummary,
-    pub tests: Vec<CtrfTest>,
+pub struct Results {
+    pub tool: Tool,
+    pub summary: Summary,
+    pub tests: Vec<Test>,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct CtrfTool {
+pub struct Tool {
     pub name: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<&'static str>,
 }
 
-#[derive(Debug, Clone, Serialize)]
-pub struct CtrfSummary {
-    pub tests: usize,
-    pub passed: usize,
-    pub failed: usize,
-    pub pending: usize,
-    pub skipped: usize,
-    pub other: usize,
-    pub start: u64,
-    pub stop: u64,
-}
+
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CtrfTest {
+pub struct Test {
     pub name: String,
-    pub status: CtrfStatus,
+    pub status: Status,
     pub duration: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_path: Option<String>,
@@ -123,15 +126,7 @@ pub struct CtrfTest {
     pub trace: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum CtrfStatus {
-    Passed,
-    Failed,
-    Skipped,
-    Pending,
-    Other,
-}
+
 
 impl TestRunOutput {
     pub fn has_failures(&self) -> bool {
@@ -192,11 +187,6 @@ impl OutputFormatter for JsonFormatter {
 
         for file in &output.files {
             for test in &file.tests {
-                let ctrf_status = match test.status {
-                    Status::Passed => CtrfStatus::Passed,
-                    Status::Failed => CtrfStatus::Failed,
-                };
-
                 let message = if test.status == Status::Failed {
                     Self::build_failure_message(test)
                 } else {
@@ -205,9 +195,9 @@ impl OutputFormatter for JsonFormatter {
 
                 let trace = Self::build_trace(test, file);
 
-                ctrf_tests.push(CtrfTest {
+                ctrf_tests.push(Test {
                     name: test.name.clone(),
-                    status: ctrf_status,
+                    status: test.status,
                     duration: test.duration_ms,
                     file_path: Some(file.file.clone()),
                     line: Some(test.line),
@@ -217,24 +207,15 @@ impl OutputFormatter for JsonFormatter {
             }
         }
 
-        let report = CtrfReport {
+        let report = Report {
             report_format: "CTRF",
             spec_version: "0.0.0",
-            results: CtrfResults {
-                tool: CtrfTool {
+            results: Results {
+                tool: Tool {
                     name: "hone",
                     version: Some(env!("CARGO_PKG_VERSION")),
                 },
-                summary: CtrfSummary {
-                    tests: output.summary.total_tests,
-                    passed: output.summary.passed,
-                    failed: output.summary.failed,
-                    pending: 0,
-                    skipped: 0,
-                    other: 0,
-                    start: output.summary.start_time,
-                    stop: output.summary.stop_time,
-                },
+                summary: output.summary.clone(),
                 tests: ctrf_tests,
             },
         };
