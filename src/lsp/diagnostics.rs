@@ -1,4 +1,4 @@
-use crate::parser::{parse_file, ParseResult};
+use crate::parser::{parse_file, ASTNode, ParseResult};
 use async_lsp::lsp_types::*;
 
 pub fn generate_diagnostics(uri: &Url, content: &str) -> Vec<Diagnostic> {
@@ -21,10 +21,14 @@ pub fn generate_diagnostics(uri: &Url, content: &str) -> Vec<Diagnostic> {
 
             // Process Error nodes in the AST
             for node in &file.nodes {
-                if let crate::parser::ASTNode::Error(error_node) = node {
+                if let ASTNode::Error(error_node) = node {
                     diagnostics.push(create_diagnostic_from_error_node(error_node));
                 }
             }
+
+            // Perform semantic analysis
+            let semantic_diagnostics = analyze_semantics(&file.nodes);
+            diagnostics.extend(semantic_diagnostics);
         }
         ParseResult::Failure { errors, warnings } => {
             // If parsing completely failed, report all errors
@@ -127,6 +131,71 @@ fn create_diagnostic_from_error_node(error_node: &crate::parser::ErrorNode) -> D
         code_description: None,
         source: Some("hone".to_string()),
         message: error_node.message.clone(),
+        related_information: None,
+        tags: None,
+        data: None,
+    }
+}
+
+fn analyze_semantics(nodes: &[ASTNode]) -> Vec<Diagnostic> {
+    let mut diagnostics = Vec::new();
+    let mut in_test = false;
+
+    for node in nodes {
+        match node {
+            ASTNode::Test(_) => {
+                in_test = true;
+            }
+            ASTNode::Assert(assert_node) => {
+                if !in_test {
+                    diagnostics.push(create_semantic_diagnostic(
+                        assert_node.line,
+                        "Assertion 'expect' can only be used inside a @test block",
+                    ));
+                }
+            }
+            ASTNode::Run(_) => {
+                if !in_test {
+                    diagnostics.push(create_semantic_diagnostic(
+                        node.line(),
+                        "Command 'run' can only be used inside a @test block",
+                    ));
+                }
+            }
+            ASTNode::Env(_) => {
+                if in_test {
+                    diagnostics.push(create_semantic_diagnostic(
+                        node.line(),
+                        "Environment variable 'env' should be defined in @setup or at the top level, not inside @test",
+                    ));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    diagnostics
+}
+
+fn create_semantic_diagnostic(line: usize, message: &str) -> Diagnostic {
+    let line = if line > 0 { line - 1 } else { 0 };
+
+    Diagnostic {
+        range: Range {
+            start: Position {
+                line: line as u32,
+                character: 0,
+            },
+            end: Position {
+                line: line as u32,
+                character: u32::MAX,
+            },
+        },
+        severity: Some(DiagnosticSeverity::ERROR),
+        code: None,
+        code_description: None,
+        source: Some("hone".to_string()),
+        message: message.to_string(),
         related_information: None,
         tags: None,
         data: None,
