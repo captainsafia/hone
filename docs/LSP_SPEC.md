@@ -327,10 +327,10 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Add startup log message with version info
 
 #### 2.5 Implement LSP Lifecycle
-- [ ] Handle `initialize` request: return server capabilities
-- [ ] Handle `initialized` notification
-- [ ] Handle `shutdown` request and `exit` notification
-- [ ] Test lifecycle with a mock client
+- [x] Handle `initialize` request: return server capabilities
+- [x] Handle `initialized` notification
+- [x] Handle `shutdown` request and `exit` notification
+- [x] Test lifecycle with a mock client
 
 #### 2.6 Implement Text Document Synchronization
 - [ ] Handle `textDocument/didOpen`: store document content
