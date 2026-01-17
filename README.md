@@ -17,13 +17,13 @@ Write tests in a simple, line-oriented DSL that executes real shell commands and
 
 ```sh
 # Install latest release
-curl https://i.captainsafia.sh/captainsafia/hone | sh
+curl https://i.safia.sh/captainsafia/hone | sh
 
 # Install a specific version
-curl https://i.captainsafia.sh/captainsafia/hone/v1.0.0 | sh
+curl https://i.safia.sh/captainsafia/hone/v1.0.0 | sh
 
 # Install latest prerelease
-curl https://i.captainsafia.sh/captainsafia/hone/preview | sh
+curl https://i.safia.sh/captainsafia/hone/preview | sh
 ```
 
 ## Quick Start

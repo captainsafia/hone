@@ -193,7 +193,7 @@ jobs:
             ## Installation
 
             ```
-            curl https://i.captainsafia.sh/captainsafia/hone/v${{ needs.build-linux.outputs.version }} | sh
+            curl https://i.safia.sh/captainsafia/hone/v${{ needs.build-linux.outputs.version }} | sh
             ```
 
             ## Manual Downloads
@@ -261,7 +261,7 @@ jobs:
             ## Installation
 
             ```
-            curl https://i.captainsafia.sh/captainsafia/hone/v${{ needs.build-linux.outputs.version }} | sh
+            curl https://i.safia.sh/captainsafia/hone/v${{ needs.build-linux.outputs.version }} | sh
             ```
 
             ## Manual Downloads
