@@ -77,7 +77,7 @@ pub async fn run_tests(
     patterns: Vec<String>,
     options: RunnerOptions,
 ) -> anyhow::Result<TestRunOutput> {
-    let is_machine_output = matches!(options.output_format, OutputFormat::Json);
+    let is_json = options.output_format == OutputFormat::Json;
     let reporter = DefaultReporter::new(options.verbose, options.output_format);
     let cwd = std::env::current_dir()?.to_string_lossy().to_string();
     let start_time = std::time::Instant::now();
@@ -94,7 +94,7 @@ pub async fn run_tests(
     let all_files: Vec<_> = all_files.into_iter().collect();
 
     if all_files.is_empty() {
-        if !is_machine_output {
+        if !is_json {
             reporter.on_warning(&format!(
                 "No test files found matching: {}",
                 patterns.join(", ")
@@ -144,7 +144,7 @@ pub async fn run_tests(
         match result {
             Ok((file, parse_result)) => match parse_result {
                 ParseResult::Failure { errors, warnings } => {
-                    if !is_machine_output {
+                    if !is_json {
                         reporter.on_parse_errors(&errors);
                         for warning in &warnings {
                             reporter.on_warning(&format!(
@@ -155,7 +155,7 @@ pub async fn run_tests(
                     }
                 }
                 ParseResult::Success { file: parsed_file } => {
-                    if !is_machine_output {
+                    if !is_json {
                         for warning in &parsed_file.warnings {
                             reporter.on_warning(&format!(
                                 "{}:{} :: {}",
@@ -270,7 +270,7 @@ async fn run_file(
     options: &RunnerOptions,
     reporter: &impl Reporter,
 ) -> anyhow::Result<FileRunResult> {
-    let is_machine_output = matches!(options.output_format, OutputFormat::Json);
+    let is_json = options.output_format == OutputFormat::Json;
     let cwd = Path::new(filename)
         .parent()
         .unwrap_or(Path::new("."))
@@ -372,7 +372,7 @@ async fn run_file(
         }
     }
 
-    if !is_machine_output {
+    if !is_json {
         println!(); // Newline after progress dots
     }
 
@@ -384,7 +384,7 @@ async fn run_file(
 
     if let Some(ref f) = failure {
         reporter.on_failure(f);
-    } else if !is_machine_output {
+    } else if !is_json {
         let assertions_text = if total_assertions_passed == 1 {
             "assertion"
         } else {
