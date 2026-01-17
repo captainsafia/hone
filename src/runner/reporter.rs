@@ -108,8 +108,6 @@ pub struct Tool {
     pub version: Option<&'static str>,
 }
 
-
-
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Test {
@@ -125,8 +123,6 @@ pub struct Test {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trace: Option<String>,
 }
-
-
 
 impl TestRunOutput {
     pub fn has_failures(&self) -> bool {
