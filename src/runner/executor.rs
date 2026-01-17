@@ -72,7 +72,6 @@ struct ExecuteResult {
     test_result: Option<TestResult>,
 }
 
-
 pub async fn run_tests(
     patterns: Vec<String>,
     options: RunnerOptions,
@@ -129,32 +128,30 @@ pub async fn run_tests(
 
     for result in parse_results {
         match result {
-            Ok((file, parse_result)) => {
-                match parse_result {
-                    ParseResult::Failure { errors, warnings } => {
-                        if !is_json {
-                            reporter.on_parse_errors(&errors);
-                            for warning in &warnings {
-                                reporter.on_warning(&format!(
-                                    "{}:{} :: {}",
-                                    warning.filename, warning.line, warning.message
-                                ));
-                            }
+            Ok((file, parse_result)) => match parse_result {
+                ParseResult::Failure { errors, warnings } => {
+                    if !is_json {
+                        reporter.on_parse_errors(&errors);
+                        for warning in &warnings {
+                            reporter.on_warning(&format!(
+                                "{}:{} :: {}",
+                                warning.filename, warning.line, warning.message
+                            ));
                         }
-                    }
-                    ParseResult::Success { file: parsed_file } => {
-                        if !is_json {
-                            for warning in &parsed_file.warnings {
-                                reporter.on_warning(&format!(
-                                    "{}:{} :: {}",
-                                    warning.filename, warning.line, warning.message
-                                ));
-                            }
-                        }
-                        valid_files.push((file, parsed_file.nodes));
                     }
                 }
-            }
+                ParseResult::Success { file: parsed_file } => {
+                    if !is_json {
+                        for warning in &parsed_file.warnings {
+                            reporter.on_warning(&format!(
+                                "{}:{} :: {}",
+                                warning.filename, warning.line, warning.message
+                            ));
+                        }
+                    }
+                    valid_files.push((file, parsed_file.nodes));
+                }
+            },
             Err(e) => {
                 return Err(e);
             }

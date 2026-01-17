@@ -176,7 +176,10 @@ pub struct DefaultReporter {
 
 impl DefaultReporter {
     pub fn new(verbose: bool, output_format: OutputFormat) -> Self {
-        Self { verbose, output_format }
+        Self {
+            verbose,
+            output_format,
+        }
     }
 
     fn is_json(&self) -> bool {
