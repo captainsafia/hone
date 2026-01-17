@@ -307,9 +307,9 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 **Goal**: Establish the LSP server skeleton that can start, communicate, and shut down correctly.
 
 #### 2.1 Add Dependencies
-- [ ] Add `async-lsp` to `Cargo.toml`
-- [ ] Add `tracing` and `tracing-appender` for file logging
-- [ ] Verify dependencies compile and don't conflict with existing crates
+- [x] Add `async-lsp` to `Cargo.toml`
+- [x] Add `tracing` and `tracing-appender` for file logging
+- [x] Verify dependencies compile and don't conflict with existing crates
 
 #### 2.2 Create LSP Module Structure
 - [ ] Create `src/lsp/mod.rs` with module declarations
