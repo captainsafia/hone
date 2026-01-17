@@ -373,9 +373,9 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Suggestions are text-only (no code actions in this version)
 
 #### 3.6 Graceful Degradation for Unknown Syntax
-- [ ] Skip unrecognized blocks without crashing
-- [ ] Continue analyzing the rest of the file
-- [ ] Optionally emit a warning for unrecognized syntax
+- [x] Skip unrecognized blocks without crashing
+- [x] Continue analyzing the rest of the file
+- [x] Optionally emit a warning for unrecognized syntax
 
 **Criteria addressed**: SC#2 (syntax errors), SC#3 (semantic and type errors)
 
