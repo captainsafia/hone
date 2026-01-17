@@ -2,11 +2,25 @@ use async_lsp::lsp_types::*;
 use async_lsp::{ClientSocket, LanguageClient};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Default)]
+use crate::lsp::completion::CompletionProvider;
+
+#[derive(Debug, Clone)]
 pub struct ServerState {
     pub documents: HashMap<Url, String>,
     pub shutdown_requested: bool,
     pub client: Option<ClientSocket>,
+    pub completion_provider: CompletionProvider,
+}
+
+impl Default for ServerState {
+    fn default() -> Self {
+        Self {
+            documents: HashMap::new(),
+            shutdown_requested: false,
+            client: None,
+            completion_provider: CompletionProvider::new(),
+        }
+    }
 }
 
 impl ServerState {
@@ -44,6 +58,10 @@ pub fn handle_initialize(_params: InitializeParams) -> InitializeResult {
     InitializeResult {
         capabilities: ServerCapabilities {
             text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
+            completion_provider: Some(CompletionOptions {
+                trigger_characters: Some(vec!["@".to_string(), " ".to_string()]),
+                ..Default::default()
+            }),
             ..Default::default()
         },
         server_info: Some(ServerInfo {
@@ -132,4 +150,28 @@ pub fn handle_did_close(state: &mut ServerState, params: DidCloseTextDocumentPar
 
     tracing::info!("Document closed: {}", uri);
     state.close_document(&uri);
+}
+
+pub fn handle_completion(
+    state: &ServerState,
+    params: CompletionParams,
+) -> Option<CompletionResponse> {
+    let uri = &params.text_document_position.text_document.uri;
+    tracing::debug!("Completion requested for: {}", uri);
+
+    let text = state.get_document(uri)?;
+
+    // Parse the document to get the AST
+    let filename = uri.path();
+    let parsed = match crate::parser::parse_file(text, filename) {
+        crate::parser::ParseResult::Success { file } => file,
+        crate::parser::ParseResult::Failure { errors, .. } => {
+            tracing::warn!("Failed to parse document for completion: {:?}", errors);
+            return None;
+        }
+    };
+
+    state
+        .completion_provider
+        .provide_completions(&parsed, &params)
 }

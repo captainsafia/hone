@@ -386,23 +386,23 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 **Goal**: Provide context-aware completions with snippet support.
 
 #### 4.1 Create Completion Module
-- [ ] Create `src/lsp/completion.rs`
-- [ ] Handle `textDocument/completion` request
-- [ ] Determine cursor context (top-level, inside block, after `expect`)
+- [x] Create `src/lsp/completion.rs`
+- [x] Handle `textDocument/completion` request
+- [x] Determine cursor context (top-level, inside block, after `expect`)
 
 #### 4.2 Implement Keyword Completion
-- [ ] Complete `@test`, `@setup` at top-level positions
-- [ ] Complete `expect`, `run` inside test blocks
-- [ ] Filter completions based on valid positions
+- [x] Complete `@test`, `@setup` at top-level positions
+- [x] Complete `expect`, `run` inside test blocks
+- [x] Filter completions based on valid positions
 
 #### 4.3 Implement Assertion Name Completion
-- [ ] After `expect `, suggest assertion names: `stdout`, `stderr`, `exitcode`, `file`, `duration`
-- [ ] Include brief descriptions in completion item documentation
+- [x] After `expect `, suggest assertion names: `stdout`, `stderr`, `exitcode`, `file`, `duration`
+- [x] Include brief descriptions in completion item documentation
 
 #### 4.4 Add Snippet Support
-- [ ] Use `InsertTextFormat::Snippet` for completions
-- [ ] Define snippets with tab stops (`$1`, `$2`, etc.)
-- [ ] Implement snippet templates:
+- [x] Use `InsertTextFormat::Snippet` for completions
+- [x] Define snippets with tab stops (`$1`, `$2`, etc.)
+- [x] Implement snippet templates:
   - `@test "$1" {\n  $2\n}`
   - `expect stdout {\n  $1\n}`
   - `expect exitcode $1`

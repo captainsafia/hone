@@ -81,7 +81,7 @@ pub async fn run_lsp_server() -> Result<()> {
     use async_lsp::lsp_types::notification::{
         DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, Exit, Initialized,
     };
-    use async_lsp::lsp_types::request::{Initialize, Shutdown};
+    use async_lsp::lsp_types::request::{Completion, Initialize, Shutdown};
 
     // Initialize logging first
     init_logging().context("Failed to initialize logging")?;
@@ -117,6 +117,14 @@ pub async fn run_lsp_server() -> Result<()> {
             .notification::<DidCloseTextDocument>(|state, params| {
                 crate::lsp::handlers::handle_did_close(state, params);
                 ControlFlow::Continue(())
+            })
+            .request::<Completion, _>(|state, params| {
+                let state = state.clone();
+                async move {
+                    tracing::debug!("Handling completion request");
+                    let result = crate::lsp::handlers::handle_completion(&state, params);
+                    Ok(result)
+                }
             })
             .request::<Shutdown, _>(|state, _params| {
                 tracing::info!("Shutdown requested");
