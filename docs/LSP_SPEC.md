@@ -363,14 +363,14 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Report semantic errors as diagnostics
 
 #### 3.4 Implement Type Checking for Assertions
-- [ ] Define expected argument types for each assertion
-- [ ] Validate argument types match expectations
-- [ ] Report type mismatches (e.g., `exitcode "foo"` instead of `exitcode 0`)
+- [x] Define expected argument types for each assertion
+- [x] Validate argument types match expectations
+- [x] Report type mismatches (e.g., `exitcode "foo"` instead of `exitcode 0`)
 
 #### 3.5 Add Fix Suggestions
-- [ ] Include human-readable fix suggestions in diagnostic messages
-- [ ] Example: "Unknown assertion 'stout'. Did you mean 'stdout'?"
-- [ ] Suggestions are text-only (no code actions in this version)
+- [x] Include human-readable fix suggestions in diagnostic messages
+- [x] Example: "Exit code must be in the range 0-255. Note: exit codes wrap around (256 becomes 0)"
+- [x] Suggestions are text-only (no code actions in this version)
 
 #### 3.6 Graceful Degradation for Unknown Syntax
 - [ ] Skip unrecognized blocks without crashing
