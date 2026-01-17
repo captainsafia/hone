@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use hone::{run_tests, OutputFormat, RunnerOptions};
+use hone::{run_lsp_server, run_tests, OutputFormat, RunnerOptions};
 
 #[derive(Parser)]
 #[command(name = "hone")]
@@ -53,38 +53,44 @@ enum Commands {
         #[arg(long = "output-format", value_enum, default_value = "text")]
         output_format: OutputFormat,
     },
+    /// Start the Language Server Protocol (LSP) server
+    Lsp,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    let (patterns, shell, verbose, test_filter, output_format) = match cli.command {
+    match cli.command {
+        Some(Commands::Lsp) => {
+            run_lsp_server().await?;
+            Ok(())
+        }
         Some(Commands::Run {
             patterns,
             shell,
             verbose,
             test_filter,
             output_format,
-        }) => (patterns, shell, verbose, test_filter, output_format),
-        None => (
-            cli.patterns,
-            cli.shell,
-            cli.verbose,
-            cli.test_filter,
-            cli.output_format,
-        ),
-    };
-
-    let options = RunnerOptions {
-        shell,
-        verbose,
-        test_filter,
-        output_format,
-    };
-
-    let results = run_tests(patterns, options).await?;
-
-    // Exit with code 1 if any tests failed
-    std::process::exit(if results.has_failures() { 1 } else { 0 });
+        }) => {
+            let options = RunnerOptions {
+                shell,
+                verbose,
+                test_filter,
+                output_format,
+            };
+            let results = run_tests(patterns, options).await?;
+            std::process::exit(if results.has_failures() { 1 } else { 0 });
+        }
+        None => {
+            let options = RunnerOptions {
+                shell: cli.shell,
+                verbose: cli.verbose,
+                test_filter: cli.test_filter,
+                output_format: cli.output_format,
+            };
+            let results = run_tests(cli.patterns, options).await?;
+            std::process::exit(if results.has_failures() { 1 } else { 0 });
+        }
+    }
 }

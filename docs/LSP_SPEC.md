@@ -312,14 +312,14 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Verify dependencies compile and don't conflict with existing crates
 
 #### 2.2 Create LSP Module Structure
-- [ ] Create `src/lsp/mod.rs` with module declarations
-- [ ] Create stub files: `server.rs`, `handlers.rs`
-- [ ] Export the LSP entry point from `lib.rs`
+- [x] Create `src/lsp/mod.rs` with module declarations
+- [x] Create stub files: `server.rs`, `handlers.rs`
+- [x] Export the LSP entry point from `lib.rs`
 
 #### 2.3 Implement `hone lsp` Subcommand
-- [ ] Add `lsp` subcommand to CLI argument parser in `main.rs`
-- [ ] Wire subcommand to LSP server entry point
-- [ ] Ensure `hone lsp` starts without errors
+- [x] Add `lsp` subcommand to CLI argument parser in `main.rs`
+- [x] Wire subcommand to LSP server entry point
+- [x] Ensure `hone lsp` starts without errors
 
 #### 2.4 Set Up File Logging
 - [ ] Configure `tracing` to write to `~/.local/state/hone/lsp.log` (Linux) or platform equivalent
