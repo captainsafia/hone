@@ -6,6 +6,20 @@ use async_lsp::lsp_types::{
 use crate::lsp::shell::ShellCommands;
 use crate::parser::ast::ParsedFile;
 
+/// Returns a string prefix up to `byte_idx`, clamped to the nearest valid UTF-8 boundary.
+/// If `byte_idx` is beyond the string length, returns the entire string.
+fn safe_prefix(s: &str, byte_idx: usize) -> &str {
+    if byte_idx >= s.len() {
+        return s;
+    }
+    // Find the largest valid char boundary <= byte_idx
+    let mut end = byte_idx;
+    while end > 0 && !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    &s[..end]
+}
+
 #[derive(Debug, Clone)]
 pub struct CompletionProvider {
     shell_commands: ShellCommands,
@@ -62,11 +76,7 @@ impl CompletionProvider {
         }
 
         let current_line = lines[line_idx];
-        let prefix = if col_idx <= current_line.len() {
-            &current_line[..col_idx]
-        } else {
-            current_line
-        };
+        let prefix = safe_prefix(current_line, col_idx);
 
         // Calculate indentation of current line
         let indent = current_line
@@ -313,6 +323,37 @@ mod tests {
     use crate::parser::parse_file;
 
     #[test]
+    fn test_safe_prefix_ascii() {
+        assert_eq!(safe_prefix("hello", 3), "hel");
+        assert_eq!(safe_prefix("hello", 5), "hello");
+        assert_eq!(safe_prefix("hello", 10), "hello");
+        assert_eq!(safe_prefix("hello", 0), "");
+    }
+
+    #[test]
+    fn test_safe_prefix_utf8() {
+        // "日本語" is 9 bytes (3 chars × 3 bytes each)
+        let s = "日本語";
+        assert_eq!(safe_prefix(s, 0), "");
+        assert_eq!(safe_prefix(s, 1), ""); // mid-char, clamps to 0
+        assert_eq!(safe_prefix(s, 2), ""); // mid-char, clamps to 0
+        assert_eq!(safe_prefix(s, 3), "日"); // exact boundary
+        assert_eq!(safe_prefix(s, 4), "日"); // mid-char, clamps to 3
+        assert_eq!(safe_prefix(s, 6), "日本"); // exact boundary
+        assert_eq!(safe_prefix(s, 9), "日本語"); // exact boundary (full string)
+        assert_eq!(safe_prefix(s, 100), "日本語"); // beyond length
+    }
+
+    #[test]
+    fn test_safe_prefix_mixed() {
+        // "Test 日本語" - mixed ASCII and UTF-8
+        let s = "Test 日本語";
+        assert_eq!(safe_prefix(s, 5), "Test "); // ASCII part
+        assert_eq!(safe_prefix(s, 6), "Test "); // mid first kanji
+        assert_eq!(safe_prefix(s, 8), "Test 日"); // after first kanji
+    }
+
+    #[test]
     fn test_context_detection_top_level() {
         let provider = CompletionProvider::new();
         let text = "\n\n";
@@ -434,5 +475,24 @@ mod tests {
 
         // Should have completions for assertion types
         assert!(items.iter().any(|i| i.label == "stdout"));
+    }
+
+    #[test]
+    fn test_context_detection_with_unicode_no_panic() {
+        let provider = CompletionProvider::new();
+        // Unicode test name: "日本語テスト"
+        let text = "TEST \"日本語テスト\"\nRUN echo hi\n";
+        let parsed = match parse_file(text, "test.hone") {
+            crate::parser::ParseResult::Success { file } => file,
+            _ => panic!("Failed to parse"),
+        };
+
+        // Position inside the multi-byte characters - this should not panic
+        let position = Position {
+            line: 0,
+            character: 7, // Inside the unicode test name
+        };
+        // Should not panic, just return some context
+        let _context = provider.determine_context(&parsed, position, text);
     }
 }

@@ -20,12 +20,15 @@ impl HoverProvider {
         }
 
         let line = lines[line_idx];
-        if char_idx >= line.len() {
+        // Convert to chars for consistent indexing (LSP positions are in UTF-16 code units,
+        // but for ASCII/BMP this is equivalent to char count)
+        let chars: Vec<char> = line.chars().collect();
+        if char_idx >= chars.len() {
             return None;
         }
 
         // Find the word at the cursor position
-        let (word, _start, _end) = self.extract_word_at_position(line, char_idx)?;
+        let (word, _start, _end) = self.extract_word_at_position(&chars, char_idx)?;
 
         // Look up documentation for the word
         let documentation = self.get_documentation(&word)?;
@@ -41,11 +44,9 @@ impl HoverProvider {
 
     fn extract_word_at_position(
         &self,
-        line: &str,
+        chars: &[char],
         char_idx: usize,
     ) -> Option<(String, usize, usize)> {
-        // Find word boundaries
-        let chars: Vec<char> = line.chars().collect();
         if char_idx >= chars.len() {
             return None;
         }
@@ -346,24 +347,39 @@ mod tests {
         let provider = HoverProvider::new();
 
         // Test extracting TEST
-        let (word, start, end) = provider
-            .extract_word_at_position("TEST \"name\"", 2)
-            .unwrap();
+        let line: Vec<char> = "TEST \"name\"".chars().collect();
+        let (word, start, end) = provider.extract_word_at_position(&line, 2).unwrap();
         assert_eq!(word, "TEST");
         assert_eq!(start, 0);
         assert_eq!(end, 4);
 
         // Test extracting ASSERT
-        let (word, _, _) = provider
-            .extract_word_at_position("  ASSERT stdout contains \"ok\"", 5)
-            .unwrap();
+        let line: Vec<char> = "  ASSERT stdout contains \"ok\"".chars().collect();
+        let (word, _, _) = provider.extract_word_at_position(&line, 5).unwrap();
         assert_eq!(word, "ASSERT");
 
         // Test extracting stdout
-        let (word, _, _) = provider
-            .extract_word_at_position("  ASSERT stdout contains \"ok\"", 10)
-            .unwrap();
+        let (word, _, _) = provider.extract_word_at_position(&line, 10).unwrap();
         assert_eq!(word, "stdout");
+    }
+
+    #[test]
+    fn test_extract_word_with_unicode() {
+        let provider = HoverProvider::new();
+
+        // Test with unicode content - should not panic
+        let line: Vec<char> = "TEST \"日本語テスト\"".chars().collect();
+        // Position at the start
+        let result = provider.extract_word_at_position(&line, 0);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().0, "TEST");
+
+        // Position inside the unicode string (char index 6 is inside "日本語")
+        // Should return None since it's inside a string literal (no word chars)
+        let result = provider.extract_word_at_position(&line, 8);
+        // This might return the japanese chars as a "word" depending on is_alphanumeric
+        // The key is it should not panic
+        let _ = result;
     }
 
     #[test]
