@@ -1342,4 +1342,58 @@ ASSERT exit_code 0"#;
             }
         }
     }
+
+    #[test]
+    fn test_duration_missing_operator_error() {
+        // duration without operator should produce a clear error
+        let content = r#"TEST "missing operator"
+RUN sleep 0.1
+ASSERT duration 200ms"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing operator in duration assertion"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("comparison operator"),
+                    "Error should mention comparison operator. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_duration_missing_value_error() {
+        // duration with operator but no value should produce a clear error
+        let content = r#"TEST "missing value"
+RUN sleep 0.1
+ASSERT duration < "#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing value after duration operator"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("duration value"),
+                    "Error should mention expected duration value. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
 }
