@@ -1396,4 +1396,85 @@ ASSERT duration < "#;
             }
         }
     }
+
+    #[test]
+    fn test_output_contains_missing_string_error() {
+        // stdout contains without string should produce a clear error
+        let content = r#"TEST "missing string"
+RUN echo hello
+ASSERT stdout contains"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing string after 'contains'"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("quoted string") && error_msg.contains("contains"),
+                    "Error should mention expected quoted string after contains. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_output_matches_missing_regex_error() {
+        // stdout matches without regex should produce a clear error
+        let content = r#"TEST "missing regex"
+RUN echo hello
+ASSERT stdout matches"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing regex after 'matches'"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("regex") && error_msg.contains("matches"),
+                    "Error should mention expected regex literal after matches. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_output_equals_missing_string_error() {
+        // stdout == without string should produce a clear error
+        let content = r#"TEST "missing string"
+RUN echo hello
+ASSERT stdout == "#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing string after comparison operator"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("quoted string"),
+                    "Error should mention expected quoted string. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
 }
