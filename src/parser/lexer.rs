@@ -203,80 +203,99 @@ pub fn parse_regex_literal(input: &str, start_byte_index: usize) -> Option<(Rege
     None
 }
 
-pub fn parse_duration(input: &str, start_index: usize) -> Option<(Duration, usize)> {
-    let chars: Vec<char> = input.chars().collect();
-    let mut i = start_index;
+pub fn parse_duration(input: &str, start_byte_index: usize) -> Option<(Duration, usize)> {
+    let remaining = input.get(start_byte_index..)?;
+    let mut byte_offset = 0;
 
     // Skip whitespace
-    while i < chars.len() && chars[i] == ' ' {
-        i += 1;
+    for ch in remaining.chars() {
+        if ch != ' ' {
+            break;
+        }
+        byte_offset += ch.len_utf8();
     }
 
-    let num_start = i;
+    let num_start = byte_offset;
 
     // Parse number (including decimal)
-    while i < chars.len() && (chars[i].is_ascii_digit() || chars[i] == '.') {
-        i += 1;
+    for ch in remaining[byte_offset..].chars() {
+        if !ch.is_ascii_digit() && ch != '.' {
+            break;
+        }
+        byte_offset += ch.len_utf8();
     }
 
-    if i == num_start {
+    if byte_offset == num_start {
         return None;
     }
 
-    let num_str: String = chars[num_start..i].iter().collect();
+    let num_str = &remaining[num_start..byte_offset];
     let value = num_str.parse::<f64>().ok()?;
 
     // Parse unit
-    let unit_start = i;
-    while i < chars.len() && chars[i].is_ascii_lowercase() {
-        i += 1;
+    let unit_start = byte_offset;
+    for ch in remaining[byte_offset..].chars() {
+        if !ch.is_ascii_lowercase() {
+            break;
+        }
+        byte_offset += ch.len_utf8();
     }
 
-    let unit_str: String = chars[unit_start..i].iter().collect();
-    let unit = match unit_str.as_str() {
+    let unit_str = &remaining[unit_start..byte_offset];
+    let unit = match unit_str {
         "ms" => DurationUnit::Milliseconds,
         "s" => DurationUnit::Seconds,
         _ => return None,
     };
 
-    let raw: String = chars[start_index..i]
-        .iter()
-        .collect::<String>()
-        .trim()
-        .to_string();
+    let raw = remaining[..byte_offset].trim().to_string();
 
-    Some((Duration { value, unit, raw }, i))
+    Some((
+        Duration { value, unit, raw },
+        start_byte_index + byte_offset,
+    ))
 }
 
-pub fn parse_number(input: &str, start_index: usize) -> Option<(i32, usize)> {
-    let chars: Vec<char> = input.chars().collect();
-    let mut i = start_index;
+pub fn parse_number(input: &str, start_byte_index: usize) -> Option<(i32, usize)> {
+    let remaining = input.get(start_byte_index..)?;
+    let mut byte_offset = 0;
 
     // Skip whitespace
-    while i < chars.len() && chars[i] == ' ' {
-        i += 1;
+    for ch in remaining.chars() {
+        if ch != ' ' {
+            break;
+        }
+        byte_offset += ch.len_utf8();
     }
 
-    let num_start = i;
+    let num_start = byte_offset;
+    let after_ws = &remaining[byte_offset..];
 
     // Handle negative numbers
-    if i < chars.len() && chars[i] == '-' {
-        i += 1;
+    let mut chars_iter = after_ws.chars().peekable();
+    if chars_iter.peek() == Some(&'-') {
+        byte_offset += 1;
+        chars_iter.next();
     }
 
     // Parse digits
-    while i < chars.len() && chars[i].is_ascii_digit() {
-        i += 1;
+    for ch in chars_iter {
+        if !ch.is_ascii_digit() {
+            break;
+        }
+        byte_offset += ch.len_utf8();
     }
 
-    if i == num_start || (i == num_start + 1 && chars.get(num_start) == Some(&'-')) {
+    if byte_offset == num_start
+        || (byte_offset == num_start + 1 && remaining.as_bytes().get(num_start) == Some(&b'-'))
+    {
         return None;
     }
 
-    let num_str: String = chars[num_start..i].iter().collect();
+    let num_str = &remaining[num_start..byte_offset];
     let value = num_str.parse::<i32>().ok()?;
 
-    Some((value, i))
+    Some((value, start_byte_index + byte_offset))
 }
 
 pub fn skip_whitespace(input: &str, start_byte_index: usize) -> usize {
@@ -665,6 +684,63 @@ mod tests {
         let (literal, end_index) = result.unwrap();
         assert_eq!(literal.flags, "i");
         // end_index should be usable for slicing
+        assert_eq!(&input[end_index..], " more");
+    }
+
+    #[test]
+    fn test_parse_number_at_byte_offset() {
+        // Test parsing number at a byte offset after unicode chars
+        let input = "日 42";
+        // 日 is 3 bytes, space is 1 byte, so "42" starts at byte 4
+        let result = parse_number(input, 4);
+        assert!(
+            result.is_some(),
+            "parse_number should succeed at byte offset 4"
+        );
+        let (value, end_index) = result.unwrap();
+        assert_eq!(value, 42);
+        // end_index should be usable for string slicing
+        assert_eq!(&input[end_index..], "");
+    }
+
+    #[test]
+    fn test_parse_number_returns_byte_index() {
+        // Test that the returned index is a byte index, not char index
+        let input = "日 42 more";
+        let result = parse_number(input, 4);
+        assert!(result.is_some());
+        let (value, end_index) = result.unwrap();
+        assert_eq!(value, 42);
+        // end_index should be usable for slicing to get remaining content
+        assert_eq!(&input[end_index..], " more");
+    }
+
+    #[test]
+    fn test_parse_duration_at_byte_offset() {
+        // Test parsing duration at a byte offset after unicode chars
+        let input = "日 200ms";
+        // 日 is 3 bytes, space is 1 byte, so "200ms" starts at byte 4
+        let result = parse_duration(input, 4);
+        assert!(
+            result.is_some(),
+            "parse_duration should succeed at byte offset 4"
+        );
+        let (duration, end_index) = result.unwrap();
+        assert_eq!(duration.value, 200.0);
+        assert_eq!(duration.unit, DurationUnit::Milliseconds);
+        // end_index should be usable for string slicing
+        assert_eq!(&input[end_index..], "");
+    }
+
+    #[test]
+    fn test_parse_duration_returns_byte_index() {
+        // Test that the returned index is a byte index, not char index
+        let input = "日 1.5s more";
+        let result = parse_duration(input, 4);
+        assert!(result.is_some());
+        let (duration, end_index) = result.unwrap();
+        assert_eq!(duration.value, 1.5);
+        // end_index should be usable for slicing to get remaining content
         assert_eq!(&input[end_index..], " more");
     }
 }
