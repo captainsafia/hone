@@ -58,6 +58,21 @@ enum Commands {
     /// Start the Language Server Protocol (LSP) server
     Lsp,
     /// Setup editor integration for Hone
+    #[command(long_about = "Setup editor integration for Hone
+
+This command configures your editor to work with Hone files (.hone) by:
+- Installing LSP (Language Server Protocol) configuration
+- Adding syntax highlighting support
+- Setting up file associations for .hone files
+
+To remove the configuration manually:
+- VS Code: Edit ~/.config/Code/User/settings.json (remove hone-related settings)
+- Neovim: Edit ~/.config/nvim/init.lua or init.vim (remove hone-marked sections)
+- Vim: Edit ~/.vimrc or ~/.vim/vimrc (remove hone-marked sections)
+- Helix: Edit ~/.config/helix/languages.toml (remove [[language]] entry for hone)
+- Emacs: Edit ~/.emacs.d/init.el or ~/.emacs (remove hone-marked sections)
+- Sublime: Delete ~/.config/sublime-text/Packages/User/LSP.sublime-settings and Hone.sublime-syntax
+- Zed: Edit ~/.config/zed/settings.json (remove hone-related settings)")]
     Setup {
         /// Editor(s) to configure (e.g., vscode, neovim, vim, helix, emacs, sublime, zed)
         editors: Vec<String>,
