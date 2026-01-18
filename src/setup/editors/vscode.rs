@@ -13,8 +13,9 @@ pub fn setup() -> Result<()> {
 
     let config_path = get_vscode_settings_path()?;
 
-    fs::create_dir_all(config_path.parent().unwrap())
-        .context("Failed to create VS Code config directory")?;
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent).context("Failed to create VS Code config directory")?;
+    }
 
     let mut settings = if config_path.exists() {
         let content = fs::read_to_string(&config_path).context("Failed to read settings.json")?;
@@ -45,7 +46,13 @@ fn get_vscode_settings_path() -> Result<PathBuf> {
 }
 
 fn add_hone_configuration(settings: &mut Value) {
-    let settings_obj = settings.as_object_mut().unwrap();
+    let settings_obj = match settings.as_object_mut() {
+        Some(obj) => obj,
+        None => {
+            *settings = json!({});
+            settings.as_object_mut().expect("just created object")
+        }
+    };
 
     if !settings_obj.contains_key("hone.lsp.enabled") {
         settings_obj.insert("hone.lsp.enabled".to_string(), json!(true));
@@ -55,15 +62,18 @@ fn add_hone_configuration(settings: &mut Value) {
         settings_obj.insert("hone.lsp.path".to_string(), json!("hone"));
     }
 
-    if !settings_obj.contains_key("files.associations") {
+    if !settings_obj.contains_key("files.associations")
+        || !settings_obj
+            .get("files.associations")
+            .is_some_and(|v| v.is_object())
+    {
         settings_obj.insert("files.associations".to_string(), json!({}));
     }
 
     let file_associations = settings_obj
         .get_mut("files.associations")
-        .unwrap()
-        .as_object_mut()
-        .unwrap();
+        .and_then(|v| v.as_object_mut())
+        .expect("just ensured files.associations is object");
 
     if !file_associations.contains_key("*.hone") {
         file_associations.insert("*.hone".to_string(), json!("hone"));
@@ -74,7 +84,11 @@ fn add_hone_configuration(settings: &mut Value) {
 }
 
 fn add_textmate_grammar(settings: &mut serde_json::Map<String, Value>) {
-    if !settings.contains_key("editor.tokenColorCustomizations") {
+    if !settings.contains_key("editor.tokenColorCustomizations")
+        || !settings
+            .get("editor.tokenColorCustomizations")
+            .is_some_and(|v| v.is_object())
+    {
         settings.insert(
             "editor.tokenColorCustomizations".to_string(),
             json!({"textMateRules": []}),
@@ -83,19 +97,19 @@ fn add_textmate_grammar(settings: &mut serde_json::Map<String, Value>) {
 
     let token_colors = settings
         .get_mut("editor.tokenColorCustomizations")
-        .unwrap()
-        .as_object_mut()
-        .unwrap();
+        .and_then(|v| v.as_object_mut())
+        .expect("just ensured editor.tokenColorCustomizations is object");
 
-    if !token_colors.contains_key("textMateRules") {
+    if !token_colors.contains_key("textMateRules")
+        || !token_colors.get("textMateRules").is_some_and(|v| v.is_array())
+    {
         token_colors.insert("textMateRules".to_string(), json!([]));
     }
 
     let rules = token_colors
         .get_mut("textMateRules")
-        .unwrap()
-        .as_array_mut()
-        .unwrap();
+        .and_then(|v| v.as_array_mut())
+        .expect("just ensured textMateRules is array");
 
     let hone_rule = json!({
         "scope": "source.hone",
@@ -178,5 +192,65 @@ mod tests {
         let file_assocs = obj.get("files.associations").unwrap().as_object().unwrap();
         assert_eq!(file_assocs.get("*.custom"), Some(&json!("plaintext")));
         assert_eq!(file_assocs.get("*.hone"), Some(&json!("hone")));
+    }
+
+    #[test]
+    fn test_add_hone_configuration_handles_non_object_root() {
+        let mut settings = json!("invalid");
+        add_hone_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        assert_eq!(obj.get("hone.lsp.enabled"), Some(&json!(true)));
+    }
+
+    #[test]
+    fn test_add_hone_configuration_handles_non_object_files_associations() {
+        let mut settings = json!({
+            "files.associations": "invalid"
+        });
+        add_hone_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        let file_assocs = obj.get("files.associations").unwrap().as_object().unwrap();
+        assert_eq!(file_assocs.get("*.hone"), Some(&json!("hone")));
+    }
+
+    #[test]
+    fn test_add_hone_configuration_handles_non_object_token_colors() {
+        let mut settings = json!({
+            "editor.tokenColorCustomizations": "invalid"
+        });
+        add_hone_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        let token_colors = obj
+            .get("editor.tokenColorCustomizations")
+            .unwrap()
+            .as_object()
+            .unwrap();
+        assert!(token_colors.contains_key("textMateRules"));
+    }
+
+    #[test]
+    fn test_add_hone_configuration_handles_non_array_textmate_rules() {
+        let mut settings = json!({
+            "editor.tokenColorCustomizations": {
+                "textMateRules": "invalid"
+            }
+        });
+        add_hone_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        let token_colors = obj
+            .get("editor.tokenColorCustomizations")
+            .unwrap()
+            .as_object()
+            .unwrap();
+        let rules = token_colors
+            .get("textMateRules")
+            .unwrap()
+            .as_array()
+            .unwrap();
+        assert_eq!(rules.len(), 1);
     }
 }
