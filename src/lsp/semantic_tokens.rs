@@ -358,10 +358,14 @@ impl SemanticTokensProvider {
         if line_idx < lines.len() {
             let line = lines[line_idx];
             if let Some(byte_pos) = line.find(token) {
-                // Convert byte position to character position for LSP compatibility
-                let char_pos = line[..byte_pos].chars().count();
-                let char_len = token.chars().count();
-                return Some((line_idx, char_pos, char_len));
+                // Convert byte position to UTF-16 code unit position for LSP compatibility
+                // LSP protocol uses UTF-16 code units for character positions
+                let utf16_pos = line[..byte_pos]
+                    .chars()
+                    .map(|c| c.len_utf16())
+                    .sum::<usize>();
+                let utf16_len = token.chars().map(|c| c.len_utf16()).sum::<usize>();
+                return Some((line_idx, utf16_pos, utf16_len));
             }
         }
         None
@@ -713,11 +717,34 @@ mod tests {
                 "Comment should start at char position 0"
             );
 
-            // Comment length should be 5 characters (# + space + 3 kanji), not 11 bytes
+            // Comment length should be 5 UTF-16 code units (# + space + 3 kanji), not 11 bytes
+            // CJK characters are in the BMP, so 1 char = 1 UTF-16 code unit
             assert_eq!(
                 token.length, 5,
-                "Comment length should be in characters (5), not bytes (11)"
+                "Comment length should be in UTF-16 code units (5), not bytes (11)"
             );
         }
+    }
+
+    #[test]
+    fn test_find_token_in_line_with_emoji() {
+        // Emoji 🎉 (U+1F389) is 4 bytes in UTF-8, but 2 UTF-16 code units (surrogate pair)
+        // "🎉 RUN" - emoji is 4 bytes, space is 1 byte, so "RUN" starts at byte 5
+        // In UTF-16 code units: emoji is 2 code units + space is 1 = 3, so RUN starts at position 3
+        let lines = vec!["🎉 RUN ls"];
+
+        let result = SemanticTokensProvider::find_token_in_line(&lines, 0, "RUN");
+        assert!(result.is_some());
+        let (line, start, length) = result.unwrap();
+
+        assert_eq!(line, 0);
+        // Position should be in UTF-16 code units, not chars
+        // "🎉 " is 2 UTF-16 code units (emoji) + 1 (space) = 3 code units
+        assert_eq!(
+            start, 3,
+            "Position should be UTF-16 code units (3), not byte offset (5) or char count (2)"
+        );
+        // Length in UTF-16 code units (RUN = 3 ASCII chars = 3 UTF-16 code units)
+        assert_eq!(length, 3);
     }
 }
