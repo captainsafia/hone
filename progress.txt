@@ -13,14 +13,21 @@
     - Language server and file type configuration
     - Idempotent configuration (safe to run multiple times)
     - Unit tests for configuration logic
+  - VS Code editor setup fully implemented
+    - Detection via PATH (`code`) and platform-specific app locations
+    - JSON config read/merge/write for `settings.json`
+    - LSP configuration, file associations, and TextMate grammar
+    - Idempotent configuration (safe to run multiple times)
+    - Unit tests for configuration logic
+    - Platform-specific config paths (Linux, macOS, Windows)
 
 ## Current Status
 - Helix setup is complete and functional
+- VS Code setup is complete and functional
 - Multi-editor error handling implemented
 - Exit codes properly implemented (0 for success, 2 for errors)
 
 ## Next Priority Tasks
-1. Implement VS Code setup (simpler than other editors, JSON-based)
-2. Implement Neovim setup (requires interactive prompts for LSP client)
-3. Add integration tests for setup command
-4. Implement remaining editors (Vim, Emacs, Sublime, Zed)
+1. Implement Neovim setup (requires interactive prompts for LSP client)
+2. Add integration tests for setup command
+3. Implement remaining editors (Vim, Emacs, Sublime, Zed)
