@@ -303,7 +303,13 @@ fn parse_run(
 fn parse_env(content: &str, line: usize, collector: &mut ParseErrorCollector) -> Option<EnvNode> {
     // ENV KEY=value
     let rest = &content[4..]; // After "ENV "
-    let eq_index = rest.find('=')?;
+    let Some(eq_index) = rest.find('=') else {
+        collector.add_error(
+            "Invalid ENV syntax: expected KEY=value format".to_string(),
+            line,
+        );
+        return None;
+    };
 
     let key = rest[..eq_index].trim().to_string();
     let value = rest[eq_index + 1..].to_string();
@@ -1106,6 +1112,29 @@ ASSERT exit_code == 9999999999999999999"#;
                     .warnings
                     .iter()
                     .any(|w| w.message.contains("Invalid pragma syntax")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_env_missing_equals_produces_error() {
+        // ENV without equals sign should produce an error
+        let content = "ENV FOO\nTEST \"test\"";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for ENV missing equals sign"
+                );
+                assert!(file
+                    .errors
+                    .iter()
+                    .any(|e| e.message.contains("Invalid ENV syntax")));
             }
             ParseResult::Failure { .. } => {
                 panic!("Parser should always return Success with errors embedded");
