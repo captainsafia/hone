@@ -740,7 +740,17 @@ async fn evaluate_assertion(
         }
 
         crate::parser::ast::AssertionExpression::File { path, predicate } => {
-            let shell_cwd = session.get_cwd().await.unwrap_or_else(|_| ".".to_string());
+            let shell_cwd = match session.get_cwd().await {
+                Ok(cwd) => cwd,
+                Err(e) => {
+                    return AssertionResult::with_error(
+                        false,
+                        format!("file \"{}\" check", path.value),
+                        "failed to get current working directory".to_string(),
+                        format!("Error: {}", e),
+                    )
+                }
+            };
             evaluate_file_predicate(path, predicate, &shell_cwd).await
         }
     }
