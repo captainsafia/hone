@@ -288,38 +288,34 @@ pub fn parse_number(input: &str, start_index: usize) -> Option<(i32, usize)> {
     Some((value, i))
 }
 
-pub fn skip_whitespace(input: &str, start_index: usize) -> usize {
-    let chars: Vec<char> = input.chars().collect();
-    let mut i = start_index;
-    while i < chars.len() && chars[i] == ' ' {
-        i += 1;
+pub fn skip_whitespace(input: &str, start_byte_index: usize) -> usize {
+    let mut byte_index = start_byte_index;
+    for ch in input[start_byte_index..].chars() {
+        if ch != ' ' {
+            break;
+        }
+        byte_index += ch.len_utf8();
     }
-    i
+    byte_index
 }
 
-pub fn match_word(input: &str, start_index: usize, word: &str) -> bool {
-    let chars: Vec<char> = input.chars().collect();
-    let word_chars: Vec<char> = word.chars().collect();
+pub fn match_word(input: &str, start_byte_index: usize, word: &str) -> bool {
+    let remaining = match input.get(start_byte_index..) {
+        Some(s) => s,
+        None => return false,
+    };
 
-    if start_index + word_chars.len() > chars.len() {
+    if !remaining.starts_with(word) {
         return false;
     }
 
-    // Check if the word matches
-    for (i, &ch) in word_chars.iter().enumerate() {
-        if chars[start_index + i] != ch {
-            return false;
-        }
-    }
-
-    // Ensure word boundary
-    let next_index = start_index + word_chars.len();
-    if next_index >= chars.len() {
+    // Ensure word boundary - next char must be space, dot, or end of input
+    let after_word = &remaining[word.len()..];
+    if after_word.is_empty() {
         return true;
     }
 
-    let next_char = chars[next_index];
-    next_char == ' ' || next_char == '.'
+    matches!(after_word.chars().next(), Some(' ') | Some('.'))
 }
 
 pub fn parse_comparison_operator(
@@ -584,5 +580,42 @@ mod tests {
         assert!(result.is_some());
         let (value, _) = result.unwrap();
         assert_eq!(value, 42);
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_with_leading_spaces() {
+        // Test that whitespace is properly skipped
+        let result = parse_comparison_operator("  ==", 0);
+        assert!(result.is_some());
+        let (op, end_idx) = result.unwrap();
+        assert_eq!(op, ComparisonOperator::Equal);
+        assert_eq!(end_idx, 4); // 2 spaces + 2 chars for "=="
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_no_panic_on_utf8() {
+        // Ensure we don't panic on UTF-8 input (even if we don't find an operator)
+        let result = parse_comparison_operator("日本語", 0);
+        assert!(result.is_none()); // No operator, but no panic
+    }
+
+    #[test]
+    fn test_skip_whitespace_returns_byte_index() {
+        // Verify skip_whitespace works correctly with UTF-8
+        let input = "日  x";
+        let byte_index = skip_whitespace(input, 3); // Start after 日 (3 bytes)
+                                                    // Should skip 2 spaces and return byte position of 'x' (byte 5)
+        assert_eq!(byte_index, 5);
+        // Should be valid for slicing
+        assert_eq!(&input[byte_index..], "x");
+    }
+
+    #[test]
+    fn test_match_word_with_byte_index() {
+        // Test that match_word works with byte indices
+        let input = "日 contains";
+        // 日 is 3 bytes, space is 1 byte, so "contains" starts at byte 4
+        assert!(match_word(input, 4, "contains"));
+        assert!(!match_word(input, 0, "contains"));
     }
 }
