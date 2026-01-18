@@ -861,4 +861,40 @@ mod tests {
         assert!(!filter.matches("foobar"));
         assert!(!filter.matches("barfoo"));
     }
+
+    #[test]
+    fn test_filter_empty_string_matches_only_empty() {
+        let filter = TestFilter::try_from("").unwrap();
+        assert!(matches!(filter, TestFilter::Exact(_)));
+        assert!(filter.matches(""));
+        assert!(!filter.matches("any"));
+        assert!(!filter.matches(" "));
+    }
+
+    #[test]
+    fn test_filter_whitespace_is_exact() {
+        let filter = TestFilter::try_from("  ").unwrap();
+        assert!(matches!(filter, TestFilter::Exact(_)));
+        assert!(filter.matches("  "));
+        assert!(!filter.matches(" "));
+        assert!(!filter.matches(""));
+    }
+
+    #[test]
+    fn test_filter_unicode_exact_match() {
+        let filter = TestFilter::try_from("日本語テスト").unwrap();
+        assert!(matches!(filter, TestFilter::Exact(_)));
+        assert!(filter.matches("日本語テスト"));
+        assert!(!filter.matches("日本語"));
+        assert!(!filter.matches("テスト"));
+    }
+
+    #[test]
+    fn test_filter_unicode_regex_match() {
+        let filter = TestFilter::try_from("/日本語.*/").unwrap();
+        assert!(matches!(filter, TestFilter::Regex(_)));
+        assert!(filter.matches("日本語テスト"));
+        assert!(filter.matches("日本語"));
+        assert!(!filter.matches("テスト"));
+    }
 }
