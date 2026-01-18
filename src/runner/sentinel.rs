@@ -38,8 +38,23 @@ pub fn generate_run_id(
     parts.join("-")
 }
 
+fn escape_for_shell_string(s: &str) -> String {
+    let mut result = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '$' | '`' | '\\' | '"' => {
+                result.push('\\');
+                result.push(c);
+            }
+            _ => result.push(c),
+        }
+    }
+    result
+}
+
 pub fn generate_shell_wrapper(command: &str, run_id: &str, stderr_path: &str) -> String {
     let escaped_stderr_path = stderr_path.replace('\'', "'\"'\"'");
+    let escaped_run_id = escape_for_shell_string(run_id);
 
     // Shell wrapper uses command grouping {...} to preserve shell state
     // (working directory, variables, etc.) across commands.
@@ -51,7 +66,7 @@ pub fn generate_shell_wrapper(command: &str, run_id: &str, stderr_path: &str) ->
         "HONE_EC=$?".to_string(),
         format!(
             "printf \"{}{}{}{}%d{}%s\\n\" \"$HONE_EC\" \"$(date +%s%3N)\"",
-            SENTINEL_PREFIX, UNIT_SEPARATOR, run_id, UNIT_SEPARATOR, UNIT_SEPARATOR
+            SENTINEL_PREFIX, UNIT_SEPARATOR, escaped_run_id, UNIT_SEPARATOR, UNIT_SEPARATOR
         ),
     ]
     .join("\n")
@@ -430,5 +445,51 @@ mod tests {
     fn test_generate_run_id_whitespace_sanitization() {
         let id = generate_run_id("f.hone", Some("Test  With   Spaces"), None, 0);
         assert_eq!(id, "f-test--with---spaces-0");
+    }
+
+    #[test]
+    fn test_escape_for_shell_string_dollar() {
+        assert_eq!(escape_for_shell_string("test$x"), r"test\$x");
+    }
+
+    #[test]
+    fn test_escape_for_shell_string_command_substitution() {
+        assert_eq!(escape_for_shell_string("$(whoami)"), r"\$(whoami)");
+    }
+
+    #[test]
+    fn test_escape_for_shell_string_backtick() {
+        assert_eq!(escape_for_shell_string("`id`"), r"\`id\`");
+    }
+
+    #[test]
+    fn test_escape_for_shell_string_backslash() {
+        assert_eq!(escape_for_shell_string(r"a\b"), r"a\\b");
+    }
+
+    #[test]
+    fn test_escape_for_shell_string_double_quote() {
+        assert_eq!(escape_for_shell_string(r#"a"b"#), r#"a\"b"#);
+    }
+
+    #[test]
+    fn test_escape_for_shell_string_no_escaping_needed() {
+        assert_eq!(
+            escape_for_shell_string("simple-test_name"),
+            "simple-test_name"
+        );
+    }
+
+    #[test]
+    fn test_generate_shell_wrapper_escapes_run_id() {
+        let wrapper = generate_shell_wrapper("echo hi", "test-$x-run", "/tmp/stderr");
+        assert!(
+            wrapper.contains(r"test-\$x-run"),
+            "run_id should have $ escaped"
+        );
+        assert!(
+            !wrapper.contains("test-$x-run") || wrapper.contains(r"\$"),
+            "unescaped $x should not appear"
+        );
     }
 }
