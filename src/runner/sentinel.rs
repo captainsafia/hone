@@ -3,6 +3,12 @@ use std::path::Path;
 const UNIT_SEPARATOR: char = '\x1f';
 const SENTINEL_PREFIX: &str = "__HONE__";
 
+// Full sentinel marker includes the unit separator to avoid false positives
+// when user output happens to contain "__HONE__" as plain text
+fn sentinel_marker() -> String {
+    format!("{}{}", SENTINEL_PREFIX, UNIT_SEPARATOR)
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SentinelData {
     pub run_id: String,
@@ -103,7 +109,7 @@ pub fn parse_sentinel(line: &str) -> Option<SentinelData> {
 }
 
 pub fn contains_sentinel(line: &str) -> bool {
-    line.contains(SENTINEL_PREFIX)
+    line.contains(&sentinel_marker())
 }
 
 #[derive(Debug)]
@@ -115,8 +121,10 @@ pub struct SentinelExtractResult {
 }
 
 pub fn extract_sentinel(buffer: &str, expected_run_id: &str) -> SentinelExtractResult {
-    // Sentinel might be on the same line as output if command didn't output a trailing newline
-    let Some(sentinel_index) = buffer.find(SENTINEL_PREFIX) else {
+    // Search for the full sentinel marker (prefix + unit separator) to avoid false positives
+    // when user output contains "__HONE__" as plain text
+    let marker = sentinel_marker();
+    let Some(sentinel_index) = buffer.find(&marker) else {
         return SentinelExtractResult {
             found: false,
             output: buffer.to_string(),
@@ -412,14 +420,69 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_sentinel_skips_false_positive_hone_in_output() {
+        // User output contains "__HONE__" but without the unit separator - this is a false positive
+        let real_sentinel = format!(
+            "__HONE__{}test-run{}0{}7000",
+            UNIT_SEPARATOR, UNIT_SEPARATOR, UNIT_SEPARATOR
+        );
+        let buffer = format!(
+            "__HONE__ is just some user output\n{}\nremaining",
+            real_sentinel
+        );
+
+        let result = extract_sentinel(&buffer, "test-run");
+
+        assert!(
+            result.found,
+            "Should find the real sentinel, not get confused by false positive"
+        );
+        assert_eq!(result.output, "__HONE__ is just some user output");
+        assert!(result.sentinel.is_some());
+        assert_eq!(result.sentinel.unwrap().run_id, "test-run");
+        assert_eq!(result.remaining, "remaining");
+    }
+
+    #[test]
+    fn test_extract_sentinel_multiple_false_positives() {
+        // Multiple occurrences of "__HONE__" without unit separator before the real one
+        let real_sentinel = format!(
+            "__HONE__{}mytest{}42{}8000",
+            UNIT_SEPARATOR, UNIT_SEPARATOR, UNIT_SEPARATOR
+        );
+        let buffer = format!(
+            "line with __HONE__ marker\nanother __HONE__ here\n{}\n",
+            real_sentinel
+        );
+
+        let result = extract_sentinel(&buffer, "mytest");
+
+        assert!(result.found);
+        assert_eq!(
+            result.output,
+            "line with __HONE__ marker\nanother __HONE__ here"
+        );
+        assert!(result.sentinel.is_some());
+        assert_eq!(result.sentinel.unwrap().exit_code, 42);
+    }
+
+    #[test]
     fn test_contains_sentinel_present() {
-        let line = "__HONE__some data";
-        assert!(contains_sentinel(line));
+        // Real sentinel has the unit separator after the prefix
+        let line = format!("__HONE__{}some data", UNIT_SEPARATOR);
+        assert!(contains_sentinel(&line));
     }
 
     #[test]
     fn test_contains_sentinel_absent() {
         let line = "normal output";
+        assert!(!contains_sentinel(line));
+    }
+
+    #[test]
+    fn test_contains_sentinel_false_positive_without_separator() {
+        // "__HONE__" without unit separator should NOT be detected as sentinel
+        let line = "__HONE__ is just text";
         assert!(!contains_sentinel(line));
     }
 
