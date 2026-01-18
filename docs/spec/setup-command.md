@@ -26,10 +26,6 @@ hone setup [EDITOR...]
 | `vscode`       | `code`             | Visual Studio Code                        |
 | `neovim`       | `nvim`             | Neovim                                    |
 | `vim`          |                    | Vim (not Neovim)                          |
-| `helix`        | `hx`               | Helix editor                              |
-| `emacs`        |                    | GNU Emacs                                 |
-| `sublime`      | `subl`, `sublimetext` | Sublime Text                           |
-| `zed`          |                    | Zed editor                                |
 
 ### Examples
 
@@ -41,10 +37,10 @@ hone setup
 hone setup vscode
 
 # Configure multiple editors
-hone setup vscode neovim helix
+hone setup vscode neovim
 
 # Using aliases
-hone setup code nvim hx
+hone setup code nvim
 ```
 
 ## Configuration Details
@@ -113,57 +109,6 @@ For each editor, the command configures:
 
 **Note**: Requires user to have vim-lsp plugin installed; command adds configuration for it.
 
-### Helix (`helix`, `hx`)
-
-**Detection**: Check for `hx` or `helix` in PATH
-
-**Configuration files**:
-- `~/.config/helix/languages.toml`
-
-**Configured elements**:
-- Language server configuration
-- File type association
-- Tree-sitter grammar reference (if available)
-
-### Emacs (`emacs`)
-
-**Detection**: Check for `emacs` in PATH
-
-**LSP client options** (prompt user to choose):
-1. eglot (built-in, Emacs 29+)
-2. lsp-mode
-
-**Configuration**: Output Elisp snippet to be added to user's init file. The command will:
-- Detect common init file locations (`~/.emacs.d/init.el`, `~/.emacs`)
-- Add configuration for the chosen LSP client
-- Configure file associations for `.hone` files
-
-### Sublime Text (`sublime`, `subl`, `sublimetext`)
-
-**Detection**:
-- macOS: `/Applications/Sublime Text.app`
-- Linux: `subl` in PATH or `/opt/sublime_text/`
-- Windows: Check Program Files
-
-**Configuration files**:
-- Package settings in `~/.config/sublime-text/Packages/User/` (Linux)
-- `~/Library/Application Support/Sublime Text/Packages/User/` (macOS)
-
-**Configured elements**:
-- LSP configuration (requires LSP package)
-- Syntax definition for `.hone` files
-
-### Zed (`zed`)
-
-**Detection**: Check for `zed` in PATH or Zed.app
-
-**Configuration files**:
-- Settings: `~/.config/zed/settings.json`
-
-**Configured elements**:
-- LSP configuration in settings.json
-- File type associations
-
 ## Conflict Handling
 
 When existing configuration is detected that would conflict:
@@ -221,10 +166,6 @@ Available editors:
   vscode (code)      - Visual Studio Code
   neovim (nvim)      - Neovim
   vim                - Vim
-  helix (hx)         - Helix
-  emacs              - GNU Emacs
-  sublime (subl)     - Sublime Text
-  zed                - Zed
 
 Usage: hone setup <editor> [<editor>...]
 
@@ -253,17 +194,12 @@ Example: hone setup vscode neovim
 
 ### File Modification Strategy
 
-For JSON files (VS Code, Zed):
+For JSON files (VS Code):
 - Parse existing JSON
 - Merge hone configuration
 - Preserve formatting where possible (use serde_json with pretty printing)
 
-For TOML files (Helix):
-- Parse existing TOML
-- Merge hone configuration
-- Preserve comments where possible
-
-For Vimscript/Lua/Elisp:
+For Vimscript/Lua:
 - Append configuration to end of file
 - Use clear comment markers to identify hone-added sections
 
@@ -298,9 +234,8 @@ No external dependencies required beyond standard library and existing crate dep
 - [ ] Implement PATH lookup utility
 - [ ] Implement binary existence check for each editor
 - [ ] Create `src/setup/config.rs` for config file operations
-- [ ] Implement JSON config read/merge/write (for VS Code, Zed)
-- [ ] Implement TOML config read/merge/write (for Helix)
-- [ ] Implement append-with-markers for text configs (Vim, Neovim, Emacs)
+- [ ] Implement JSON config read/merge/write (for VS Code)
+- [ ] Implement append-with-markers for text configs (Vim, Neovim)
 - [ ] Implement conflict detection for existing hone configuration
 - [ ] Implement interactive prompt for conflict resolution
 
@@ -329,32 +264,6 @@ No external dependencies required beyond standard library and existing crate dep
 - [ ] Implement Vim detection (excluding nvim symlinks)
 - [ ] Detect vimrc location
 - [ ] Generate vim-lsp configuration snippet
-
-#### Helix
-- [ ] Create `src/setup/editors/helix.rs`
-- [ ] Implement Helix detection
-- [ ] Generate languages.toml configuration
-- [ ] Add language server entry
-- [ ] Add file type association
-
-#### Emacs
-- [ ] Create `src/setup/editors/emacs.rs`
-- [ ] Implement Emacs detection
-- [ ] Detect init file location (init.el vs .emacs)
-- [ ] Implement LSP client selection prompt (eglot vs lsp-mode)
-- [ ] Generate eglot elisp configuration
-- [ ] Generate lsp-mode elisp configuration
-
-#### Sublime Text
-- [ ] Create `src/setup/editors/sublime.rs`
-- [ ] Implement Sublime Text detection per OS
-- [ ] Generate LSP package configuration
-- [ ] Generate syntax definition file
-
-#### Zed
-- [ ] Create `src/setup/editors/zed.rs`
-- [ ] Implement Zed detection
-- [ ] Generate settings.json LSP configuration
 
 ### Phase 4: Command Integration
 
@@ -415,24 +324,6 @@ No external dependencies required beyond standard library and existing crate dep
 #### Vim
 - [ ] vim-lsp configuration is added to vimrc
 - [ ] After setup (with vim-lsp installed), LSP features work
-
-#### Helix
-- [ ] languages.toml is updated with hone language server config
-- [ ] After setup, opening `.hone` files activates the LSP
-
-#### Emacs
-- [ ] User is prompted to choose between eglot and lsp-mode
-- [ ] Appropriate elisp is added to init file
-- [ ] After setup, LSP activates for `.hone` files
-
-#### Sublime Text
-- [ ] LSP package configuration is updated
-- [ ] Syntax definition is installed
-- [ ] After setup, LSP works for `.hone` files
-
-#### Zed
-- [ ] settings.json is updated with LSP configuration
-- [ ] After setup, `.hone` files have LSP support
 
 ### Cross-Platform Requirements
 

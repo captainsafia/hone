@@ -138,97 +138,12 @@ vim.lsp.start({
 })
 ```
 
-### Helix
+### Other Editors
 
-1. Add to `~/.config/helix/languages.toml`:
-
-```toml
-[[language]]
-name = "hone"
-scope = "source.hone"
-file-types = ["hone"]
-comment-token = "#"
-indent = { tab-width = 2, unit = "  " }
-language-servers = ["hone-lsp"]
-
-[language-server.hone-lsp]
-command = "hone"
-args = ["lsp"]
-```
-
-2. Restart Helix
-
-3. Open a `.hone` file to verify the LSP is working
-
-### Zed
-
-1. Add to your Zed configuration (`~/.config/zed/settings.json`):
-
-```json
-{
-  "languages": {
-    "Hone": {
-      "language_servers": ["hone-lsp"],
-      "file_types": ["hone"]
-    }
-  },
-  "lsp": {
-    "hone-lsp": {
-      "binary": {
-        "path": "hone",
-        "arguments": ["lsp"]
-      }
-    }
-  }
-}
-```
-
-### Sublime Text
-
-Using LSP package:
-
-1. Install the [LSP package](https://github.com/sublimelsp/LSP)
-
-2. Add to LSP settings (`Preferences → Package Settings → LSP → Settings`):
-
-```json
-{
-  "clients": {
-    "hone": {
-      "enabled": true,
-      "command": ["hone", "lsp"],
-      "selector": "source.hone",
-      "file_patterns": ["*.hone"]
-    }
-  }
-}
-```
-
-3. Create syntax definition for `.hone` files or use TextMate grammar from `syntaxes/hone.tmlanguage.json`
-
-### Emacs
-
-Using `lsp-mode`:
-
-1. Add to your Emacs configuration:
-
-```elisp
-(with-eval-after-load 'lsp-mode
-  (add-to-list 'lsp-language-id-configuration '(hone-mode . "hone"))
-  
-  (lsp-register-client
-   (make-lsp-client
-    :new-connection (lsp-stdio-connection '("hone" "lsp"))
-    :activation-fn (lsp-activate-on "hone")
-    :server-id 'hone-lsp)))
-
-(define-derived-mode hone-mode prog-mode "Hone"
-  "Major mode for editing Hone integration test files."
-  (setq-local comment-start "# ")
-  (setq-local comment-end ""))
-
-(add-to-list 'auto-mode-alist '("\\.hone\\'" . hone-mode))
-```
+Any editor with LSP support can use Hone's language server. Configure it to:
+- Run `hone lsp` as the server command
+- Associate `.hone` files with the language server
+- Use stdio for communication
 
 ## Features in Detail
 
@@ -296,7 +211,6 @@ The outline view shows:
 Access via:
 - VS Code: `Ctrl+Shift+O` or the Outline panel
 - Neovim: `:Telescope lsp_document_symbols`
-- Helix: `Space+s` (symbol picker)
 
 ### Formatting
 
@@ -308,7 +222,6 @@ Format your document with consistent style:
 Access via:
 - VS Code: `Shift+Alt+F`
 - Neovim: `vim.lsp.buf.format()`
-- Helix: `:format`
 
 Shell command internal formatting is preserved.
 
@@ -321,7 +234,7 @@ Enhanced syntax highlighting with token types:
 - Shell commands: macros
 - Comments: dimmed
 
-Requires editor support for semantic tokens (VS Code, Neovim 0.9+, Helix).
+Requires editor support for semantic tokens (VS Code, Neovim 0.9+).
 
 ## Logging and Debugging
 
@@ -377,7 +290,6 @@ By default, logs are at INFO level. The LSP currently doesn't expose configurati
 3. Check editor LSP client logs:
    - VS Code: Output panel → "Hone Language Server"
    - Neovim: `:LspLog`
-   - Helix: Check console output
 
 ### No Diagnostics Appearing
 
@@ -430,7 +342,6 @@ By default, logs are at INFO level. The LSP currently doesn't expose configurati
 1. Check if your editor supports semantic tokens:
    - VS Code: Yes (built-in)
    - Neovim: Requires version 0.9+
-   - Helix: Yes (built-in)
    - Older editors: May not support semantic tokens
 
 2. Verify TextMate grammar is loaded as fallback:

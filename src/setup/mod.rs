@@ -1,5 +1,4 @@
 use anyhow::Result;
-use std::path::PathBuf;
 
 mod detect;
 mod editors;
@@ -9,10 +8,6 @@ pub enum Editor {
     VSCode,
     Neovim,
     Vim,
-    Helix,
-    Emacs,
-    Sublime,
-    Zed,
 }
 
 impl Editor {
@@ -21,10 +16,6 @@ impl Editor {
             "vscode" | "code" => Some(Self::VSCode),
             "neovim" | "nvim" => Some(Self::Neovim),
             "vim" => Some(Self::Vim),
-            "helix" | "hx" => Some(Self::Helix),
-            "emacs" => Some(Self::Emacs),
-            "sublime" | "subl" | "sublimetext" => Some(Self::Sublime),
-            "zed" => Some(Self::Zed),
             _ => None,
         }
     }
@@ -34,10 +25,6 @@ impl Editor {
             Self::VSCode => "vscode",
             Self::Neovim => "neovim",
             Self::Vim => "vim",
-            Self::Helix => "helix",
-            Self::Emacs => "emacs",
-            Self::Sublime => "sublime",
-            Self::Zed => "zed",
         }
     }
 
@@ -46,10 +33,6 @@ impl Editor {
             Self::VSCode => &["code"],
             Self::Neovim => &["nvim"],
             Self::Vim => &[],
-            Self::Helix => &["hx"],
-            Self::Emacs => &[],
-            Self::Sublime => &["subl", "sublimetext"],
-            Self::Zed => &[],
         }
     }
 
@@ -58,33 +41,11 @@ impl Editor {
             Self::VSCode => "Visual Studio Code",
             Self::Neovim => "Neovim",
             Self::Vim => "Vim",
-            Self::Helix => "Helix",
-            Self::Emacs => "GNU Emacs",
-            Self::Sublime => "Sublime Text",
-            Self::Zed => "Zed",
         }
     }
 
     pub fn all() -> &'static [Editor] {
-        &[
-            Self::VSCode,
-            Self::Neovim,
-            Self::Vim,
-            Self::Helix,
-            Self::Emacs,
-            Self::Sublime,
-            Self::Zed,
-        ]
-    }
-}
-
-pub fn expand_home(path: &str) -> Result<PathBuf> {
-    if let Some(stripped) = path.strip_prefix("~/") {
-        let home = dirs::home_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
-        Ok(home.join(stripped))
-    } else {
-        Ok(PathBuf::from(path))
+        &[Self::VSCode, Self::Neovim, Self::Vim]
     }
 }
 
@@ -171,13 +132,9 @@ fn check_hone_in_path() {
 
 fn setup_editor(editor: Editor) -> Result<()> {
     match editor {
-        Editor::Helix => editors::helix::setup(),
         Editor::Neovim => editors::neovim::configure(),
         Editor::VSCode => editors::vscode::setup(),
         Editor::Vim => editors::vim::configure(),
-        Editor::Emacs => editors::emacs::configure(),
-        Editor::Zed => editors::zed::setup(),
-        Editor::Sublime => editors::sublime::setup(),
     }
 }
 
@@ -190,19 +147,12 @@ mod tests {
         assert_eq!(Editor::from_name("vscode"), Some(Editor::VSCode));
         assert_eq!(Editor::from_name("neovim"), Some(Editor::Neovim));
         assert_eq!(Editor::from_name("vim"), Some(Editor::Vim));
-        assert_eq!(Editor::from_name("helix"), Some(Editor::Helix));
-        assert_eq!(Editor::from_name("emacs"), Some(Editor::Emacs));
-        assert_eq!(Editor::from_name("sublime"), Some(Editor::Sublime));
-        assert_eq!(Editor::from_name("zed"), Some(Editor::Zed));
     }
 
     #[test]
     fn test_editor_from_name_aliases() {
         assert_eq!(Editor::from_name("code"), Some(Editor::VSCode));
         assert_eq!(Editor::from_name("nvim"), Some(Editor::Neovim));
-        assert_eq!(Editor::from_name("hx"), Some(Editor::Helix));
-        assert_eq!(Editor::from_name("subl"), Some(Editor::Sublime));
-        assert_eq!(Editor::from_name("sublimetext"), Some(Editor::Sublime));
     }
 
     #[test]
@@ -223,21 +173,5 @@ mod tests {
         assert_eq!(Editor::VSCode.canonical_name(), "vscode");
         assert_eq!(Editor::Neovim.canonical_name(), "neovim");
         assert_eq!(Editor::Vim.canonical_name(), "vim");
-    }
-
-    #[test]
-    fn test_expand_home() {
-        let result = expand_home("~/test/path");
-        assert!(result.is_ok());
-        let path = result.unwrap();
-        assert!(path.to_string_lossy().contains("test/path"));
-        assert!(!path.to_string_lossy().contains("~"));
-    }
-
-    #[test]
-    fn test_expand_home_no_tilde() {
-        let result = expand_home("/absolute/path");
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), PathBuf::from("/absolute/path"));
     }
 }

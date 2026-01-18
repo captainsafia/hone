@@ -26,7 +26,7 @@ Uses the `async-lsp` crate for the LSP protocol implementation. This integrates 
 
 ### Target Editors
 
-The implementation targets multiple editors (VS Code, Neovim, Helix, Zed, etc.) and prioritizes strict LSP specification compliance over editor-specific features.
+The implementation targets multiple editors (VS Code, Neovim, Vim) and prioritizes strict LSP specification compliance over editor-specific features.
 
 ## Parser Requirements
 
@@ -261,7 +261,7 @@ New dependencies to add:
 6. Hover shows documentation for keywords
 7. Outline view shows test structure
 8. Basic formatting normalizes indentation
-9. Works correctly in VS Code, Neovim, and Helix
+9. Works correctly in VS Code, Neovim, and Vim
 10. All unit and mock client tests pass
 11. Existing `cargo test` suite passes without regressions
 12. The `hone` CLI continues to function correctly (all integration tests pass)
@@ -486,23 +486,18 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Verify diagnostics, completion, hover, and outline work
 - [x] Document setup in README
 
-#### 6.3 Helix Integration
-- [x] Add Hone configuration to `languages.toml` example
-- [x] Test all LSP features in Helix
-- [x] Document setup in README
-
-#### 6.4 TextMate Grammar
+#### 6.3 TextMate Grammar
 - [x] Verify `syntaxes/hone.tmlanguage.json` provides good baseline highlighting
 - [x] Ensure it covers all keywords, assertions, strings, and comments
 - [x] Test in editors without semantic token support
 
-#### 6.5 Documentation
+#### 6.4 Documentation
 - [x] Document LSP features in main README
 - [x] Add `docs/lsp-usage.md` with editor setup guides
 - [x] Document logging location and debugging tips
 - [x] Add troubleshooting section for common issues
 
-#### 6.6 Testing Suite
+#### 6.5 Testing Suite
 - [x] Write unit tests for each LSP handler
 - [x] Create mock LSP client test harness
 - [x] Test complete request/response cycles
@@ -539,7 +534,6 @@ All phases of the LSP implementation have been successfully completed. The Hone 
 - ✅ LSP server starts and communicates via stdio
 - ✅ VS Code extension configured and compiled
 - ✅ Neovim configuration provided and documented
-- ✅ Helix configuration provided and documented
 - ✅ Comprehensive user documentation in `docs/lsp-usage.md`
 - ✅ TextMate grammar available for fallback highlighting
 
