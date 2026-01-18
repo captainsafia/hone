@@ -51,17 +51,24 @@ fn configure_lsp(config_dir: &Path) -> Result<()> {
 }
 
 fn add_lsp_configuration(settings: &mut Value) {
-    let settings_obj = settings.as_object_mut().unwrap();
+    let settings_obj = match settings.as_object_mut() {
+        Some(obj) => obj,
+        None => {
+            *settings = json!({});
+            settings.as_object_mut().expect("just created object")
+        }
+    };
 
-    if !settings_obj.contains_key("clients") {
+    if !settings_obj.contains_key("clients")
+        || !settings_obj.get("clients").is_some_and(|v| v.is_object())
+    {
         settings_obj.insert("clients".to_string(), json!({}));
     }
 
     let clients = settings_obj
         .get_mut("clients")
-        .unwrap()
-        .as_object_mut()
-        .unwrap();
+        .and_then(|v| v.as_object_mut())
+        .expect("just ensured clients is object");
 
     if !clients.contains_key("hone") {
         clients.insert(
@@ -205,5 +212,26 @@ mod tests {
         assert!(!syntax.is_empty());
         assert!(syntax.contains("name: Hone"));
         assert!(syntax.contains("file_extensions"));
+    }
+
+    #[test]
+    fn test_add_lsp_configuration_handles_non_object_root() {
+        let mut settings = json!([]);
+        add_lsp_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        assert!(obj.contains_key("clients"));
+    }
+
+    #[test]
+    fn test_add_lsp_configuration_handles_non_object_clients() {
+        let mut settings = json!({
+            "clients": "invalid"
+        });
+        add_lsp_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        let clients = obj.get("clients").unwrap().as_object().unwrap();
+        assert!(clients.contains_key("hone"));
     }
 }
