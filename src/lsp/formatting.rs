@@ -98,7 +98,7 @@ impl FormattingProvider {
                     }
 
                     // Extract the command from the original text, preserving its formatting
-                    if let Some(line) = lines.get(run.line - 1) {
+                    if let Some(line) = lines.get(run.line.saturating_sub(1)) {
                         if let Some(cmd_start) = line.rfind('{') {
                             let cmd = &line[cmd_start..].trim_start();
                             result.push_str(cmd);
@@ -148,7 +148,7 @@ impl FormattingProvider {
                                     result.push_str("}\n");
                                     found_closing = true;
                                     current_line = line_idx + 1;
-                                } else if line_idx > assert.line - 1 {
+                                } else if line_idx > assert.line.saturating_sub(1) {
                                     let content = line.trim();
                                     if !content.is_empty() && content != "{" && content != "}" {
                                         result.push_str(&indent);
