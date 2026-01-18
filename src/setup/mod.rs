@@ -149,6 +149,7 @@ pub fn setup_editors(editor_names: Vec<String>) -> Result<()> {
 fn setup_editor(editor: Editor) -> Result<()> {
     match editor {
         Editor::Helix => editors::helix::setup(),
+        Editor::Neovim => editors::neovim::configure(),
         Editor::VSCode => editors::vscode::setup(),
         _ => anyhow::bail!(
             "Configuration for {} is not yet implemented",
