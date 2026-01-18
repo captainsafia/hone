@@ -214,14 +214,25 @@ impl FormattingProvider {
     fn format_assertion(&self, raw: &str) -> String {
         let trimmed = raw.trim();
 
-        // Simple normalization - remove extra spaces
+        // Simple normalization - remove extra spaces outside strings
         let mut result = String::new();
         let mut prev_space = false;
         let mut in_string = false;
         let mut string_char = ' ';
+        let mut escaped = false;
 
         for ch in trimmed.chars() {
-            if ch == '"' || ch == '\'' {
+            if escaped {
+                // Previous char was backslash, so this char is escaped
+                result.push(ch);
+                escaped = false;
+                prev_space = false;
+            } else if ch == '\\' && in_string {
+                // Backslash inside string starts an escape sequence
+                result.push(ch);
+                escaped = true;
+                prev_space = false;
+            } else if ch == '"' || ch == '\'' {
                 if !in_string {
                     in_string = true;
                     string_char = ch;
@@ -300,5 +311,45 @@ run { echo hello }
         if let Some(edits) = result {
             assert!(!edits.is_empty());
         }
+    }
+
+    #[test]
+    fn test_format_assertion_preserves_escaped_quotes() {
+        let provider = FormattingProvider::new();
+        // Escaped quotes should not terminate the string
+        let input = r#"ASSERT stdout contains "hello \"world\"""#;
+        let result = provider.format_assertion(input);
+        assert_eq!(result, r#"ASSERT stdout contains "hello \"world\"""#);
+    }
+
+    #[test]
+    fn test_format_assertion_preserves_spaces_in_strings() {
+        let provider = FormattingProvider::new();
+        // Multiple spaces inside a string should be preserved
+        let input = r#"ASSERT stdout == "hello    world""#;
+        let result = provider.format_assertion(input);
+        assert_eq!(result, r#"ASSERT stdout == "hello    world""#);
+    }
+
+    #[test]
+    fn test_format_assertion_normalizes_outside_strings() {
+        let provider = FormattingProvider::new();
+        // Multiple spaces outside strings should be normalized
+        let input = r#"ASSERT   stdout    ==    "hello world""#;
+        let result = provider.format_assertion(input);
+        assert_eq!(result, r#"ASSERT stdout == "hello world""#);
+    }
+
+    #[test]
+    fn test_format_assertion_handles_escaped_quotes_with_spaces() {
+        let provider = FormattingProvider::new();
+        // Escaped quotes should not cause subsequent spaces to be collapsed
+        // The spaces after \" should be preserved since they're inside the string
+        let input = r#"ASSERT stdout contains "start\"   end""#;
+        let result = provider.format_assertion(input);
+        assert_eq!(
+            result, r#"ASSERT stdout contains "start\"   end""#,
+            "Spaces after escaped quote should not be collapsed"
+        );
     }
 }
