@@ -302,8 +302,13 @@ pub fn parse_number(input: &str, start_byte_index: usize) -> Option<(i32, usize)
 }
 
 pub fn skip_whitespace(input: &str, start_byte_index: usize) -> usize {
+    let remaining = match input.get(start_byte_index..) {
+        Some(s) => s,
+        None => return start_byte_index,
+    };
+
     let mut byte_index = start_byte_index;
-    for ch in input[start_byte_index..].chars() {
+    for ch in remaining.chars() {
         if ch != ' ' {
             break;
         }
@@ -760,5 +765,21 @@ mod tests {
         assert_eq!(duration.value, 1.5);
         // end_index should be usable for slicing to get remaining content
         assert_eq!(&input[end_index..], " more");
+    }
+
+    #[test]
+    fn test_skip_whitespace_out_of_bounds() {
+        let input = "hello";
+        // Should not panic and should return the input index unchanged
+        let result = skip_whitespace(input, 100);
+        assert_eq!(result, 100);
+    }
+
+    #[test]
+    fn test_skip_whitespace_at_end() {
+        let input = "hello";
+        // At exactly the end of the string
+        let result = skip_whitespace(input, 5);
+        assert_eq!(result, 5);
     }
 }
