@@ -109,8 +109,16 @@ impl ShellSession {
             .spawn()
             .map_err(|e| format!("Failed to spawn shell: {}", e))?;
 
-        self.stdin = Some(child.stdin.take().unwrap());
-        let stdout = child.stdout.take().unwrap();
+        self.stdin = Some(
+            child
+                .stdin
+                .take()
+                .ok_or("Failed to capture stdin from shell process")?,
+        );
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or("Failed to capture stdout from shell process")?;
         self.stdout_reader = Some(BufReader::new(stdout));
         self.process = Some(child);
 
@@ -230,7 +238,9 @@ impl ShellSession {
         );
 
         let stderr_path = self.artifact_dir.join(format!("{}-stderr.txt", run_id));
-        let stderr_path_str = stderr_path.to_str().unwrap();
+        let stderr_path_str = stderr_path
+            .to_str()
+            .ok_or("Failed to convert stderr path to string")?;
 
         let wrapper = generate_shell_wrapper(command, &run_id, stderr_path_str);
         let start_time = std::time::Instant::now();
