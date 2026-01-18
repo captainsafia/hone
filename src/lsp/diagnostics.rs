@@ -265,13 +265,17 @@ fn check_assertion_types(assert_node: &crate::parser::AssertNode) -> Vec<Diagnos
 
     match &assert_node.expression {
         AssertionExpression::Output { predicate, .. } => match predicate {
-            OutputPredicate::Contains { value } | OutputPredicate::Equals { value, .. } => {
+            OutputPredicate::Contains { value } => {
+                // `contains ""` is nonsensical - every string contains empty string
                 if value.value.is_empty() {
                     diagnostics.push(create_semantic_diagnostic(
                         assert_node.line,
-                        "String comparison value cannot be empty",
+                        "String comparison value cannot be empty for 'contains'",
                     ));
                 }
+            }
+            OutputPredicate::Equals { .. } => {
+                // `== ""` is valid - it checks for empty output
             }
             OutputPredicate::Matches { value } => {
                 if value.pattern.is_empty() {
@@ -637,6 +641,46 @@ ASSERT stdout matches /^hello$/"#;
             regex_errors.len(),
             0,
             "Expected no invalid regex diagnostics for valid pattern"
+        );
+    }
+
+    #[test]
+    fn test_empty_string_equals_is_valid() {
+        // `ASSERT stdout == ""` is valid - it checks for empty output
+        let content = r#"TEST "empty output check"
+RUN true
+ASSERT stdout == """#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let empty_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("cannot be empty"))
+            .collect();
+        assert_eq!(
+            empty_errors.len(),
+            0,
+            "ASSERT stdout == \"\" should be valid for checking empty output"
+        );
+    }
+
+    #[test]
+    fn test_empty_string_contains_is_invalid() {
+        // `ASSERT stdout contains ""` is nonsensical - every string contains empty
+        let content = r#"TEST "empty contains check"
+RUN true
+ASSERT stdout contains """#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let empty_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("cannot be empty"))
+            .collect();
+        assert_eq!(
+            empty_errors.len(),
+            1,
+            "ASSERT stdout contains \"\" should produce a diagnostic"
         );
     }
 }
