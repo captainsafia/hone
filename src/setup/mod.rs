@@ -152,6 +152,7 @@ fn setup_editor(editor: Editor) -> Result<()> {
         Editor::Neovim => editors::neovim::configure(),
         Editor::VSCode => editors::vscode::setup(),
         Editor::Vim => editors::vim::configure(),
+        Editor::Emacs => editors::emacs::configure(),
         _ => anyhow::bail!(
             "Configuration for {} is not yet implemented",
             editor.canonical_name()
