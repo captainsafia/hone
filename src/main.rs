@@ -1,6 +1,8 @@
 use clap::{Parser, Subcommand};
 use hone::{run_lsp_server, run_tests, OutputFormat, RunnerOptions};
 
+mod setup;
+
 #[derive(Parser)]
 #[command(name = "hone")]
 #[command(about = "A CLI integration test runner for command-line applications")]
@@ -55,6 +57,11 @@ enum Commands {
     },
     /// Start the Language Server Protocol (LSP) server
     Lsp,
+    /// Setup editor integration for Hone
+    Setup {
+        /// Editor(s) to configure (e.g., vscode, neovim, vim, helix, emacs, sublime, zed)
+        editors: Vec<String>,
+    },
 }
 
 #[tokio::main]
@@ -65,6 +72,20 @@ async fn main() -> anyhow::Result<()> {
         Some(Commands::Lsp) => {
             run_lsp_server().await?;
             Ok(())
+        }
+        Some(Commands::Setup { editors }) => {
+            if editors.is_empty() {
+                setup::list_editors();
+                Ok(())
+            } else {
+                match setup::setup_editors(editors) {
+                    Ok(()) => Ok(()),
+                    Err(e) => {
+                        eprintln!("Error: {}", e);
+                        std::process::exit(2);
+                    }
+                }
+            }
         }
         Some(Commands::Run {
             patterns,
