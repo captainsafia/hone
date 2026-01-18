@@ -237,3 +237,51 @@ async fn evaluate_file_equals(
         content,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_file_content_empty() {
+        assert_eq!(normalize_file_content(""), "");
+    }
+
+    #[test]
+    fn test_normalize_file_content_simple() {
+        assert_eq!(normalize_file_content("hello"), "hello");
+    }
+
+    #[test]
+    fn test_normalize_file_content_crlf() {
+        assert_eq!(normalize_file_content("line1\r\nline2"), "line1\nline2");
+    }
+
+    #[test]
+    fn test_normalize_file_content_trailing_whitespace() {
+        assert_eq!(normalize_file_content("line1   \nline2  "), "line1\nline2");
+    }
+
+    #[test]
+    fn test_normalize_file_content_leading_trailing_newlines() {
+        assert_eq!(normalize_file_content("\n\nhello\n\n"), "hello");
+    }
+
+    #[test]
+    fn test_normalize_file_content_mixed_line_endings() {
+        assert_eq!(
+            normalize_file_content("line1\r\nline2\nline3\r\n"),
+            "line1\nline2\nline3"
+        );
+    }
+
+    #[test]
+    fn test_normalize_file_content_only_whitespace() {
+        assert_eq!(normalize_file_content("   \n  \n   "), "");
+    }
+
+    #[test]
+    fn test_normalize_file_content_preserves_internal_spacing() {
+        assert_eq!(normalize_file_content("hello   world"), "hello   world");
+    }
+}
