@@ -791,3 +791,74 @@ fn resolve_target<'a>(
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_filter_exact_match() {
+        let filter = TestFilter::try_from("my test").unwrap();
+        assert!(matches!(filter, TestFilter::Exact(_)));
+        assert!(filter.matches("my test"));
+        assert!(!filter.matches("my test 2"));
+        assert!(!filter.matches("other"));
+    }
+
+    #[test]
+    fn test_filter_regex_match() {
+        let filter = TestFilter::try_from("/test_\\d+/").unwrap();
+        assert!(matches!(filter, TestFilter::Regex(_)));
+        assert!(filter.matches("test_1"));
+        assert!(filter.matches("test_123"));
+        assert!(!filter.matches("test_abc"));
+    }
+
+    #[test]
+    fn test_filter_invalid_regex() {
+        let result = TestFilter::try_from("/[invalid/");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Invalid regex pattern"));
+    }
+
+    #[test]
+    fn test_filter_single_slash_is_exact() {
+        let filter = TestFilter::try_from("/").unwrap();
+        assert!(matches!(filter, TestFilter::Exact(_)));
+        assert!(filter.matches("/"));
+    }
+
+    #[test]
+    fn test_filter_double_slash_is_exact() {
+        let filter = TestFilter::try_from("//").unwrap();
+        assert!(matches!(filter, TestFilter::Exact(_)));
+        assert!(filter.matches("//"));
+    }
+
+    #[test]
+    fn test_filter_slash_regex_matches_slash() {
+        // "///" extracts the middle "/" as the regex pattern
+        let filter = TestFilter::try_from("///").unwrap();
+        assert!(matches!(filter, TestFilter::Regex(_)));
+        // Matches strings containing a forward slash
+        assert!(filter.matches("foo/bar"));
+        assert!(!filter.matches("foobar"));
+    }
+
+    #[test]
+    fn test_filter_regex_partial_match() {
+        let filter = TestFilter::try_from("/foo/").unwrap();
+        // Regex should match substring
+        assert!(filter.matches("foobar"));
+        assert!(filter.matches("barfoo"));
+        assert!(!filter.matches("bar"));
+    }
+
+    #[test]
+    fn test_filter_exact_requires_full_match() {
+        let filter = TestFilter::try_from("foo").unwrap();
+        assert!(filter.matches("foo"));
+        assert!(!filter.matches("foobar"));
+        assert!(!filter.matches("barfoo"));
+    }
+}
