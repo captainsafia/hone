@@ -2,6 +2,7 @@ use crate::parser::ast::*;
 use crate::parser::errors::ParseErrorCollector;
 use crate::parser::lexer::*;
 use std::collections::HashSet;
+use std::sync::OnceLock;
 
 pub fn parse_file(content: &str, filename: &str) -> ParseResult {
     let lines: Vec<&str> = content.lines().collect();
@@ -224,35 +225,42 @@ fn parse_run(
     let rest = &content[4..]; // After "RUN "
 
     // Check for named RUN (name: command)
-    let re = regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_-]*):\s*").unwrap();
+    static NAMED_RUN_RE: OnceLock<regex::Regex> = OnceLock::new();
+    let re = NAMED_RUN_RE.get_or_init(|| {
+        regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_-]*):\s*")
+            .expect("named run regex should be valid")
+    });
+    
     if let Some(captures) = re.captures(rest) {
-        let name = captures.get(1).unwrap().as_str().to_string();
-        let matched_len = captures.get(0).unwrap().as_str().len();
-        let command = rest[matched_len..].to_string();
+        if let (Some(name_match), Some(full_match)) = (captures.get(1), captures.get(0)) {
+            let name = name_match.as_str().to_string();
+            let matched_len = full_match.as_str().len();
+            let command = rest[matched_len..].to_string();
 
-        if run_names.contains(&name) {
-            collector.add_error(
-                format!(
-                    "Duplicate RUN name: \"{}\". RUN names must be unique across the entire file",
-                    name
-                ),
+            if run_names.contains(&name) {
+                collector.add_error(
+                    format!(
+                        "Duplicate RUN name: \"{}\". RUN names must be unique across the entire file",
+                        name
+                    ),
+                    line,
+                );
+                return None;
+            }
+
+            run_names.insert(name.clone());
+
+            if command.trim().is_empty() {
+                collector.add_error("Empty command in RUN statement".to_string(), line);
+                return None;
+            }
+
+            return Some(RunNode {
+                name: Some(name),
+                command: command.trim().to_string(),
                 line,
-            );
-            return None;
+            });
         }
-
-        run_names.insert(name.clone());
-
-        if command.trim().is_empty() {
-            collector.add_error("Empty command in RUN statement".to_string(), line);
-            return None;
-        }
-
-        return Some(RunNode {
-            name: Some(name),
-            command: command.trim().to_string(),
-            line,
-        });
     }
 
     // Unnamed RUN
@@ -282,7 +290,12 @@ fn parse_env(content: &str, line: usize, collector: &mut ParseErrorCollector) ->
     }
 
     // Validate key format (valid environment variable name)
-    let re = regex::Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$").unwrap();
+    static ENV_KEY_RE: OnceLock<regex::Regex> = OnceLock::new();
+    let re = ENV_KEY_RE.get_or_init(|| {
+        regex::Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+            .expect("env key regex should be valid")
+    });
+    
     if !re.is_match(&key) {
         collector.add_error(
             format!(
@@ -333,19 +346,27 @@ fn parse_assertion_expression(
 
     // Check for named target (e.g., build.stdout)
     let mut target: Option<String> = None;
-    let re = regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_-]*)\.(.+)").unwrap();
+    static NAMED_TARGET_RE: OnceLock<regex::Regex> = OnceLock::new();
+    let re = NAMED_TARGET_RE.get_or_init(|| {
+        regex::Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_-]*)\.(.+)")
+            .expect("named target regex should be valid")
+    });
 
     let mut effective_input = input;
     if let Some(captures) = re.captures(input) {
-        let potential_target = captures.get(1).unwrap().as_str();
-        if potential_target != "stdout"
-            && potential_target != "stderr"
-            && potential_target != "exit_code"
-            && potential_target != "duration"
+        if let (Some(potential_target_match), Some(remainder_match)) =
+            (captures.get(1), captures.get(2))
         {
-            target = Some(potential_target.to_string());
-            effective_input = captures.get(2).unwrap().as_str();
-            i = 0;
+            let potential_target = potential_target_match.as_str();
+            if potential_target != "stdout"
+                && potential_target != "stderr"
+                && potential_target != "exit_code"
+                && potential_target != "duration"
+            {
+                target = Some(potential_target.to_string());
+                effective_input = remainder_match.as_str();
+                i = 0;
+            }
         }
     }
 
