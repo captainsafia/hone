@@ -1179,6 +1179,76 @@ ASSERT exit_code {} 0"#,
     }
 
     #[test]
+    fn test_stdout_rejects_relational_operators() {
+        // stdout only supports ==, !=, contains, matches - not <, <=, >, >=
+        let operators = ["<", "<=", ">", ">="];
+        for op in operators {
+            let content = format!(
+                r#"TEST "relational op test"
+RUN echo hello
+ASSERT stdout {} "hello""#,
+                op
+            );
+            let result = parse_file(&content, "test.hone");
+
+            match result {
+                ParseResult::Success { file } => {
+                    assert!(
+                        !file.errors.is_empty(),
+                        "Expected error for stdout with {} operator",
+                        op
+                    );
+                    assert!(
+                        file.errors
+                            .iter()
+                            .any(|e| e.message.contains("contains, matches, ==, !=")),
+                        "Error message should indicate valid predicates for operator {}",
+                        op
+                    );
+                }
+                ParseResult::Failure { .. } => {
+                    panic!("Parser should always return Success with errors embedded");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_stderr_rejects_relational_operators() {
+        // stderr only supports ==, !=, contains, matches - not <, <=, >, >=
+        let operators = ["<", "<=", ">", ">="];
+        for op in operators {
+            let content = format!(
+                r#"TEST "relational op test"
+RUN echo hello
+ASSERT stderr {} "hello""#,
+                op
+            );
+            let result = parse_file(&content, "test.hone");
+
+            match result {
+                ParseResult::Success { file } => {
+                    assert!(
+                        !file.errors.is_empty(),
+                        "Expected error for stderr with {} operator",
+                        op
+                    );
+                    assert!(
+                        file.errors
+                            .iter()
+                            .any(|e| e.message.contains("contains, matches, ==, !=")),
+                        "Error message should indicate valid predicates for operator {}",
+                        op
+                    );
+                }
+                ParseResult::Failure { .. } => {
+                    panic!("Parser should always return Success with errors embedded");
+                }
+            }
+        }
+    }
+
+    #[test]
     fn test_malformed_test_name_produces_error() {
         // Test with unclosed string
         let content = "TEST \"unclosed string";
