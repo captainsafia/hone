@@ -1,0 +1,24 @@
+# Helix language configuration for Hone
+#
+# Add this to your Helix languages.toml file:
+# - Linux/macOS: ~/.config/helix/languages.toml
+# - Windows: %AppData%\helix\languages.toml
+#
+# You can either:
+# 1. Copy this entire file to that location
+# 2. Append the contents to your existing languages.toml
+# 3. Manually add just the language and language-server sections below
+
+[[language]]
+name = "hone"
+scope = "source.hone"
+injection-regex = "hone"
+file-types = ["hone"]
+comment-token = "#"
+indent = { tab-width = 2, unit = "  " }
+language-servers = ["hone-lsp"]
+
+# Language server configuration
+[language-server.hone-lsp]
+command = "hone"
+args = ["lsp"]
