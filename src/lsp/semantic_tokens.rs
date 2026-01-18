@@ -149,11 +149,25 @@ impl SemanticTokensProvider {
                         prev_start = start;
 
                         // Tokenize the test name string
-                        if let Some(name_start) = lines[line_idx][start + length..].find('"') {
-                            let name_pos = start + length + name_start;
-                            let remaining = &lines[line_idx][name_pos..];
-                            if let Some(name_end) = remaining[1..].find('"') {
-                                let name_length = name_end + 2; // Include both quotes
+                        // Note: start and length are UTF-16 positions, but for ASCII keywords
+                        // (TEST, RUN, etc.) at line start, they equal byte positions.
+                        // We need to compute the string's UTF-16 length separately.
+                        let after_keyword = &lines[line_idx][start + length..];
+                        if let Some(quote_byte_offset) = after_keyword.find('"') {
+                            // Convert byte offset to UTF-16 offset for the quote position
+                            let name_start_utf16: usize = after_keyword[..quote_byte_offset]
+                                .chars()
+                                .map(|c| c.len_utf16())
+                                .sum();
+                            let name_pos = start + length + name_start_utf16;
+                            let string_start = &after_keyword[quote_byte_offset..];
+                            // Find closing quote (skip opening quote)
+                            if let Some(end_byte_offset) = string_start[1..].find('"') {
+                                // The full string including quotes: string_start[..end_byte_offset + 2]
+                                let full_string = &string_start[..end_byte_offset + 2];
+                                // Convert string length to UTF-16 code units
+                                let name_length_utf16: usize =
+                                    full_string.chars().map(|c| c.len_utf16()).sum();
 
                                 let (delta_line, delta_start) = if line == prev_line {
                                     (0, name_pos.saturating_sub(prev_start))
@@ -164,7 +178,7 @@ impl SemanticTokensProvider {
                                 tokens.push(SemanticToken {
                                     delta_line: delta_line as u32,
                                     delta_start: delta_start as u32,
-                                    length: name_length as u32,
+                                    length: name_length_utf16 as u32,
                                     token_type: self.token_type_index(&SemanticTokenType::STRING),
                                     token_modifiers_bitset: 0,
                                 });
@@ -199,11 +213,18 @@ impl SemanticTokensProvider {
 
                         // If there's a named run, tokenize the name
                         if run_node.name.is_some() {
-                            if let Some(name_start) = lines[line_idx][start + length..].find('"') {
-                                let name_pos = start + length + name_start;
-                                let remaining = &lines[line_idx][name_pos..];
-                                if let Some(name_end) = remaining[1..].find('"') {
-                                    let name_length = name_end + 2;
+                            let after_keyword = &lines[line_idx][start + length..];
+                            if let Some(quote_byte_offset) = after_keyword.find('"') {
+                                let name_start_utf16: usize = after_keyword[..quote_byte_offset]
+                                    .chars()
+                                    .map(|c| c.len_utf16())
+                                    .sum();
+                                let name_pos = start + length + name_start_utf16;
+                                let string_start = &after_keyword[quote_byte_offset..];
+                                if let Some(end_byte_offset) = string_start[1..].find('"') {
+                                    let full_string = &string_start[..end_byte_offset + 2];
+                                    let name_length_utf16: usize =
+                                        full_string.chars().map(|c| c.len_utf16()).sum();
 
                                     let (delta_line, delta_start) = if line == prev_line {
                                         (0, name_pos.saturating_sub(prev_start))
@@ -214,7 +235,7 @@ impl SemanticTokensProvider {
                                     tokens.push(SemanticToken {
                                         delta_line: delta_line as u32,
                                         delta_start: delta_start as u32,
-                                        length: name_length as u32,
+                                        length: name_length_utf16 as u32,
                                         token_type: self
                                             .token_type_index(&SemanticTokenType::STRING),
                                         token_modifiers_bitset: 0,
@@ -227,33 +248,37 @@ impl SemanticTokensProvider {
                         }
 
                         // Tokenize the shell command as a macro
-                        if let Some(brace_start) = lines[line_idx][start + length..].find('{') {
-                            let cmd_line_idx = line_idx;
-                            let cmd_start = start + length + brace_start + 1;
-                            if cmd_line_idx < lines.len() {
-                                let cmd_line = &lines[cmd_line_idx][cmd_start..];
-                                let cmd_end = cmd_line.find('}').unwrap_or(cmd_line.len());
-                                let cmd_length = cmd_end;
+                        let after_keyword = &lines[line_idx][start + length..];
+                        if let Some(brace_byte_offset) = after_keyword.find('{') {
+                            let brace_start_utf16: usize = after_keyword[..brace_byte_offset]
+                                .chars()
+                                .map(|c| c.len_utf16())
+                                .sum();
+                            let cmd_start = start + length + brace_start_utf16 + 1; // +1 for '{'
+                            let inside_braces = &after_keyword[brace_byte_offset + 1..];
+                            let cmd_end_byte =
+                                inside_braces.find('}').unwrap_or(inside_braces.len());
+                            let cmd_content = &inside_braces[..cmd_end_byte];
+                            let cmd_length_utf16: usize =
+                                cmd_content.chars().map(|c| c.len_utf16()).sum();
 
-                                if cmd_length > 0 {
-                                    let (delta_line, delta_start) = if cmd_line_idx == prev_line {
-                                        (0, cmd_start.saturating_sub(prev_start))
-                                    } else {
-                                        (cmd_line_idx.saturating_sub(prev_line), cmd_start)
-                                    };
+                            if cmd_length_utf16 > 0 {
+                                let (delta_line, delta_start) = if line_idx == prev_line {
+                                    (0, cmd_start.saturating_sub(prev_start))
+                                } else {
+                                    (line_idx.saturating_sub(prev_line), cmd_start)
+                                };
 
-                                    tokens.push(SemanticToken {
-                                        delta_line: delta_line as u32,
-                                        delta_start: delta_start as u32,
-                                        length: cmd_length as u32,
-                                        token_type: self
-                                            .token_type_index(&SemanticTokenType::MACRO),
-                                        token_modifiers_bitset: 0,
-                                    });
+                                tokens.push(SemanticToken {
+                                    delta_line: delta_line as u32,
+                                    delta_start: delta_start as u32,
+                                    length: cmd_length_utf16 as u32,
+                                    token_type: self.token_type_index(&SemanticTokenType::MACRO),
+                                    token_modifiers_bitset: 0,
+                                });
 
-                                    prev_line = cmd_line_idx;
-                                    prev_start = cmd_start;
-                                }
+                                prev_line = line_idx;
+                                prev_start = cmd_start;
                             }
                         }
                     }
@@ -809,5 +834,39 @@ mod tests {
         // This should not panic even though test name contains CJK
         let result = provider.provide_semantic_tokens(&uri, text);
         assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_test_name_string_length_with_unicode() {
+        // Verify the test name string token has correct UTF-16 length
+        // when the name contains multi-byte UTF-8 characters
+        let provider = SemanticTokensProvider::new();
+        let uri = create_test_uri("/test.hone");
+        // "日本語" is 3 chars/3 UTF-16 code units, but 9 bytes in UTF-8
+        // The full quoted string '"日本語"' is 5 UTF-16 code units but 11 bytes
+        let text = "TEST \"日本語\"\nRUN ls";
+
+        let result = provider.provide_semantic_tokens(&uri, text);
+        assert!(result.is_some());
+
+        if let Some(SemanticTokensResult::Tokens(tokens)) = result {
+            // Find the STRING token (type index 1)
+            let string_type_idx = provider.token_type_index(&SemanticTokenType::STRING);
+            let string_token = tokens.data.iter().find(|t| t.token_type == string_type_idx);
+
+            assert!(
+                string_token.is_some(),
+                "Should have a string token for the test name"
+            );
+            let token = string_token.unwrap();
+
+            // '"日本語"' length should be 5 UTF-16 code units:
+            // " (1) + 日 (1) + 本 (1) + 語 (1) + " (1) = 5
+            // BUG: Currently reports 11 (bytes) instead of 5 (UTF-16 code units)
+            assert_eq!(
+                token.length, 5,
+                "String length should be 5 UTF-16 code units, not 11 bytes"
+            );
+        }
     }
 }
