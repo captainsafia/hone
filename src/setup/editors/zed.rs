@@ -4,7 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::setup::detect::detect_zed;
-use crate::setup::get_config_path;
+use crate::setup::expand_home;
 
 pub fn setup() -> Result<()> {
     if !detect_zed() {
@@ -35,11 +35,11 @@ pub fn setup() -> Result<()> {
 
 fn get_zed_settings_path() -> Result<PathBuf> {
     let base_path = if cfg!(target_os = "macos") {
-        get_config_path("~/Library/Application Support/Zed")?
+        expand_home("~/Library/Application Support/Zed")?
     } else if cfg!(target_os = "windows") {
-        get_config_path("~/AppData/Roaming/Zed")?
+        expand_home("~/AppData/Roaming/Zed")?
     } else {
-        get_config_path("~/.config/zed")?
+        expand_home("~/.config/zed")?
     };
 
     Ok(base_path.join("settings.json"))

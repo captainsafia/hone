@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use toml_edit::{DocumentMut, Item, Table};
 
 use crate::setup::detect::detect_helix;
-use crate::setup::get_config_path;
+use crate::setup::expand_home;
 
 pub fn setup() -> Result<()> {
     if !detect_helix() {
@@ -35,9 +35,9 @@ pub fn setup() -> Result<()> {
 
 fn get_helix_config_path() -> Result<PathBuf> {
     let base_path = if cfg!(target_os = "windows") {
-        get_config_path("~/AppData/Roaming/helix")?
+        expand_home("~/AppData/Roaming/helix")?
     } else {
-        get_config_path("~/.config/helix")?
+        expand_home("~/.config/helix")?
     };
 
     Ok(base_path.join("languages.toml"))
