@@ -30,7 +30,8 @@ impl SymbolsProvider {
 
                     // Create new test symbol
                     let line = test.line.saturating_sub(1) as u32;
-                    let name_len = test.name.len() as u32;
+                    // Use char count instead of byte length for proper Unicode handling in LSP
+                    let name_len = test.name.chars().count() as u32;
 
                     current_test_symbol = Some(DocumentSymbol {
                         name: test.name.clone(),
@@ -217,8 +218,11 @@ fn extract_assertion_name(assert: &crate::parser::ast::AssertNode) -> String {
 
 fn truncate_command(cmd: &str) -> String {
     const MAX_LEN: usize = 40;
-    if cmd.len() > MAX_LEN {
-        format!("{}...", &cmd[..MAX_LEN])
+    // Use char count instead of byte length for proper Unicode handling
+    let char_count = cmd.chars().count();
+    if char_count > MAX_LEN {
+        let truncated: String = cmd.chars().take(MAX_LEN).collect();
+        format!("{}...", truncated)
     } else {
         cmd.to_string()
     }
@@ -293,5 +297,56 @@ mod tests {
         assert_eq!(children.len(), 1);
         assert_eq!(children[0].name, "expect exitcode");
         assert_eq!(children[0].kind, SymbolKind::PROPERTY);
+    }
+
+    #[test]
+    fn test_symbols_with_unicode_test_name() {
+        // Unicode test name: "日本語" is 3 chars but 9 bytes
+        let parsed = ParsedFile {
+            filename: "test.hone".to_string(),
+            pragmas: vec![],
+            nodes: vec![ASTNode::Test(TestNode {
+                name: "日本語テスト".to_string(),
+                line: 1,
+            })],
+            warnings: vec![],
+            errors: vec![],
+        };
+
+        let provider = SymbolsProvider::new();
+        let symbols = provider.provide_symbols(&parsed);
+
+        assert_eq!(symbols.len(), 1);
+        assert_eq!(symbols[0].name, "日本語テスト");
+
+        // Name is 6 characters, not 18 bytes
+        // selection_range.end.character should be 6 + 6 = 12, not 6 + 18 = 24
+        let name_char_count = "日本語テスト".chars().count() as u32;
+        assert_eq!(name_char_count, 6);
+        assert_eq!(
+            symbols[0].selection_range.end.character,
+            6 + name_char_count
+        );
+    }
+
+    #[test]
+    fn test_truncate_command_unicode() {
+        // Ensure truncation doesn't split multi-byte characters
+        // Need > 40 characters to trigger truncation (this has 42 chars)
+        let long_cmd =
+            "これは長いコマンドです。これは長いコマンドです。これは非常に長いコマンドですねー。";
+        let truncated = truncate_command(long_cmd);
+
+        // Should truncate at character boundary, not byte boundary
+        assert!(truncated.ends_with("..."));
+        // Should be valid UTF-8 (this would panic if we sliced incorrectly)
+        assert!(truncated.chars().count() <= 43); // 40 chars + "..."
+    }
+
+    #[test]
+    fn test_truncate_command_short_unicode() {
+        let short_cmd = "日本語";
+        let result = truncate_command(short_cmd);
+        assert_eq!(result, "日本語");
     }
 }
