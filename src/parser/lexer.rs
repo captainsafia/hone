@@ -178,7 +178,10 @@ pub fn parse_regex_literal(input: &str, start_byte_index: usize) -> Option<(Rege
             let flags_remaining = input.get(flags_start..)?;
 
             for flag_ch in flags_remaining.chars() {
-                if matches!(flag_ch, 'g' | 'i' | 'm' | 's' | 'u' | 'y') {
+                // Only accept flags supported by Rust's regex crate:
+                // i: case-insensitive, m: multi-line, s: dotall, u: unicode, x: verbose
+                // Note: 'g' (global) and 'y' (sticky) are JavaScript-specific and not supported
+                if matches!(flag_ch, 'i' | 'm' | 's' | 'u' | 'x') {
                     flags.push(flag_ch);
                 } else {
                     break;
@@ -493,11 +496,26 @@ mod tests {
 
     #[test]
     fn test_parse_regex_literal_with_flags() {
-        let result = parse_regex_literal("/pattern/gi", 0);
+        // Test with valid Rust regex flags: i, m, s, u, x
+        let result = parse_regex_literal("/pattern/ims", 0);
         assert!(result.is_some());
         let (literal, _) = result.unwrap();
         assert_eq!(literal.pattern, "pattern");
-        assert_eq!(literal.flags, "gi");
+        assert_eq!(literal.flags, "ims");
+    }
+
+    #[test]
+    fn test_parse_regex_literal_invalid_flags_not_parsed() {
+        // JavaScript-specific flags like 'g' and 'y' should stop parsing
+        // (they are not valid Rust regex flags)
+        let result = parse_regex_literal("/pattern/ig", 0);
+        assert!(result.is_some());
+        let (literal, end_index) = result.unwrap();
+        assert_eq!(literal.pattern, "pattern");
+        // 'i' is valid, but 'g' stops parsing
+        assert_eq!(literal.flags, "i");
+        // end_index should stop before 'g'
+        assert_eq!(end_index, 10); // "/pattern/i" = 10 chars
     }
 
     #[test]
