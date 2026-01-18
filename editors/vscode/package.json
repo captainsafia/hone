@@ -43,11 +43,6 @@
       "type": "object",
       "title": "Hone",
       "properties": {
-        "hone.lsp.path": {
-          "type": "string",
-          "default": "hone",
-          "description": "Path to the hone executable"
-        },
         "hone.lsp.trace.server": {
           "type": "string",
           "enum": ["off", "messages", "verbose"],
