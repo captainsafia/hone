@@ -40,9 +40,15 @@ pub fn evaluate_duration_predicate(
 }
 
 fn evaluate_comparison(actual: f64, operator: &ComparisonOperator, expected: f64) -> bool {
+    // Use a small epsilon for floating-point equality comparisons.
+    // This handles cases like 1.001s (1000.9999999999999ms) vs 1001ms.
+    // Epsilon of 1e-9 ms (1 picosecond) is far smaller than meaningful precision
+    // but large enough to handle IEEE 754 rounding errors.
+    const EPSILON: f64 = 1e-9;
+
     match operator {
-        ComparisonOperator::Equal => actual == expected,
-        ComparisonOperator::NotEqual => actual != expected,
+        ComparisonOperator::Equal => (actual - expected).abs() < EPSILON,
+        ComparisonOperator::NotEqual => (actual - expected).abs() >= EPSILON,
         ComparisonOperator::LessThan => actual < expected,
         ComparisonOperator::LessThanOrEqual => actual <= expected,
         ComparisonOperator::GreaterThan => actual > expected,
@@ -187,5 +193,33 @@ mod tests {
         let predicate = make_predicate(ComparisonOperator::LessThan, 5.0, DurationUnit::Seconds);
         let result = evaluate_duration_predicate(2500, &predicate);
         assert_eq!(result.actual, "2.50s");
+    }
+
+    #[test]
+    fn test_equal_floating_point_precision() {
+        // 1.001s converts to 1000.9999999999999ms due to float precision
+        // but actual 1001ms should equal 1.001s
+        let predicate = make_predicate(ComparisonOperator::Equal, 1.001, DurationUnit::Seconds);
+        let result = evaluate_duration_predicate(1001, &predicate);
+        assert!(result.passed, "1.001s should equal 1001ms");
+    }
+
+    #[test]
+    fn test_not_equal_floating_point_precision() {
+        // Same floating-point issue: 1.001s should NOT be "not equal" to 1001ms
+        let predicate = make_predicate(ComparisonOperator::NotEqual, 1.001, DurationUnit::Seconds);
+        let result = evaluate_duration_predicate(1001, &predicate);
+        assert!(
+            !result.passed,
+            "1.001s != 1001ms should fail (they are equal)"
+        );
+    }
+
+    #[test]
+    fn test_equal_floating_point_precision_larger() {
+        // 4.001s also has precision issues
+        let predicate = make_predicate(ComparisonOperator::Equal, 4.001, DurationUnit::Seconds);
+        let result = evaluate_duration_predicate(4001, &predicate);
+        assert!(result.passed, "4.001s should equal 4001ms");
     }
 }
