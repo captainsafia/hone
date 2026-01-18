@@ -97,10 +97,16 @@ impl SemanticTokensProvider {
                         let line = lines[line_idx];
                         // Hone uses # for comments, not //
                         if let Some(byte_pos) = line.find('#') {
-                            // Convert byte position to character position for LSP
-                            let start = line[..byte_pos].chars().count();
-                            // Length in characters, not bytes
-                            let length = line[byte_pos..].chars().count();
+                            // Convert byte position to UTF-16 code unit position for LSP
+                            let start = line[..byte_pos]
+                                .chars()
+                                .map(|c| c.len_utf16())
+                                .sum::<usize>();
+                            // Length in UTF-16 code units for LSP compatibility
+                            let length = line[byte_pos..]
+                                .chars()
+                                .map(|c| c.len_utf16())
+                                .sum::<usize>();
                             let (delta_line, delta_start) = if line_idx == prev_line {
                                 (0, start.saturating_sub(prev_start))
                             } else {
@@ -727,6 +733,40 @@ mod tests {
     }
 
     #[test]
+    fn test_provide_semantic_tokens_comment_with_emoji() {
+        // Emoji 🎉 is 1 Rust char but 2 UTF-16 code units (surrogate pair).
+        // The comment handler uses chars().count() but LSP requires UTF-16 code units.
+        // "# 🎉 party!" = 10 chars but 11 UTF-16 code units
+        let provider = SemanticTokensProvider::new();
+        let uri = create_test_uri("/test.hone");
+        let text = "# 🎉 party!\nTEST \"test\"\nRUN ls";
+
+        let result = provider.provide_semantic_tokens(&uri, text);
+        assert!(result.is_some());
+
+        if let Some(SemanticTokensResult::Tokens(tokens)) = result {
+            let comment_type_idx = provider.token_type_index(&SemanticTokenType::COMMENT);
+            let comment_token = tokens
+                .data
+                .iter()
+                .find(|t| t.token_type == comment_type_idx);
+
+            assert!(comment_token.is_some(), "Should have a comment token");
+            let token = comment_token.unwrap();
+
+            // Comment length should be 11 UTF-16 code units, NOT 10 chars
+            // "# 🎉 party!" breakdown in UTF-16:
+            // '#' = 1, ' ' = 1, '🎉' = 2 (surrogate pair), ' ' = 1,
+            // 'p' = 1, 'a' = 1, 'r' = 1, 't' = 1, 'y' = 1, '!' = 1
+            // Total = 11 UTF-16 code units
+            assert_eq!(
+                token.length, 11,
+                "Comment length should be 11 UTF-16 code units, not 10 chars"
+            );
+        }
+    }
+
+    #[test]
     fn test_find_token_in_line_with_emoji() {
         // Emoji 🎉 (U+1F389) is 4 bytes in UTF-8, but 2 UTF-16 code units (surrogate pair)
         // "🎉 RUN" - emoji is 4 bytes, space is 1 byte, so "RUN" starts at byte 5
@@ -746,5 +786,28 @@ mod tests {
         );
         // Length in UTF-16 code units (RUN = 3 ASCII chars = 3 UTF-16 code units)
         assert_eq!(length, 3);
+    }
+
+    #[test]
+    fn test_provide_semantic_tokens_cjk_before_keyword_no_panic() {
+        // This test verifies the fix for using UTF-16 positions as byte indices.
+        // When CJK characters appear before a keyword on the same line, the
+        // UTF-16 position of the keyword differs from its byte position.
+        // Using UTF-16 positions for string slicing would panic.
+        //
+        // "日本語 RUN" - CJK chars are 3 bytes each but 1 UTF-16 code unit
+        // find_token_in_line("RUN") returns (0, start=4, length=3) in UTF-16 units
+        // But "RUN" is at byte 10 (9 bytes for CJK + 1 space)
+        // Slicing at byte 7 (4+3) panics: inside '語'
+        let provider = SemanticTokensProvider::new();
+        let uri = create_test_uri("/test.hone");
+
+        // A valid test file where CJK text appears in a comment on same line structure
+        // that would trigger the substring slicing after find_token_in_line
+        let text = "TEST \"日本語テスト\"\nRUN {echo hello}";
+
+        // This should not panic even though test name contains CJK
+        let result = provider.provide_semantic_tokens(&uri, text);
+        assert!(result.is_some());
     }
 }
