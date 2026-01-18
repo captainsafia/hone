@@ -154,6 +154,41 @@ LSP logs are written to:
 
 Check logs if you encounter issues with the language server.
 
+### Troubleshooting
+
+#### LSP not working after setup
+
+1. **Verify hone is in PATH**: Run `which hone` (or `where hone` on Windows) to ensure the binary is accessible
+2. **Check editor configuration**: Use `hone setup <editor> --help` to see manual removal instructions and verify configuration
+3. **Restart editor**: Some editors require a restart to pick up new LSP configurations
+4. **Check LSP logs**: See the Logging section above for log file locations
+
+#### "hone not installed" error
+
+The editor binary was not detected. Ensure:
+- The editor is installed and accessible from the command line
+- For macOS apps, check if they're in `/Applications/`
+- For Linux, ensure the editor binary is in your `PATH`
+
+#### Path warning when running setup
+
+If you see a warning about hone not being in PATH:
+- Add the hone binary directory to your system's `PATH` environment variable
+- Or use an absolute path in editor configurations (not recommended)
+
+#### Configuration changes not taking effect
+
+- **Neovim/Vim/Emacs**: Reload your init file or restart the editor
+- **VS Code/Zed**: Reload the window (Command/Ctrl+Shift+P → "Developer: Reload Window")
+- **Helix**: Restart the editor
+- **Sublime Text**: Restart Sublime Text and verify LSP package is installed
+
+#### Still having issues?
+
+- Check that you're running a recent version of hone: `hone --version`
+- Verify the `.hone` file syntax is correct by running tests: `hone test.hone`
+- Check editor-specific LSP troubleshooting documentation
+
 ## Installation
 
 ### Using the installer (recommended)
