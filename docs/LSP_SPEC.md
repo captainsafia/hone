@@ -492,9 +492,9 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Document setup in README
 
 #### 6.4 TextMate Grammar
-- [ ] Verify `syntaxes/hone.tmlanguage.json` provides good baseline highlighting
-- [ ] Ensure it covers all keywords, assertions, strings, and comments
-- [ ] Test in editors without semantic token support
+- [x] Verify `syntaxes/hone.tmlanguage.json` provides good baseline highlighting
+- [x] Ensure it covers all keywords, assertions, strings, and comments
+- [x] Test in editors without semantic token support
 
 #### 6.5 Documentation
 - [x] Document LSP features in main README
