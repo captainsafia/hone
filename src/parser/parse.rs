@@ -869,4 +869,105 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn test_duplicate_run_names_rejected() {
+        let content = r#"TEST "test with duplicates"
+RUN build: echo first
+RUN build: echo second
+ASSERT stdout contains "first""#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for duplicate RUN names"
+                );
+                assert!(file
+                    .errors
+                    .iter()
+                    .any(|e| e.message.contains("Duplicate RUN name")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_run_names_reset_between_tests() {
+        let content = r#"TEST "first test"
+RUN build: echo first
+ASSERT stdout contains "first"
+
+TEST "second test"
+RUN build: echo second
+ASSERT stdout contains "second""#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    file.errors.is_empty(),
+                    "Expected no errors - same RUN name in different tests should be allowed: {:?}",
+                    file.errors
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_empty_run_command_rejected() {
+        // "RUN " with just whitespace gets trimmed to "RUN" which is Unknown
+        // This tests the lexer behavior
+        let content = r#"TEST "empty run"
+RUN 
+ASSERT exit_code == 0"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for empty RUN command"
+                );
+                // "RUN" alone becomes Unknown statement since it doesn't match "RUN "
+                assert!(file
+                    .errors
+                    .iter()
+                    .any(|e| e.message.contains("Unknown statement")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_named_run_empty_command_rejected() {
+        let content = r#"TEST "named empty run"
+RUN build: 
+ASSERT exit_code == 0"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for named RUN with empty command"
+                );
+                assert!(file
+                    .errors
+                    .iter()
+                    .any(|e| e.message.contains("Empty command")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
 }
