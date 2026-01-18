@@ -103,35 +103,55 @@ mod tests {
 
     #[test]
     fn test_less_than_pass() {
-        let predicate = make_predicate(ComparisonOperator::LessThan, 200.0, DurationUnit::Milliseconds);
+        let predicate = make_predicate(
+            ComparisonOperator::LessThan,
+            200.0,
+            DurationUnit::Milliseconds,
+        );
         let result = evaluate_duration_predicate(100, &predicate);
         assert!(result.passed);
     }
 
     #[test]
     fn test_less_than_fail() {
-        let predicate = make_predicate(ComparisonOperator::LessThan, 100.0, DurationUnit::Milliseconds);
+        let predicate = make_predicate(
+            ComparisonOperator::LessThan,
+            100.0,
+            DurationUnit::Milliseconds,
+        );
         let result = evaluate_duration_predicate(100, &predicate);
         assert!(!result.passed);
     }
 
     #[test]
     fn test_less_than_or_equal_boundary() {
-        let predicate = make_predicate(ComparisonOperator::LessThanOrEqual, 100.0, DurationUnit::Milliseconds);
+        let predicate = make_predicate(
+            ComparisonOperator::LessThanOrEqual,
+            100.0,
+            DurationUnit::Milliseconds,
+        );
         let result = evaluate_duration_predicate(100, &predicate);
         assert!(result.passed);
     }
 
     #[test]
     fn test_greater_than_pass() {
-        let predicate = make_predicate(ComparisonOperator::GreaterThan, 100.0, DurationUnit::Milliseconds);
+        let predicate = make_predicate(
+            ComparisonOperator::GreaterThan,
+            100.0,
+            DurationUnit::Milliseconds,
+        );
         let result = evaluate_duration_predicate(200, &predicate);
         assert!(result.passed);
     }
 
     #[test]
     fn test_greater_than_or_equal_boundary() {
-        let predicate = make_predicate(ComparisonOperator::GreaterThanOrEqual, 100.0, DurationUnit::Milliseconds);
+        let predicate = make_predicate(
+            ComparisonOperator::GreaterThanOrEqual,
+            100.0,
+            DurationUnit::Milliseconds,
+        );
         let result = evaluate_duration_predicate(100, &predicate);
         assert!(result.passed);
     }
@@ -152,7 +172,11 @@ mod tests {
 
     #[test]
     fn test_expected_string_format() {
-        let predicate = make_predicate(ComparisonOperator::LessThan, 500.0, DurationUnit::Milliseconds);
+        let predicate = make_predicate(
+            ComparisonOperator::LessThan,
+            500.0,
+            DurationUnit::Milliseconds,
+        );
         let result = evaluate_duration_predicate(100, &predicate);
         assert_eq!(result.expected, "duration < 500ms");
         assert_eq!(result.actual, "100ms");

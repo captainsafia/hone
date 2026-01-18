@@ -146,6 +146,29 @@ fn parse_pragma(
             let env_key = pragma_value[..eq_index].trim().to_string();
             let env_value = pragma_value[eq_index + 1..].to_string();
 
+            if env_key.is_empty() {
+                collector.add_error("Invalid env pragma: empty key".to_string(), line);
+                return None;
+            }
+
+            // Validate key format (must be valid environment variable name)
+            static PRAGMA_ENV_KEY_RE: OnceLock<regex::Regex> = OnceLock::new();
+            let re = PRAGMA_ENV_KEY_RE.get_or_init(|| {
+                regex::Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+                    .expect("pragma env key regex should be valid")
+            });
+
+            if !re.is_match(&env_key) {
+                collector.add_error(
+                    format!(
+                        "Invalid environment variable name: \"{}\". Names must start with a letter or underscore and contain only alphanumeric characters and underscores",
+                        env_key
+                    ),
+                    line,
+                );
+                return None;
+            }
+
             Some(PragmaNode {
                 pragma_type: PragmaType::Env,
                 key: Some(env_key),
@@ -733,6 +756,112 @@ mod tests {
                     file.errors.len(),
                     3,
                     "Expected 3 errors for 3 invalid lines"
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_pragma_env_rejects_invalid_key_starting_with_number() {
+        let content = "#!env: 123ABC=value";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for invalid env key"
+                );
+                assert!(file
+                    .errors
+                    .iter()
+                    .any(|e| e.message.contains("Invalid environment variable name")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_pragma_env_rejects_key_with_hyphen() {
+        let content = "#!env: MY-VAR=value";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for invalid env key with hyphen"
+                );
+                assert!(file
+                    .errors
+                    .iter()
+                    .any(|e| e.message.contains("Invalid environment variable name")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_pragma_env_rejects_empty_key() {
+        let content = "#!env: =value";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(!file.errors.is_empty(), "Expected error for empty env key");
+                assert!(file.errors.iter().any(|e| e.message.contains("empty key")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_pragma_env_accepts_valid_key() {
+        let content = "#!env: MY_VAR_123=value";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    file.errors.is_empty(),
+                    "Expected no errors for valid env key"
+                );
+                let pragmas: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| match n {
+                        ASTNode::Pragma(p) => Some(p),
+                        _ => None,
+                    })
+                    .collect();
+                assert_eq!(pragmas.len(), 1);
+                assert_eq!(pragmas[0].key.as_ref().unwrap(), "MY_VAR_123");
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_pragma_env_accepts_underscore_prefix() {
+        let content = "#!env: _PRIVATE_VAR=value";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    file.errors.is_empty(),
+                    "Expected no errors for underscore-prefixed env key"
                 );
             }
             ParseResult::Failure { .. } => {
