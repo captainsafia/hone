@@ -4,6 +4,7 @@ use crate::runner::sentinel::{
 };
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::time::{sleep, timeout, Duration};
@@ -358,8 +359,12 @@ pub fn create_shell_config(
         std::env::var("HOME").unwrap_or_else(|_| "/".to_string()),
     );
 
+    static TIMEOUT_RE: OnceLock<regex::Regex> = OnceLock::new();
+    let timeout_re = TIMEOUT_RE.get_or_init(|| {
+        regex::Regex::new(r"^(\d+(?:\.\d+)?)(ms|s)$").expect("timeout regex should be valid")
+    });
+
     let mut timeout_ms = 30000; // 30 seconds default
-    let timeout_re = regex::Regex::new(r"^(\d+(?:\.\d+)?)(ms|s)$").unwrap();
 
     for pragma in pragmas {
         match pragma.pragma_type {
@@ -375,13 +380,18 @@ pub fn create_shell_config(
             }
             PragmaType::Timeout => {
                 if let Some(captures) = timeout_re.captures(&pragma.value) {
-                    if let Ok(value) = captures.get(1).unwrap().as_str().parse::<f64>() {
-                        let unit = captures.get(2).unwrap().as_str();
-                        timeout_ms = if unit == "s" {
-                            (value * 1000.0) as u64
-                        } else {
-                            value as u64
-                        };
+                    // Regex pattern guarantees groups 1 and 2 exist on match
+                    if let (Some(value_match), Some(unit_match)) =
+                        (captures.get(1), captures.get(2))
+                    {
+                        if let Ok(value) = value_match.as_str().parse::<f64>() {
+                            let unit = unit_match.as_str();
+                            timeout_ms = if unit == "s" {
+                                (value * 1000.0) as u64
+                            } else {
+                                value as u64
+                            };
+                        }
                     }
                 }
             }
