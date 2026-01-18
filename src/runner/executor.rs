@@ -897,4 +897,72 @@ mod tests {
         assert!(filter.matches("日本語"));
         assert!(!filter.matches("テスト"));
     }
+
+    #[test]
+    fn test_resolve_target_no_run_executed() {
+        let run_results: HashMap<String, RunResult> = HashMap::new();
+        let result = resolve_target(&None, None, &run_results);
+
+        assert!(result.is_err());
+        let assertion = result.unwrap_err();
+        assert!(!assertion.passed);
+        assert!(assertion.expected.contains("previous RUN command"));
+        assert!(assertion.actual.contains("no RUN command executed"));
+        assert!(assertion
+            .error
+            .as_ref()
+            .is_some_and(|e| e.contains("ASSERT without a preceding RUN")));
+    }
+
+    #[test]
+    fn test_resolve_target_named_run_not_found() {
+        let run_results: HashMap<String, RunResult> = HashMap::new();
+        let target = Some("nonexistent".to_string());
+        let result = resolve_target(&target, None, &run_results);
+
+        assert!(result.is_err());
+        let assertion = result.unwrap_err();
+        assert!(!assertion.passed);
+        assert!(assertion.expected.contains("nonexistent"));
+        assert!(assertion.actual.contains("RUN not found"));
+    }
+
+    #[test]
+    fn test_resolve_target_last_run_success() {
+        let run_results: HashMap<String, RunResult> = HashMap::new();
+        let last_run = RunResult {
+            run_id: "test-run".to_string(),
+            stdout: "output".to_string(),
+            stdout_raw: "output".to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+            duration_ms: 100,
+            stderr_path: String::new(),
+        };
+        let result = resolve_target(&None, Some(&last_run), &run_results);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().run_id, "test-run");
+    }
+
+    #[test]
+    fn test_resolve_target_named_run_success() {
+        let mut run_results: HashMap<String, RunResult> = HashMap::new();
+        let run = RunResult {
+            run_id: "named-run".to_string(),
+            stdout: "named output".to_string(),
+            stdout_raw: "named output".to_string(),
+            stderr: String::new(),
+            exit_code: 0,
+            duration_ms: 50,
+            stderr_path: String::new(),
+        };
+        run_results.insert("build".to_string(), run);
+
+        let target = Some("build".to_string());
+        let result = resolve_target(&target, None, &run_results);
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().run_id, "named-run");
+    }
 }
