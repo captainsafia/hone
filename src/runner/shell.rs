@@ -9,6 +9,10 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::time::{sleep, timeout, Duration};
 
+/// Maximum allowed timeout: 24 hours in milliseconds.
+/// Prevents integer overflow and unreasonably long test timeouts.
+const MAX_TIMEOUT_MS: u64 = 24 * 60 * 60 * 1000; // 86,400,000 ms
+
 #[derive(Debug, Clone)]
 pub struct ShellConfig {
     pub shell: String,
@@ -386,10 +390,12 @@ pub fn create_shell_config(
                     {
                         if let Ok(value) = value_match.as_str().parse::<f64>() {
                             let unit = unit_match.as_str();
-                            timeout_ms = if unit == "s" {
-                                (value * 1000.0) as u64
+                            let ms_value = if unit == "s" { value * 1000.0 } else { value };
+                            // Cap at MAX_TIMEOUT_MS to prevent overflow and unreasonable waits
+                            timeout_ms = if ms_value > MAX_TIMEOUT_MS as f64 {
+                                MAX_TIMEOUT_MS
                             } else {
-                                value as u64
+                                ms_value as u64
                             };
                         }
                     }
@@ -510,6 +516,7 @@ mod tests {
 
     #[test]
     fn test_create_shell_config_timeout_large_value() {
+        // 999999 seconds (~11.5 days) exceeds the 24-hour cap
         let pragmas = vec![PragmaNode {
             pragma_type: PragmaType::Timeout,
             key: None,
@@ -519,7 +526,8 @@ mod tests {
         }];
 
         let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
-        assert_eq!(config.timeout_ms, 999999000);
+        // Capped at MAX_TIMEOUT_MS (24 hours)
+        assert_eq!(config.timeout_ms, MAX_TIMEOUT_MS);
     }
 
     #[test]
@@ -594,5 +602,37 @@ mod tests {
         assert_eq!(config.shell, "/bin/zsh");
         assert_eq!(config.timeout_ms, 60000);
         assert_eq!(config.env.get("TEST"), Some(&"value".to_string()));
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_overflow_protection() {
+        // Value large enough to overflow u64 when multiplied by 1000
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "18446744073709551s".to_string(), // Near u64::MAX / 1000
+            line: 1,
+            raw: "#!timeout 18446744073709551s".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        // Should be capped at MAX_TIMEOUT_MS (24 hours) instead of overflowing
+        assert_eq!(config.timeout_ms, MAX_TIMEOUT_MS);
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_very_large_ms() {
+        // Large milliseconds value that exceeds the cap
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "999999999999ms".to_string(),
+            line: 1,
+            raw: "#!timeout 999999999999ms".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        // Should be capped at MAX_TIMEOUT_MS (24 hours)
+        assert_eq!(config.timeout_ms, MAX_TIMEOUT_MS);
     }
 }
