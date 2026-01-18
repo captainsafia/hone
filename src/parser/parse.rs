@@ -1477,4 +1477,85 @@ ASSERT stdout == "#;
             }
         }
     }
+
+    #[test]
+    fn test_file_missing_path_error() {
+        // file assertion without path should produce a clear error
+        let content = r#"TEST "missing path"
+RUN touch test.txt
+ASSERT file exists"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing file path"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("quoted file path"),
+                    "Error should mention expected quoted file path. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_file_contains_missing_string_error() {
+        // file contains without string should produce a clear error
+        let content = r#"TEST "missing string"
+RUN echo hello > test.txt
+ASSERT file "test.txt" contains"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing string after file contains"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("quoted string") && error_msg.contains("contains"),
+                    "Error should mention expected quoted string after contains. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_file_matches_missing_regex_error() {
+        // file matches without regex should produce a clear error
+        let content = r#"TEST "missing regex"
+RUN echo hello > test.txt
+ASSERT file "test.txt" matches"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing regex after file matches"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("regex") && error_msg.contains("matches"),
+                    "Error should mention expected regex literal. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
 }
