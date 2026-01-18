@@ -354,8 +354,11 @@ impl SemanticTokensProvider {
     ) -> Option<(usize, usize, usize)> {
         if line_idx < lines.len() {
             let line = lines[line_idx];
-            if let Some(pos) = line.find(token) {
-                return Some((line_idx, pos, token.len()));
+            if let Some(byte_pos) = line.find(token) {
+                // Convert byte position to character position for LSP compatibility
+                let char_pos = line[..byte_pos].chars().count();
+                let char_len = token.chars().count();
+                return Some((line_idx, char_pos, char_len));
             }
         }
         None
@@ -586,5 +589,26 @@ mod tests {
             // Should have tokens for file assertion
             assert!(!tokens.data.is_empty());
         }
+    }
+
+    #[test]
+    fn test_find_token_in_line_with_unicode() {
+        // "日本語 RUN" - the kanji are 3 bytes each (9 bytes total), space is 1 byte
+        // So "RUN" starts at byte 10, but character position 4 (3 kanji + 1 space)
+        let lines = vec!["日本語 RUN ls"];
+
+        let result = SemanticTokensProvider::find_token_in_line(&lines, 0, "RUN");
+        assert!(result.is_some());
+        let (line, start, length) = result.unwrap();
+
+        assert_eq!(line, 0);
+        // Position should be in characters, not bytes
+        // "日本語 " is 4 characters (3 kanji + space), so RUN starts at char 4
+        assert_eq!(
+            start, 4,
+            "Position should be character offset (4), not byte offset (10)"
+        );
+        // Length should also be in characters (RUN = 3 characters = 3 bytes for ASCII)
+        assert_eq!(length, 3);
     }
 }
