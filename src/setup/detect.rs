@@ -31,6 +31,18 @@ pub fn detect_vscode() -> bool {
     }
 }
 
+pub fn detect_zed() -> bool {
+    if is_in_path("zed") {
+        return true;
+    }
+
+    if cfg!(target_os = "macos") {
+        Path::new("/Applications/Zed.app").exists()
+    } else {
+        false
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

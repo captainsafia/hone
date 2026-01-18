@@ -63,3 +63,10 @@
     - Idempotent configuration with markers
     - Unit tests for configuration generation
     - Platform-specific config paths (Linux, macOS, Windows)
+  - Zed editor setup fully implemented
+    - Detection via PATH (`zed`) and platform-specific app locations
+    - JSON config read/merge/write for `settings.json`
+    - LSP configuration and language/file type associations
+    - Idempotent configuration (safe to run multiple times)
+    - Unit tests for configuration logic
+    - Platform-specific config paths (Linux, macOS, Windows)
