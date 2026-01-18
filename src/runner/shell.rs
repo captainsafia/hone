@@ -153,17 +153,20 @@ impl ShellSession {
     async fn wait_for_string(&mut self, marker: &str, timeout_ms: u64) -> bool {
         let start = std::time::Instant::now();
 
-        while start.elapsed().as_millis() < timeout_ms as u128 {
+        loop {
             self.read_available().await;
 
             if self.output_buffer.contains(marker) {
                 return true;
             }
 
+            // Check timeout after attempting read, ensuring at least one attempt
+            if start.elapsed().as_millis() >= timeout_ms as u128 {
+                return false;
+            }
+
             sleep(Duration::from_millis(10)).await;
         }
-
-        false
     }
 
     async fn read_available(&mut self) {
@@ -273,7 +276,7 @@ impl ShellSession {
     async fn wait_for_sentinel(&mut self, run_id: &str) -> Result<SentinelResult, String> {
         let start_time = std::time::Instant::now();
 
-        while start_time.elapsed().as_millis() < self.config.timeout_ms as u128 {
+        loop {
             self.read_available().await;
 
             let result = extract_sentinel(&self.output_buffer, run_id);
@@ -286,13 +289,16 @@ impl ShellSession {
                 });
             }
 
+            // Check timeout after attempting read, ensuring at least one attempt
+            if start_time.elapsed().as_millis() >= self.config.timeout_ms as u128 {
+                return Err(format!(
+                    "Timeout waiting for command completion ({}ms). Run ID: {}",
+                    self.config.timeout_ms, run_id
+                ));
+            }
+
             sleep(Duration::from_millis(10)).await;
         }
-
-        Err(format!(
-            "Timeout waiting for command completion ({}ms). Run ID: {}",
-            self.config.timeout_ms, run_id
-        ))
     }
 
     async fn write_to_shell(&mut self, data: &str) -> Result<(), String> {
