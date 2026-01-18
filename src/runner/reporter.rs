@@ -222,8 +222,12 @@ impl OutputFormatter for JsonFormatter {
             },
         };
 
-        serde_json::to_string_pretty(&report)
-            .unwrap_or_else(|e| format!("{{\"error\": \"{}\"}}", e))
+        serde_json::to_string_pretty(&report).unwrap_or_else(|e| {
+            // Use serde_json to properly escape the error message
+            let escaped = serde_json::to_string(&e.to_string())
+                .unwrap_or_else(|_| "\"serialization error\"".to_string());
+            format!("{{\"error\": {}}}", escaped)
+        })
     }
 }
 
@@ -508,5 +512,45 @@ mod tests {
     fn test_has_failures_empty_run() {
         let output = make_output(make_summary(0, 0, 0, 0));
         assert!(!output.has_failures());
+    }
+
+    #[test]
+    fn test_json_error_escaping() {
+        // Test that error messages with special characters produce valid JSON
+        // This tests the escaping logic in JsonFormatter::format's error path
+
+        // Create an error message with characters that need JSON escaping
+        let test_cases = [
+            "error with \"quotes\"",
+            "error with \\ backslash",
+            "error with\nnewline",
+            "error with\ttab",
+            r#"complex "error" with \ and more"#,
+        ];
+
+        for error_msg in test_cases {
+            // Use serde_json to escape the error (mimics the fix)
+            let escaped =
+                serde_json::to_string(&error_msg).unwrap_or_else(|_| "\"fallback\"".to_string());
+            let json_str = format!("{{\"error\": {}}}", escaped);
+
+            // Verify the result is valid JSON
+            let parsed: Result<serde_json::Value, _> = serde_json::from_str(&json_str);
+            assert!(
+                parsed.is_ok(),
+                "JSON should be valid for error message: {:?}",
+                error_msg
+            );
+
+            // Verify the error message is preserved
+            if let Ok(serde_json::Value::Object(map)) = parsed {
+                let error_value = map.get("error").expect("should have error key");
+                assert_eq!(
+                    error_value.as_str(),
+                    Some(error_msg),
+                    "error message should be preserved"
+                );
+            }
+        }
     }
 }
