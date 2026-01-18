@@ -334,9 +334,17 @@ fn check_assertion_types(assert_node: &crate::parser::AssertNode) -> Vec<Diagnos
             }
 
             match predicate {
-                FilePredicate::Contains { value } | FilePredicate::Equals { value, .. } => {
-                    // Empty file content is valid, so no check needed
-                    let _ = value;
+                FilePredicate::Contains { value } => {
+                    // `contains ""` is nonsensical - every string contains empty string
+                    if value.value.is_empty() {
+                        diagnostics.push(create_semantic_diagnostic(
+                            assert_node.line,
+                            "String comparison value cannot be empty for 'contains'",
+                        ));
+                    }
+                }
+                FilePredicate::Equals { .. } => {
+                    // `== ""` is valid - it checks for empty file content
                 }
                 FilePredicate::Matches { value } => {
                     if value.pattern.is_empty() {
@@ -672,6 +680,27 @@ ASSERT stdout contains """#;
             empty_errors.len(),
             1,
             "ASSERT stdout contains \"\" should produce a diagnostic"
+        );
+    }
+
+    #[test]
+    fn test_file_empty_string_contains_is_invalid() {
+        // `ASSERT file "x" contains ""` is nonsensical - every string contains empty
+        // This should produce the same diagnostic as `ASSERT stdout contains ""`
+        let content = r#"TEST "empty file contains check"
+RUN true
+ASSERT file "test.txt" contains """#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let empty_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("cannot be empty"))
+            .collect();
+        assert_eq!(
+            empty_errors.len(),
+            1,
+            "ASSERT file \"x\" contains \"\" should produce a diagnostic"
         );
     }
 
