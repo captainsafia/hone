@@ -28,7 +28,10 @@ mod tests {
     use super::*;
 
     fn make_predicate(op: StringComparisonOperator, value: i32) -> ExitCodePredicate {
-        ExitCodePredicate { operator: op, value }
+        ExitCodePredicate {
+            operator: op,
+            value,
+        }
     }
 
     #[test]

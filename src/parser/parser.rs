@@ -145,6 +145,29 @@ fn parse_pragma(
             let env_key = pragma_value[..eq_index].trim().to_string();
             let env_value = pragma_value[eq_index + 1..].to_string();
 
+            if env_key.is_empty() {
+                collector.add_error("Invalid env pragma: empty key".to_string(), line);
+                return None;
+            }
+
+            // Validate key format (must be valid environment variable name)
+            static PRAGMA_ENV_KEY_RE: OnceLock<regex::Regex> = OnceLock::new();
+            let re = PRAGMA_ENV_KEY_RE.get_or_init(|| {
+                regex::Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+                    .expect("pragma env key regex should be valid")
+            });
+
+            if !re.is_match(&env_key) {
+                collector.add_error(
+                    format!(
+                        "Invalid environment variable name: \"{}\". Names must start with a letter or underscore and contain only alphanumeric characters and underscores",
+                        env_key
+                    ),
+                    line,
+                );
+                return None;
+            }
+
             Some(PragmaNode {
                 pragma_type: PragmaType::Env,
                 key: Some(env_key),
