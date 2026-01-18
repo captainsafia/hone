@@ -31,7 +31,12 @@ pub fn generate_run_id(
     parts.push(base.to_string());
 
     if let Some(test) = test_name {
-        let sanitized = test.replace(char::is_whitespace, "-").to_lowercase();
+        let sanitized = test
+            .chars()
+            .filter(|c| !c.is_control())
+            .collect::<String>()
+            .replace(char::is_whitespace, "-")
+            .to_lowercase();
         parts.push(sanitized);
     }
 
@@ -508,6 +513,27 @@ mod tests {
     fn test_generate_run_id_whitespace_sanitization() {
         let id = generate_run_id("f.hone", Some("Test  With   Spaces"), None, 0);
         assert_eq!(id, "f-test--with---spaces-0");
+    }
+
+    #[test]
+    fn test_generate_run_id_strips_unit_separator() {
+        // Unit separator in test name must be stripped to prevent breaking sentinel protocol
+        let id = generate_run_id("test.hone", Some("test\x1finjection"), None, 0);
+        assert!(
+            !id.contains('\x1f'),
+            "run_id must not contain unit separator character"
+        );
+        assert_eq!(id, "test-testinjection-0");
+    }
+
+    #[test]
+    fn test_generate_run_id_strips_control_characters() {
+        // All control characters should be stripped for robust sentinel parsing
+        let id = generate_run_id("test.hone", Some("test\x00\x01\x1f\x7fname"), None, 0);
+        assert!(
+            !id.chars().any(|c| c.is_control()),
+            "run_id must not contain control characters"
+        );
     }
 
     #[test]
