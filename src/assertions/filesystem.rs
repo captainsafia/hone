@@ -502,4 +502,32 @@ mod tests {
 
         assert!(result.passed);
     }
+
+    #[tokio::test]
+    async fn test_evaluate_file_contains_non_utf8() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_binary.bin");
+        // Write invalid UTF-8 bytes
+        tokio::fs::write(&temp_file, &[0xFF, 0xFE, 0x00, 0x01])
+            .await
+            .unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let search = make_string_literal("test");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Contains { value: search },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(!result.passed);
+        assert!(
+            result.actual.contains("failed to read file"),
+            "Expected error message about failing to read file, got: {}",
+            result.actual
+        );
+    }
 }
