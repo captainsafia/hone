@@ -790,4 +790,56 @@ mod tests {
         let result = parse_comparison_operator(input, 100);
         assert!(result.is_none());
     }
+
+    #[test]
+    fn test_parse_number_overflow_positive() {
+        // Value exceeding i32::MAX should return None
+        let result = parse_number("99999999999999999999", 0);
+        assert!(result.is_none(), "Overflow should return None");
+    }
+
+    #[test]
+    fn test_parse_number_overflow_negative() {
+        // Value below i32::MIN should return None
+        let result = parse_number("-99999999999999999999", 0);
+        assert!(result.is_none(), "Negative overflow should return None");
+    }
+
+    #[test]
+    fn test_parse_number_i32_max() {
+        // i32::MAX should parse successfully
+        let result = parse_number("2147483647", 0);
+        assert!(result.is_some());
+        let (value, _) = result.unwrap();
+        assert_eq!(value, i32::MAX);
+    }
+
+    #[test]
+    fn test_parse_number_i32_min() {
+        // i32::MIN should parse successfully
+        let result = parse_number("-2147483648", 0);
+        assert!(result.is_some());
+        let (value, _) = result.unwrap();
+        assert_eq!(value, i32::MIN);
+    }
+
+    #[test]
+    fn test_parse_number_just_over_i32_max() {
+        // One more than i32::MAX should fail
+        let result = parse_number("2147483648", 0);
+        assert!(
+            result.is_none(),
+            "Value just over i32::MAX should return None"
+        );
+    }
+
+    #[test]
+    fn test_parse_number_just_under_i32_min() {
+        // One less than i32::MIN should fail
+        let result = parse_number("-2147483649", 0);
+        assert!(
+            result.is_none(),
+            "Value just under i32::MIN should return None"
+        );
+    }
 }
