@@ -1,5 +1,4 @@
-import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, window } from 'vscode';
 import {
   LanguageClient,
   LanguageClientOptions,
@@ -9,12 +8,9 @@ import {
 
 let client: LanguageClient;
 
-export function activate(context: ExtensionContext) {
-  const config = workspace.getConfiguration('hone');
-  const honePath = config.get<string>('lsp.path', 'hone');
-  
+export async function activate(context: ExtensionContext) {
   const serverOptions: ServerOptions = {
-    command: honePath,
+    command: 'hone',
     args: ['lsp'],
     transport: TransportKind.stdio
   };
@@ -33,7 +29,14 @@ export function activate(context: ExtensionContext) {
     clientOptions
   );
 
-  client.start();
+  try {
+    await client.start();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    window.showErrorMessage(
+      `Failed to start Hone language server. Ensure 'hone' is installed and available in your PATH. Error: ${message}`
+    );
+  }
 }
 
 export function deactivate(): Thenable<void> | undefined {
