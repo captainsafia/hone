@@ -30,7 +30,6 @@ pub fn configure() -> Result<()> {
 
     append_config(&init_file, config_content)?;
 
-    println!("Configured Emacs");
     Ok(())
 }
 

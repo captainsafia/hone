@@ -33,7 +33,6 @@ pub fn configure() -> Result<()> {
 
     append_config(&config_file, &config_content, &config_type)?;
 
-    println!("Configured Neovim");
     Ok(())
 }
 
