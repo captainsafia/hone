@@ -579,6 +579,47 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_duration_zero() {
+        let result = parse_duration("0ms", 0);
+        assert!(result.is_some());
+        let (duration, _) = result.unwrap();
+        assert_eq!(duration.value, 0.0);
+        assert_eq!(duration.unit, DurationUnit::Milliseconds);
+
+        let result = parse_duration("0s", 0);
+        assert!(result.is_some());
+        let (duration, _) = result.unwrap();
+        assert_eq!(duration.value, 0.0);
+        assert_eq!(duration.unit, DurationUnit::Seconds);
+    }
+
+    #[test]
+    fn test_parse_duration_leading_decimal_point() {
+        let result = parse_duration(".5s", 0);
+        assert!(result.is_some());
+        let (duration, _) = result.unwrap();
+        assert_eq!(duration.value, 0.5);
+    }
+
+    #[test]
+    fn test_parse_duration_trailing_decimal_point() {
+        let result = parse_duration("5.s", 0);
+        assert!(result.is_some());
+        let (duration, _) = result.unwrap();
+        assert_eq!(duration.value, 5.0);
+    }
+
+    #[test]
+    fn test_parse_duration_invalid_multiple_decimals() {
+        assert!(parse_duration("1.2.3s", 0).is_none());
+    }
+
+    #[test]
+    fn test_parse_duration_rejects_negative() {
+        assert!(parse_duration("-5s", 0).is_none());
+    }
+
+    #[test]
     fn test_parse_number_positive() {
         let result = parse_number("42", 0);
         assert!(result.is_some());
