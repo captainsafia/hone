@@ -189,6 +189,14 @@ mod tests {
     }
 
     #[test]
+    fn test_not_equal_fail() {
+        // Test that != fails when values are equal
+        let predicate = make_predicate(ComparisonOperator::NotEqual, 1.0, DurationUnit::Seconds);
+        let result = evaluate_duration_predicate(1000, &predicate);
+        assert!(!result.passed);
+    }
+
+    #[test]
     fn test_expected_string_format() {
         let predicate = make_predicate(
             ComparisonOperator::LessThan,
