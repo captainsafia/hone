@@ -91,6 +91,7 @@ hone/
 - Use `Self` to refer to the implementing type in `impl` blocks
 - Prefer `&str` over `String` for function parameters when ownership isn't needed
 - Use `Option` and `Result` idiomatically; avoid sentinel values
+- Prefer explicit error types over `unwrap` / `expect` patterns
 
 ### Source Control Conventions
 

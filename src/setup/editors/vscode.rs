@@ -20,8 +20,12 @@ pub fn setup() -> Result<()> {
     let temp_dir = tempfile::tempdir().context("Failed to create temp directory")?;
     let vsix_path = temp_dir.path().join(format!("hone-{}.vsix", VERSION));
 
+    let vsix_path_str = vsix_path
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("VSIX path contains invalid UTF-8"))?;
+
     let response = Command::new("curl")
-        .args(["-fsSL", "-o", vsix_path.to_str().unwrap(), &vsix_url])
+        .args(["-fsSL", "-o", vsix_path_str, &vsix_url])
         .output()
         .context("Failed to download VSIX")?;
 
@@ -42,7 +46,7 @@ pub fn setup() -> Result<()> {
     }
 
     let install_result = Command::new("code")
-        .args(["--install-extension", vsix_path.to_str().unwrap()])
+        .args(["--install-extension", vsix_path_str])
         .output()
         .context("Failed to run 'code --install-extension'")?;
 
@@ -58,7 +62,6 @@ pub fn setup() -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     fn test_vsix_url_format() {
