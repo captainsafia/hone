@@ -12,3 +12,12 @@ ASSERT stdout contains "مرحبا"
 TEST "combining characters"
 RUN echo "café"
 ASSERT stdout contains "café"
+
+TEST "percent sign in test name 100% valid"
+RUN echo "success"
+ASSERT stdout contains "success"
+ASSERT exit_code == 0
+
+TEST "format specifiers %s %d %x in name"
+RUN echo "test"
+ASSERT stdout == "test"
