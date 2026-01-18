@@ -95,7 +95,8 @@ impl SemanticTokensProvider {
                     let line_idx = comment_node.line.saturating_sub(1);
                     if line_idx < lines.len() {
                         let line = lines[line_idx];
-                        if let Some(start) = line.find("//") {
+                        // Hone uses # for comments, not //
+                        if let Some(start) = line.find('#') {
                             let length = line[start..].len();
                             let (delta_line, delta_start) = if line_idx == prev_line {
                                 (0, start.saturating_sub(prev_start))
@@ -428,9 +429,16 @@ mod tests {
         assert!(result.is_some());
 
         if let Some(SemanticTokensResult::Tokens(tokens)) = result {
-            // Comments may or may not be tokenized depending on implementation
-            // Just verify we get some tokens
-            assert!(!tokens.data.is_empty());
+            // First token should be a comment starting at position (0, 0)
+            // The comment token type index is 6 (COMMENT)
+            let comment_type_idx = provider.token_type_index(&SemanticTokenType::COMMENT);
+
+            // Find any token with comment type
+            let has_comment_token = tokens.data.iter().any(|t| t.token_type == comment_type_idx);
+            assert!(
+                has_comment_token,
+                "Should have a comment token for # comments"
+            );
         }
     }
 
