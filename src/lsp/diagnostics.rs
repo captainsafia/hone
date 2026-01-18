@@ -226,24 +226,15 @@ fn analyze_semantics(nodes: &[ASTNode]) -> Vec<Diagnostic> {
                 in_test = true;
             }
             ASTNode::Assert(assert_node) => {
-                if !in_test {
-                    diagnostics.push(create_semantic_diagnostic(
-                        assert_node.line,
-                        "Assertion 'expect' can only be used inside a @test block",
-                    ));
-                }
+                // RUN and ASSERT outside TEST blocks are valid - the runner groups
+                // them into an implicit test block, so no warning is needed.
 
                 // Type check assertion arguments
                 let type_diagnostics = check_assertion_types(assert_node);
                 diagnostics.extend(type_diagnostics);
             }
             ASTNode::Run(_) => {
-                if !in_test {
-                    diagnostics.push(create_semantic_diagnostic(
-                        node.line(),
-                        "Command 'run' can only be used inside a @test block",
-                    ));
-                }
+                // RUN outside TEST blocks is valid - forms an implicit test block
             }
             ASTNode::Env(_) => {
                 if in_test {
@@ -681,6 +672,27 @@ ASSERT stdout contains """#;
             empty_errors.len(),
             1,
             "ASSERT stdout contains \"\" should produce a diagnostic"
+        );
+    }
+
+    #[test]
+    fn test_run_and_assert_outside_test_block_is_valid() {
+        // RUN and ASSERT outside TEST blocks are valid - they form an implicit test block
+        // This is a valid pattern supported by the runner
+        let content = r#"#! shell: /bin/bash
+RUN echo hello
+ASSERT stdout contains "hello""#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let outside_test_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("can only be used inside"))
+            .collect();
+        assert_eq!(
+            outside_test_errors.len(),
+            0,
+            "RUN and ASSERT outside TEST blocks should not produce diagnostics - this is valid syntax"
         );
     }
 }
