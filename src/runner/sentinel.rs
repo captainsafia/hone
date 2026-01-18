@@ -28,7 +28,9 @@ pub fn generate_run_id(
         .file_stem()
         .and_then(|s| s.to_str())
         .unwrap_or(filename);
-    parts.push(base.to_string());
+    // Sanitize filename to prevent control characters from corrupting sentinel parsing
+    let sanitized_base: String = base.chars().filter(|c| !c.is_control()).collect();
+    parts.push(sanitized_base);
 
     if let Some(test) = test_name {
         let sanitized = test
@@ -530,6 +532,18 @@ mod tests {
             "run_id must not contain unit separator character"
         );
         assert_eq!(id, "test-testinjection-0");
+    }
+
+    #[test]
+    fn test_generate_run_id_strips_control_characters_from_filename() {
+        // Filenames with control characters should also be sanitized
+        let id = generate_run_id("test\x1ffile.hone", None, None, 0);
+        assert!(
+            !id.contains('\x1f'),
+            "run_id must not contain unit separator from filename"
+        );
+        // Should strip control char and produce safe run_id
+        assert_eq!(id, "testfile-0");
     }
 
     #[test]
