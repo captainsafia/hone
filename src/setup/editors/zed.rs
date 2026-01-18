@@ -75,9 +75,7 @@ fn add_hone_configuration(settings: &mut Value) {
     }
 
     if !settings_obj.contains_key("languages")
-        || !settings_obj
-            .get("languages")
-            .is_some_and(|v| v.is_object())
+        || !settings_obj.get("languages").is_some_and(|v| v.is_object())
     {
         settings_obj.insert("languages".to_string(), json!({}));
     }

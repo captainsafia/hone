@@ -101,7 +101,9 @@ fn add_textmate_grammar(settings: &mut serde_json::Map<String, Value>) {
         .expect("just ensured editor.tokenColorCustomizations is object");
 
     if !token_colors.contains_key("textMateRules")
-        || !token_colors.get("textMateRules").is_some_and(|v| v.is_array())
+        || !token_colors
+            .get("textMateRules")
+            .is_some_and(|v| v.is_array())
     {
         token_colors.insert("textMateRules".to_string(), json!([]));
     }

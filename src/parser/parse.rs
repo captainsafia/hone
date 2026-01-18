@@ -419,21 +419,18 @@ fn parse_output_assertion(
         i += 8;
         i = skip_whitespace(input, i);
 
-        let str_result = parse_string_literal(input, i);
-        if str_result.is_none() {
+        let Some((string_lit, _)) = parse_string_literal(input, i) else {
             collector.add_error(
                 "Expected quoted string after \"contains\"".to_string(),
                 line,
             );
             return None;
-        }
+        };
 
         return Some(AssertionExpression::Output {
             target,
             selector,
-            predicate: OutputPredicate::Contains {
-                value: str_result.unwrap().0,
-            },
+            predicate: OutputPredicate::Contains { value: string_lit },
         });
     }
 
@@ -441,18 +438,15 @@ fn parse_output_assertion(
         i += 7;
         i = skip_whitespace(input, i);
 
-        let regex_result = parse_regex_literal(input, i);
-        if regex_result.is_none() {
+        let Some((regex_lit, _)) = parse_regex_literal(input, i) else {
             collector.add_error("Expected regex literal after \"matches\"".to_string(), line);
             return None;
-        }
+        };
 
         return Some(AssertionExpression::Output {
             target,
             selector,
-            predicate: OutputPredicate::Matches {
-                value: regex_result.unwrap().0,
-            },
+            predicate: OutputPredicate::Matches { value: regex_lit },
         });
     }
 
@@ -461,14 +455,13 @@ fn parse_output_assertion(
         if matches!(op, ComparisonOperator::Equal | ComparisonOperator::NotEqual) {
             i = skip_whitespace(input, end_index);
 
-            let str_result = parse_string_literal(input, i);
-            if str_result.is_none() {
+            let Some((string_lit, _)) = parse_string_literal(input, i) else {
                 collector.add_error(
                     "Expected quoted string after comparison operator".to_string(),
                     line,
                 );
                 return None;
-            }
+            };
 
             let string_op = match op {
                 ComparisonOperator::Equal => StringComparisonOperator::Equal,
@@ -481,7 +474,7 @@ fn parse_output_assertion(
                 selector,
                 predicate: OutputPredicate::Equals {
                     operator: string_op,
-                    value: str_result.unwrap().0,
+                    value: string_lit,
                 },
             });
         }
@@ -510,28 +503,23 @@ fn parse_exit_code_assertion(
     line: usize,
     collector: &mut ParseErrorCollector,
 ) -> Option<AssertionExpression> {
-    let op_result = parse_comparison_operator(input, start_index);
-
-    if op_result.is_none() {
+    let Some((op, end_index)) = parse_comparison_operator(input, start_index) else {
         collector.add_error("Expected == or != after \"exit_code\"".to_string(), line);
         return None;
-    }
-
-    let (op, end_index) = op_result.unwrap();
+    };
 
     if !matches!(op, ComparisonOperator::Equal | ComparisonOperator::NotEqual) {
         collector.add_error("Expected == or != after \"exit_code\"".to_string(), line);
         return None;
     }
 
-    let num_result = parse_number(input, end_index);
-    if num_result.is_none() {
+    let Some((num_value, _)) = parse_number(input, end_index) else {
         collector.add_error(
             "Expected number after comparison operator".to_string(),
             line,
         );
         return None;
-    }
+    };
 
     let string_op = match op {
         ComparisonOperator::Equal => StringComparisonOperator::Equal,
@@ -543,7 +531,7 @@ fn parse_exit_code_assertion(
         target,
         predicate: ExitCodePredicate {
             operator: string_op,
-            value: num_result.unwrap().0,
+            value: num_value,
         },
     })
 }
@@ -555,32 +543,27 @@ fn parse_duration_assertion(
     line: usize,
     collector: &mut ParseErrorCollector,
 ) -> Option<AssertionExpression> {
-    let op_result = parse_comparison_operator(input, start_index);
-
-    if op_result.is_none() {
+    let Some((op, end_index)) = parse_comparison_operator(input, start_index) else {
         collector.add_error(
             "Expected comparison operator after \"duration\"".to_string(),
             line,
         );
         return None;
-    }
+    };
 
-    let (op, end_index) = op_result.unwrap();
-
-    let duration_result = parse_duration(input, end_index);
-    if duration_result.is_none() {
+    let Some((duration_value, _)) = parse_duration(input, end_index) else {
         collector.add_error(
             "Expected duration value (e.g., 200ms, 1.5s) after comparison operator".to_string(),
             line,
         );
         return None;
-    }
+    };
 
     Some(AssertionExpression::Duration {
         target,
         predicate: DurationPredicate {
             operator: op,
-            value: duration_result.unwrap().0,
+            value: duration_value,
         },
     })
 }
@@ -615,20 +598,17 @@ fn parse_file_assertion(
         i += 8;
         i = skip_whitespace(input, i);
 
-        let str_result = parse_string_literal(input, i);
-        if str_result.is_none() {
+        let Some((string_lit, _)) = parse_string_literal(input, i) else {
             collector.add_error(
                 "Expected quoted string after \"contains\"".to_string(),
                 line,
             );
             return None;
-        }
+        };
 
         return Some(AssertionExpression::File {
             path,
-            predicate: FilePredicate::Contains {
-                value: str_result.unwrap().0,
-            },
+            predicate: FilePredicate::Contains { value: string_lit },
         });
     }
 
@@ -636,17 +616,14 @@ fn parse_file_assertion(
         i += 7;
         i = skip_whitespace(input, i);
 
-        let regex_result = parse_regex_literal(input, i);
-        if regex_result.is_none() {
+        let Some((regex_lit, _)) = parse_regex_literal(input, i) else {
             collector.add_error("Expected regex literal after \"matches\"".to_string(), line);
             return None;
-        }
+        };
 
         return Some(AssertionExpression::File {
             path,
-            predicate: FilePredicate::Matches {
-                value: regex_result.unwrap().0,
-            },
+            predicate: FilePredicate::Matches { value: regex_lit },
         });
     }
 
@@ -655,14 +632,13 @@ fn parse_file_assertion(
         if matches!(op, ComparisonOperator::Equal | ComparisonOperator::NotEqual) {
             i = skip_whitespace(input, end_index);
 
-            let str_result = parse_string_literal(input, i);
-            if str_result.is_none() {
+            let Some((string_lit, _)) = parse_string_literal(input, i) else {
                 collector.add_error(
                     "Expected quoted string after comparison operator".to_string(),
                     line,
                 );
                 return None;
-            }
+            };
 
             let string_op = match op {
                 ComparisonOperator::Equal => StringComparisonOperator::Equal,
@@ -674,7 +650,7 @@ fn parse_file_assertion(
                 path,
                 predicate: FilePredicate::Equals {
                     operator: string_op,
-                    value: str_result.unwrap().0,
+                    value: string_lit,
                 },
             });
         }
