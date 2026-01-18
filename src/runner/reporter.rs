@@ -448,3 +448,65 @@ pub fn print_failure(failure: &TestFailure, verbose: bool) {
         println!("{} {}", "Error:".red(), error);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn make_summary(
+        total_tests: usize,
+        passed: usize,
+        failed: usize,
+        parse_errors: usize,
+    ) -> Summary {
+        Summary {
+            total_tests,
+            passed,
+            failed,
+            pending: 0,
+            skipped: 0,
+            other: 0,
+            parse_errors,
+            duration_ms: 0,
+            start_time: 0,
+            stop_time: 0,
+        }
+    }
+
+    fn make_output(summary: Summary) -> TestRunOutput {
+        TestRunOutput {
+            files: vec![],
+            summary,
+        }
+    }
+
+    #[test]
+    fn test_has_failures_all_passing() {
+        let output = make_output(make_summary(5, 5, 0, 0));
+        assert!(!output.has_failures());
+    }
+
+    #[test]
+    fn test_has_failures_with_failed_tests() {
+        let output = make_output(make_summary(5, 3, 2, 0));
+        assert!(output.has_failures());
+    }
+
+    #[test]
+    fn test_has_failures_with_parse_errors() {
+        let output = make_output(make_summary(0, 0, 0, 1));
+        assert!(output.has_failures());
+    }
+
+    #[test]
+    fn test_has_failures_with_both_failures_and_parse_errors() {
+        let output = make_output(make_summary(5, 3, 2, 1));
+        assert!(output.has_failures());
+    }
+
+    #[test]
+    fn test_has_failures_empty_run() {
+        let output = make_output(make_summary(0, 0, 0, 0));
+        assert!(!output.has_failures());
+    }
+}
