@@ -499,6 +499,27 @@ ASSERT file "test.txt" exists"#;
     }
 
     #[test]
+    fn test_duration_less_than_zero_warning() {
+        // `ASSERT duration < 0ms` will always fail since durations can't be negative
+        let content = r#"TEST "test"
+RUN true
+ASSERT duration < 0ms"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let duration_warnings: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("Duration value of 0"))
+            .collect();
+
+        assert_eq!(
+            duration_warnings.len(),
+            1,
+            "ASSERT duration < 0ms should produce a warning"
+        );
+    }
+
+    #[test]
     fn test_unknown_syntax_warning() {
         let content = r#"TEST "test"
 RUN true
