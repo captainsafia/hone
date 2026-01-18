@@ -39,15 +39,18 @@
 - Neovim setup is complete and functional
 - Vim setup is complete and functional
 - Emacs setup is complete and functional
+- Zed setup is complete and functional
+- Sublime Text setup is complete and functional
 - Multi-editor error handling implemented
 - Exit codes properly implemented (0 for success, 2 for errors)
-- All tests passing (110 library tests, 23 binary tests, 10 integration test files)
+- All tests passing (107 library tests, 23 binary tests, 10 integration test files)
 - Code quality: No clippy warnings, properly formatted
 
 ## Next Priority Tasks
-1. Implement remaining editors (Sublime, Zed)
-2. Add integration tests for setup command (challenging due to side effects)
-3. Improve interactive prompts with better error handling
+1. Add integration tests for setup command (challenging due to side effects)
+2. Improve interactive prompts with better error handling
+3. Document manual removal steps in help output
+4. Add troubleshooting section for common issues
   - Vim editor setup fully implemented
     - Detection via PATH with nvim exclusion check
     - Generates vim-lsp configuration snippet

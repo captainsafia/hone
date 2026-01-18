@@ -43,6 +43,21 @@ pub fn detect_zed() -> bool {
     }
 }
 
+pub fn detect_sublime() -> bool {
+    if is_in_path("subl") {
+        return true;
+    }
+
+    if cfg!(target_os = "macos") {
+        Path::new("/Applications/Sublime Text.app").exists()
+    } else if cfg!(target_os = "windows") {
+        Path::new("C:\\Program Files\\Sublime Text\\sublime_text.exe").exists()
+            || Path::new("C:\\Program Files (x86)\\Sublime Text\\sublime_text.exe").exists()
+    } else {
+        Path::new("/opt/sublime_text/sublime_text").exists()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
