@@ -1141,4 +1141,91 @@ ASSERT exit_code == 9999999999999999999"#;
             }
         }
     }
+
+    #[test]
+    fn test_parse_file_empty() {
+        let result = parse_file("", "empty.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.nodes.is_empty(), "Empty file should have no nodes");
+                assert!(file.pragmas.is_empty(), "Empty file should have no pragmas");
+                assert!(file.errors.is_empty(), "Empty file should have no errors");
+                assert!(
+                    file.warnings.is_empty(),
+                    "Empty file should have no warnings"
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_file_only_pragmas() {
+        let content = "#!shell: /bin/bash\n#!timeout: 5s\n#!env: FOO=bar";
+        let result = parse_file(content, "pragmas.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert_eq!(file.pragmas.len(), 3, "Should have 3 pragmas");
+                assert!(file.errors.is_empty(), "Should have no errors");
+                // Pragmas are also added to nodes
+                let pragma_nodes = file
+                    .nodes
+                    .iter()
+                    .filter(|n| matches!(n, ASTNode::Pragma(_)))
+                    .count();
+                assert_eq!(pragma_nodes, 3, "Should have 3 pragma nodes");
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_file_only_comments() {
+        let content = "# Comment 1\n# Comment 2\n# Comment 3";
+        let result = parse_file(content, "comments.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.pragmas.is_empty(), "Should have no pragmas");
+                assert!(file.errors.is_empty(), "Should have no errors");
+                let comment_nodes = file
+                    .nodes
+                    .iter()
+                    .filter(|n| matches!(n, ASTNode::Comment(_)))
+                    .count();
+                assert_eq!(comment_nodes, 3, "Should have 3 comment nodes");
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_file_only_whitespace() {
+        let content = "   \n\n   \n\t\t\n";
+        let result = parse_file(content, "whitespace.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    file.nodes.is_empty(),
+                    "Whitespace-only file should have no nodes"
+                );
+                assert!(
+                    file.errors.is_empty(),
+                    "Whitespace-only file should have no errors"
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
 }
