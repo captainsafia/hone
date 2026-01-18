@@ -474,11 +474,11 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 **Goal**: Ensure the LSP works across target editors and is well-documented.
 
 #### 6.1 VS Code Integration
-- [ ] Update `editors/vscode/package.json` with LSP client configuration
-- [ ] Specify `hone lsp` as the server command
-- [ ] Configure document selector for `.hone` files
-- [ ] Test all features in VS Code
-- [ ] Verify TextMate grammar fallback works
+- [x] Update `editors/vscode/package.json` with LSP client configuration
+- [x] Specify `hone lsp` as the server command
+- [x] Configure document selector for `.hone` files
+- [x] Test all features in VS Code
+- [x] Verify TextMate grammar fallback works
 
 #### 6.2 Neovim Integration
 - [ ] Write example `nvim-lspconfig` configuration

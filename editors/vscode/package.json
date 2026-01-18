@@ -1,8 +1,8 @@
 {
   "name": "hone",
   "displayName": "Hone",
-  "description": "Syntax highlighting for Hone test files",
-  "version": "0.2.0",
+  "description": "Language support for Hone test files",
+  "version": "0.3.0",
   "publisher": "captainsafia",
   "repository": {
     "type": "git",
@@ -16,8 +16,13 @@
   ],
   "keywords": [
     "hone",
-    "syntax-highlighting"
+    "syntax-highlighting",
+    "testing"
   ],
+  "activationEvents": [
+    "onLanguage:hone"
+  ],
+  "main": "./out/extension.js",
   "contributes": {
     "languages": [
       {
@@ -33,6 +38,36 @@
         "scopeName": "source.hone",
         "path": "./syntaxes/hone.tmlanguage.json"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Hone",
+      "properties": {
+        "hone.lsp.path": {
+          "type": "string",
+          "default": "hone",
+          "description": "Path to the hone executable"
+        },
+        "hone.lsp.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the Hone language server"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
   }
 }
