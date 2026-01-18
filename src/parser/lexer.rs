@@ -88,14 +88,14 @@ pub fn classify_line(line: &str, line_number: usize) -> Token {
     }
 }
 
-pub fn parse_string_literal(input: &str, start_index: usize) -> Option<(StringLiteral, usize)> {
-    let chars: Vec<char> = input.chars().collect();
+pub fn parse_string_literal(
+    input: &str,
+    start_byte_index: usize,
+) -> Option<(StringLiteral, usize)> {
+    let remaining = input.get(start_byte_index..)?;
+    let mut chars = remaining.char_indices();
 
-    if start_index >= chars.len() {
-        return None;
-    }
-
-    let start_char = chars[start_index];
+    let (_, start_char) = chars.next()?;
     if start_char != '"' && start_char != '\'' {
         return None;
     }
@@ -107,12 +107,9 @@ pub fn parse_string_literal(input: &str, start_index: usize) -> Option<(StringLi
     };
 
     let mut value = String::new();
-    let mut i = start_index + 1;
     let mut escaped = false;
 
-    while i < chars.len() {
-        let ch = chars[i];
-
+    for (byte_offset, ch) in chars {
         if escaped {
             if quote_type == QuoteType::Double {
                 // Handle escape sequences in double-quoted strings
@@ -136,45 +133,38 @@ pub fn parse_string_literal(input: &str, start_index: usize) -> Option<(StringLi
         } else if ch == '\\' {
             escaped = true;
         } else if ch == start_char {
-            // End of string
-            let end_index = i + 1;
-            let raw = input
-                .chars()
-                .skip(start_index)
-                .take(end_index - start_index)
-                .collect();
+            // End of string - byte_offset is relative to remaining, add start_byte_index
+            let end_byte_index = start_byte_index + byte_offset + ch.len_utf8();
+            let raw = input[start_byte_index..end_byte_index].to_string();
             return Some((
                 StringLiteral {
                     value,
                     raw,
                     quote_type,
                 },
-                end_index,
+                end_byte_index,
             ));
         } else {
             value.push(ch);
         }
-        i += 1;
     }
 
     None
 }
 
-pub fn parse_regex_literal(input: &str, start_index: usize) -> Option<(RegexLiteral, usize)> {
-    let chars: Vec<char> = input.chars().collect();
+pub fn parse_regex_literal(input: &str, start_byte_index: usize) -> Option<(RegexLiteral, usize)> {
+    let remaining = input.get(start_byte_index..)?;
+    let mut chars = remaining.char_indices();
 
-    if start_index >= chars.len() || chars[start_index] != '/' {
+    let (_, first_char) = chars.next()?;
+    if first_char != '/' {
         return None;
     }
 
     let mut pattern = String::new();
-    let mut i = start_index + 1;
     let mut escaped = false;
 
-    // Parse pattern
-    while i < chars.len() {
-        let ch = chars[i];
-
+    for (byte_offset, ch) in chars {
         if escaped {
             pattern.push(ch);
             escaped = false;
@@ -183,30 +173,31 @@ pub fn parse_regex_literal(input: &str, start_index: usize) -> Option<(RegexLite
             escaped = true;
         } else if ch == '/' {
             // End of pattern, parse flags
-            i += 1;
             let mut flags = String::new();
-            while i < chars.len() && matches!(chars[i], 'g' | 'i' | 'm' | 's' | 'u' | 'y') {
-                flags.push(chars[i]);
-                i += 1;
+            let flags_start = start_byte_index + byte_offset + ch.len_utf8();
+            let flags_remaining = input.get(flags_start..)?;
+
+            for flag_ch in flags_remaining.chars() {
+                if matches!(flag_ch, 'g' | 'i' | 'm' | 's' | 'u' | 'y') {
+                    flags.push(flag_ch);
+                } else {
+                    break;
+                }
             }
 
-            let raw = input
-                .chars()
-                .skip(start_index)
-                .take(i - start_index)
-                .collect();
+            let end_byte_index = flags_start + flags.len();
+            let raw = input[start_byte_index..end_byte_index].to_string();
             return Some((
                 RegexLiteral {
                     pattern,
                     flags,
                     raw,
                 },
-                i,
+                end_byte_index,
             ));
         } else {
             pattern.push(ch);
         }
-        i += 1;
     }
 
     None
@@ -617,5 +608,63 @@ mod tests {
         // 日 is 3 bytes, space is 1 byte, so "contains" starts at byte 4
         assert!(match_word(input, 4, "contains"));
         assert!(!match_word(input, 0, "contains"));
+    }
+
+    #[test]
+    fn test_parse_string_literal_with_unicode() {
+        // Test parsing string with unicode content
+        let result = parse_string_literal("\"日本語\"", 0);
+        assert!(result.is_some());
+        let (literal, end_index) = result.unwrap();
+        assert_eq!(literal.value, "日本語");
+        // Verify end_index is a valid byte index: 1 + 3*3 + 1 = 11 bytes
+        assert_eq!(end_index, 11);
+    }
+
+    #[test]
+    fn test_parse_string_literal_returns_byte_index() {
+        // Test that returned index is byte index, not char index
+        let input = "\"日本語\" exists";
+        let result = parse_string_literal(input, 0);
+        assert!(result.is_some());
+        let (_, end_index) = result.unwrap();
+        // end_index should be usable for slicing
+        assert_eq!(&input[end_index..], " exists");
+    }
+
+    #[test]
+    fn test_parse_string_literal_at_byte_offset() {
+        // Test parsing string at a byte offset after unicode
+        let input = "日 \"test\"";
+        // 日 is 3 bytes, space is 1 byte, quote starts at byte 4
+        let result = parse_string_literal(input, 4);
+        assert!(result.is_some());
+        let (literal, end_index) = result.unwrap();
+        assert_eq!(literal.value, "test");
+        assert_eq!(end_index, 10); // 4 + 1 + 4 + 1
+        assert_eq!(&input[end_index..], "");
+    }
+
+    #[test]
+    fn test_parse_regex_literal_with_unicode() {
+        // Test parsing regex with unicode content
+        let result = parse_regex_literal("/日本語/", 0);
+        assert!(result.is_some());
+        let (literal, end_index) = result.unwrap();
+        assert_eq!(literal.pattern, "日本語");
+        // Verify end_index is a valid byte index
+        assert_eq!(end_index, 11);
+    }
+
+    #[test]
+    fn test_parse_regex_literal_returns_byte_index() {
+        // Test that returned index is byte index
+        let input = "/日本語/i more";
+        let result = parse_regex_literal(input, 0);
+        assert!(result.is_some());
+        let (literal, end_index) = result.unwrap();
+        assert_eq!(literal.flags, "i");
+        // end_index should be usable for slicing
+        assert_eq!(&input[end_index..], " more");
     }
 }
