@@ -910,6 +910,68 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_comparison_operator_equal() {
+        let result = parse_comparison_operator("==", 0);
+        assert!(result.is_some());
+        let (op, end_idx) = result.unwrap();
+        assert_eq!(op, ComparisonOperator::Equal);
+        assert_eq!(end_idx, 2);
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_not_equal() {
+        let result = parse_comparison_operator("!=", 0);
+        assert!(result.is_some());
+        let (op, end_idx) = result.unwrap();
+        assert_eq!(op, ComparisonOperator::NotEqual);
+        assert_eq!(end_idx, 2);
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_less_than() {
+        let result = parse_comparison_operator("<", 0);
+        assert!(result.is_some());
+        let (op, end_idx) = result.unwrap();
+        assert_eq!(op, ComparisonOperator::LessThan);
+        assert_eq!(end_idx, 1);
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_less_than_or_equal() {
+        let result = parse_comparison_operator("<=", 0);
+        assert!(result.is_some());
+        let (op, end_idx) = result.unwrap();
+        assert_eq!(op, ComparisonOperator::LessThanOrEqual);
+        assert_eq!(end_idx, 2);
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_greater_than() {
+        let result = parse_comparison_operator(">", 0);
+        assert!(result.is_some());
+        let (op, end_idx) = result.unwrap();
+        assert_eq!(op, ComparisonOperator::GreaterThan);
+        assert_eq!(end_idx, 1);
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_greater_than_or_equal() {
+        let result = parse_comparison_operator(">=", 0);
+        assert!(result.is_some());
+        let (op, end_idx) = result.unwrap();
+        assert_eq!(op, ComparisonOperator::GreaterThanOrEqual);
+        assert_eq!(end_idx, 2);
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_none_for_invalid() {
+        // Test that non-operator strings return None
+        assert!(parse_comparison_operator("abc", 0).is_none());
+        assert!(parse_comparison_operator("=", 0).is_none()); // Single = is not valid
+        assert!(parse_comparison_operator("!", 0).is_none()); // Single ! is not valid
+    }
+
+    #[test]
     fn test_parse_comparison_operator_out_of_bounds() {
         let input = "hello";
         // Should not panic and should return None
