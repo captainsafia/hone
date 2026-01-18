@@ -487,9 +487,9 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Document setup in README
 
 #### 6.3 Helix Integration
-- [ ] Add Hone configuration to `languages.toml` example
-- [ ] Test all LSP features in Helix
-- [ ] Document setup in README
+- [x] Add Hone configuration to `languages.toml` example
+- [x] Test all LSP features in Helix
+- [x] Document setup in README
 
 #### 6.4 TextMate Grammar
 - [ ] Verify `syntaxes/hone.tmlanguage.json` provides good baseline highlighting
