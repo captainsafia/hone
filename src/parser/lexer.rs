@@ -618,6 +618,12 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_regex_literal_trailing_backslash() {
+        // A trailing backslash without a character to escape is an unterminated regex
+        assert!(parse_regex_literal("/pattern\\", 0).is_none());
+    }
+
+    #[test]
     fn test_parse_duration_milliseconds() {
         let result = parse_duration("200ms", 0);
         assert!(result.is_some());
