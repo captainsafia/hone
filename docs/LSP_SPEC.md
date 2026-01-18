@@ -497,10 +497,10 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [ ] Test in editors without semantic token support
 
 #### 6.5 Documentation
-- [ ] Document LSP features in main README
-- [ ] Add `docs/LSP_USAGE.md` with editor setup guides
-- [ ] Document logging location and debugging tips
-- [ ] Add troubleshooting section for common issues
+- [x] Document LSP features in main README
+- [x] Add `docs/LSP_USAGE.md` with editor setup guides
+- [x] Document logging location and debugging tips
+- [x] Add troubleshooting section for common issues
 
 #### 6.6 Testing Suite
 - [x] Write unit tests for each LSP handler

@@ -10,6 +10,116 @@ Write tests in a simple, line-oriented DSL that executes real shell commands and
 - Persistent shell sessions (`cd`, variables, and state carry across commands)
 - Separate stdout/stderr capture
 - ANSI escape code stripping (or assert on raw output with `stdout.raw`)
+- Language Server Protocol (LSP) support for editor integration
+
+## Language Server (LSP)
+
+Hone includes a built-in Language Server that provides IDE features for `.hone` test files.
+
+### Features
+
+- **Diagnostics**: Real-time syntax, semantic, and type checking
+- **Completion**: Context-aware snippets for keywords, assertions, and shell commands
+- **Hover**: Documentation for keywords and assertions
+- **Outline**: Document structure view showing tests and setup blocks
+- **Formatting**: Consistent indentation and spacing
+- **Semantic Highlighting**: Rich syntax highlighting
+
+### Starting the Language Server
+
+```sh
+hone lsp
+```
+
+The server communicates over stdio and follows the LSP specification.
+
+### Editor Setup
+
+#### VS Code
+
+Install the Hone extension from the `editors/vscode` directory:
+
+```sh
+cd editors/vscode
+npm install
+npm run compile
+code --install-extension .
+```
+
+Or configure manually in your `settings.json`:
+
+```json
+{
+  "hone.languageServer": {
+    "enabled": true,
+    "command": "hone",
+    "args": ["lsp"]
+  }
+}
+```
+
+#### Neovim
+
+With `nvim-lspconfig`:
+
+```lua
+local lspconfig = require('lspconfig')
+local configs = require('lspconfig.configs')
+
+-- Define hone LSP
+if not configs.hone then
+  configs.hone = {
+    default_config = {
+      cmd = { 'hone', 'lsp' },
+      filetypes = { 'hone' },
+      root_dir = lspconfig.util.root_pattern('.git'),
+      single_file_support = true,
+    },
+  }
+end
+
+-- Setup hone LSP
+lspconfig.hone.setup{}
+```
+
+Set the filetype for `.hone` files in `~/.config/nvim/ftdetect/hone.vim`:
+
+```vim
+au BufRead,BufNewFile *.hone set filetype=hone
+```
+
+#### Helix
+
+Add to your `~/.config/helix/languages.toml`:
+
+```toml
+[[language]]
+name = "hone"
+scope = "source.hone"
+file-types = ["hone"]
+comment-token = "#"
+language-servers = ["hone-lsp"]
+
+[language-server.hone-lsp]
+command = "hone"
+args = ["lsp"]
+```
+
+#### Other Editors
+
+Any editor with LSP support can use Hone's language server. Configure it to:
+- Run `hone lsp` as the server command
+- Associate `.hone` files with the language server
+- Use stdio for communication
+
+### Logging
+
+LSP logs are written to:
+- **Linux**: `~/.local/state/hone/lsp.log`
+- **macOS**: `~/Library/Application Support/hone/lsp.log`
+- **Windows**: `%LOCALAPPDATA%\hone\lsp.log`
+
+Check logs if you encounter issues with the language server.
 
 ## Installation
 
