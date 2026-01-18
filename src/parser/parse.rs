@@ -192,7 +192,7 @@ fn parse_pragma(
 
         "timeout" => {
             // Validate timeout format
-            if parse_duration(pragma_value, 0).is_none() {
+            let Some((duration, _)) = parse_duration(pragma_value, 0) else {
                 collector.add_error(
                     format!(
                         "Invalid timeout format: {}. Expected format: <number>s or <number>ms",
@@ -201,7 +201,24 @@ fn parse_pragma(
                     line,
                 );
                 return None;
+            };
+
+            // Convert to milliseconds and validate minimum
+            let ms_value = match duration.unit {
+                crate::parser::ast::DurationUnit::Seconds => duration.value * 1000.0,
+                crate::parser::ast::DurationUnit::Milliseconds => duration.value,
+            };
+            if ms_value < 1.0 {
+                collector.add_error(
+                    format!(
+                        "Timeout value too small: {}. Minimum timeout is 1ms",
+                        pragma_value
+                    ),
+                    line,
+                );
+                return None;
             }
+
             Some(PragmaNode {
                 pragma_type: PragmaType::Timeout,
                 key: None,
@@ -1759,6 +1776,94 @@ ASSERT fast.duration < 100ms"#;
                 } else {
                     panic!("Expected Duration assertion expression");
                 }
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_timeout_pragma_rejects_zero() {
+        let input = r#"#! timeout: 0s
+TEST "test"
+RUN echo hello
+"#;
+
+        match parse_file(input, "test.hone") {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Should have parse error for 0s timeout"
+                );
+                assert!(
+                    file.errors[0].message.contains("too small"),
+                    "Error message should mention 'too small': {}",
+                    file.errors[0].message
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_timeout_pragma_rejects_near_zero_ms() {
+        let input = r#"#! timeout: 0.5ms
+TEST "test"
+RUN echo hello
+"#;
+
+        match parse_file(input, "test.hone") {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Should have parse error for 0.5ms timeout"
+                );
+                assert!(
+                    file.errors[0].message.contains("too small"),
+                    "Error message should mention 'too small': {}",
+                    file.errors[0].message
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_timeout_pragma_accepts_1ms() {
+        let input = r#"#! timeout: 1ms
+TEST "test"
+RUN echo hello
+"#;
+
+        match parse_file(input, "test.hone") {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Should accept 1ms timeout");
+                assert_eq!(file.pragmas.len(), 1);
+                assert_eq!(file.pragmas[0].value, "1ms");
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_timeout_pragma_accepts_valid_seconds() {
+        let input = r#"#! timeout: 30s
+TEST "test"
+RUN echo hello
+"#;
+
+        match parse_file(input, "test.hone") {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Should accept 30s timeout");
+                assert_eq!(file.pragmas.len(), 1);
+                assert_eq!(file.pragmas[0].value, "30s");
             }
             ParseResult::Failure { .. } => {
                 panic!("Parser should always return Success");
