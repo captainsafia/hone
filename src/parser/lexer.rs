@@ -986,4 +986,24 @@ mod tests {
         let result = parse_number_checked("42", 0);
         assert_eq!(result, ParseNumberResult::Success(42, 2));
     }
+
+    #[test]
+    fn test_parse_number_checked_bare_minus() {
+        // A bare minus sign without digits should return NotANumber
+        let result = parse_number_checked("-", 0);
+        assert_eq!(result, ParseNumberResult::NotANumber);
+    }
+
+    #[test]
+    fn test_parse_number_checked_minus_then_non_digit() {
+        // Minus followed by non-digit should return NotANumber
+        let result = parse_number_checked("-abc", 0);
+        assert_eq!(result, ParseNumberResult::NotANumber);
+    }
+
+    #[test]
+    fn test_parse_number_bare_minus() {
+        // Verify parse_number also handles bare minus correctly
+        assert!(parse_number("-", 0).is_none());
+    }
 }
