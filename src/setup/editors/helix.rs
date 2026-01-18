@@ -13,8 +13,9 @@ pub fn setup() -> Result<()> {
 
     let config_path = get_helix_config_path()?;
 
-    fs::create_dir_all(config_path.parent().unwrap())
-        .context("Failed to create Helix config directory")?;
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent).context("Failed to create Helix config directory")?;
+    }
 
     let mut doc = if config_path.exists() {
         let content = fs::read_to_string(&config_path).context("Failed to read languages.toml")?;
@@ -43,11 +44,13 @@ fn get_helix_config_path() -> Result<PathBuf> {
 }
 
 fn add_hone_language(doc: &mut DocumentMut) {
-    if !doc.contains_key("language") {
+    if !doc.contains_key("language") || !doc["language"].is_array_of_tables() {
         doc["language"] = Item::ArrayOfTables(toml_edit::ArrayOfTables::new());
     }
 
-    let languages = doc["language"].as_array_of_tables_mut().unwrap();
+    let languages = doc["language"]
+        .as_array_of_tables_mut()
+        .expect("just ensured language is array of tables");
 
     let mut found = false;
     for lang in languages.iter_mut() {
@@ -81,11 +84,13 @@ fn add_hone_language(doc: &mut DocumentMut) {
         languages.push(hone_table);
     }
 
-    if !doc.contains_key("language-server") {
+    if !doc.contains_key("language-server") || !doc["language-server"].is_table() {
         doc["language-server"] = Item::Table(Table::new());
     }
 
-    let language_servers = doc["language-server"].as_table_mut().unwrap();
+    let language_servers = doc["language-server"]
+        .as_table_mut()
+        .expect("just ensured language-server is table");
 
     if !language_servers.contains_key("hone") {
         let mut hone_server = Table::new();
@@ -126,5 +131,23 @@ mod tests {
         let second = doc.to_string();
 
         assert_eq!(first, second);
+    }
+
+    #[test]
+    fn test_add_hone_language_handles_malformed_language_key() {
+        let mut doc = "language = \"invalid\"".parse::<DocumentMut>().unwrap();
+        add_hone_language(&mut doc);
+
+        let result = doc.to_string();
+        assert!(result.contains("name = \"hone\""));
+    }
+
+    #[test]
+    fn test_add_hone_language_handles_malformed_language_server_key() {
+        let mut doc = "language-server = []".parse::<DocumentMut>().unwrap();
+        add_hone_language(&mut doc);
+
+        let result = doc.to_string();
+        assert!(result.contains("[language-server.hone]"));
     }
 }
