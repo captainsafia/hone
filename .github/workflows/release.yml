@@ -29,9 +29,13 @@ jobs:
         with:
           targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "linux-release"
+
       - name: Install cross-compilation tools
-        run: |
-          cargo install cross --git https://github.com/cross-rs/cross
+        uses: taiki-e/install-action@cross
 
       - name: Set version
         id: version
@@ -74,7 +78,8 @@ jobs:
   build-vscode-extension:
     name: Build VSCode Extension
     runs-on: ubuntu-latest
-    needs: build-linux
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -88,10 +93,19 @@ jobs:
           cache: 'npm'
           cache-dependency-path: editors/vscode/package-lock.json
 
-      - name: Set version in package.json
+      - name: Set version
+        id: version
         working-directory: editors/vscode
         run: |
-          VERSION="${{ needs.build-linux.outputs.version }}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            CURRENT_VERSION=$(grep '^version' ../../Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+            COMMIT_SHA=${GITHUB_SHA::7}
+            VERSION="${CURRENT_VERSION}-preview.${COMMIT_SHA}"
+          fi
+          echo "Setting version to: ${VERSION}"
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           npm version "${VERSION}" --no-git-tag-version
 
       - name: Install dependencies
@@ -118,7 +132,8 @@ jobs:
   build-macos:
     name: Build macOS Executables
     runs-on: macos-latest
-    needs: build-linux
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -130,9 +145,23 @@ jobs:
         with:
           targets: x86_64-apple-darwin,aarch64-apple-darwin
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: "macos-release"
+
       - name: Set version in Cargo.toml
+        id: version
         run: |
-          VERSION="${{ needs.build-linux.outputs.version }}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/v}"
+          else
+            CURRENT_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+            COMMIT_SHA=${GITHUB_SHA::7}
+            VERSION="${CURRENT_VERSION}-preview.${COMMIT_SHA}"
+          fi
+          echo "Setting version to: ${VERSION}"
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           sed -i '' "s/^version = .*/version = \"${VERSION}\"/" Cargo.toml
 
       - name: Build for macOS x64
