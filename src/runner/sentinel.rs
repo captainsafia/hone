@@ -135,21 +135,24 @@ pub fn extract_sentinel(buffer: &str, expected_run_id: &str) -> SentinelExtractR
 
     let parsed = parse_sentinel(sentinel_line.trim());
 
-    if parsed.is_none() || parsed.as_ref().unwrap().run_id != expected_run_id {
-        return SentinelExtractResult {
-            found: false,
-            output: buffer.to_string(),
-            sentinel: None,
-            remaining: String::new(),
-        };
-    }
+    let parsed = match parsed {
+        Some(p) if p.run_id == expected_run_id => p,
+        _ => {
+            return SentinelExtractResult {
+                found: false,
+                output: buffer.to_string(),
+                sentinel: None,
+                remaining: String::new(),
+            };
+        }
+    };
 
     let clean_output = output.strip_suffix('\n').unwrap_or(output);
 
     SentinelExtractResult {
         found: true,
         output: clean_output.to_string(),
-        sentinel: parsed,
+        sentinel: Some(parsed),
         remaining: remaining.to_string(),
     }
 }
