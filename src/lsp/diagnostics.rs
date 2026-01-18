@@ -546,7 +546,7 @@ ASSERT exit_code == 1"#;
             .collect();
 
         // Both FUTURE_BLOCK and "some content" should be unknown
-        assert!(unknown_warnings.len() >= 1);
+        assert!(!unknown_warnings.is_empty());
 
         // Should still be able to analyze valid test blocks
         // No semantic errors should appear for correctly placed assertions
