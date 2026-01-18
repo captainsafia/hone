@@ -13,8 +13,9 @@ pub fn setup() -> Result<()> {
 
     let config_path = get_zed_settings_path()?;
 
-    fs::create_dir_all(config_path.parent().unwrap())
-        .context("Failed to create Zed config directory")?;
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent).context("Failed to create Zed config directory")?;
+    }
 
     let mut settings = if config_path.exists() {
         let content = fs::read_to_string(&config_path).context("Failed to read settings.json")?;
@@ -45,17 +46,23 @@ fn get_zed_settings_path() -> Result<PathBuf> {
 }
 
 fn add_hone_configuration(settings: &mut Value) {
-    let settings_obj = settings.as_object_mut().unwrap();
+    let settings_obj = match settings.as_object_mut() {
+        Some(obj) => obj,
+        None => {
+            *settings = json!({});
+            settings.as_object_mut().expect("just created object")
+        }
+    };
 
-    if !settings_obj.contains_key("lsp") {
+    if !settings_obj.contains_key("lsp") || !settings_obj.get("lsp").is_some_and(|v| v.is_object())
+    {
         settings_obj.insert("lsp".to_string(), json!({}));
     }
 
     let lsp = settings_obj
         .get_mut("lsp")
-        .unwrap()
-        .as_object_mut()
-        .unwrap();
+        .and_then(|v| v.as_object_mut())
+        .expect("just ensured lsp is object");
 
     if !lsp.contains_key("hone") {
         lsp.insert(
@@ -67,15 +74,18 @@ fn add_hone_configuration(settings: &mut Value) {
         );
     }
 
-    if !settings_obj.contains_key("languages") {
+    if !settings_obj.contains_key("languages")
+        || !settings_obj
+            .get("languages")
+            .is_some_and(|v| v.is_object())
+    {
         settings_obj.insert("languages".to_string(), json!({}));
     }
 
     let languages = settings_obj
         .get_mut("languages")
-        .unwrap()
-        .as_object_mut()
-        .unwrap();
+        .and_then(|v| v.as_object_mut())
+        .expect("just ensured languages is object");
 
     if !languages.contains_key("Hone") {
         languages.insert(
@@ -87,15 +97,18 @@ fn add_hone_configuration(settings: &mut Value) {
         );
     }
 
-    if !settings_obj.contains_key("file_types") {
+    if !settings_obj.contains_key("file_types")
+        || !settings_obj
+            .get("file_types")
+            .is_some_and(|v| v.is_object())
+    {
         settings_obj.insert("file_types".to_string(), json!({}));
     }
 
     let file_types = settings_obj
         .get_mut("file_types")
-        .unwrap()
-        .as_object_mut()
-        .unwrap();
+        .and_then(|v| v.as_object_mut())
+        .expect("just ensured file_types is object");
 
     if !file_types.contains_key("Hone") {
         file_types.insert(
@@ -162,5 +175,50 @@ mod tests {
         let lsp = obj.get("lsp").unwrap().as_object().unwrap();
         assert!(lsp.contains_key("rust-analyzer"));
         assert!(lsp.contains_key("hone"));
+    }
+
+    #[test]
+    fn test_add_hone_configuration_handles_non_object_root() {
+        let mut settings = json!("invalid");
+        add_hone_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        assert!(obj.contains_key("lsp"));
+    }
+
+    #[test]
+    fn test_add_hone_configuration_handles_non_object_lsp() {
+        let mut settings = json!({
+            "lsp": "invalid"
+        });
+        add_hone_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        let lsp = obj.get("lsp").unwrap().as_object().unwrap();
+        assert!(lsp.contains_key("hone"));
+    }
+
+    #[test]
+    fn test_add_hone_configuration_handles_non_object_languages() {
+        let mut settings = json!({
+            "languages": []
+        });
+        add_hone_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        let languages = obj.get("languages").unwrap().as_object().unwrap();
+        assert!(languages.contains_key("Hone"));
+    }
+
+    #[test]
+    fn test_add_hone_configuration_handles_non_object_file_types() {
+        let mut settings = json!({
+            "file_types": null
+        });
+        add_hone_configuration(&mut settings);
+
+        let obj = settings.as_object().unwrap();
+        let file_types = obj.get("file_types").unwrap().as_object().unwrap();
+        assert!(file_types.contains_key("Hone"));
     }
 }
