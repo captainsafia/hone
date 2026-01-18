@@ -72,12 +72,18 @@ pub struct Summary {
     pub skipped: usize,
     #[serde(default)]
     pub other: usize,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub parse_errors: usize,
     #[serde(skip)]
     pub duration_ms: u64,
     #[serde(rename = "start")]
     pub start_time: u64,
     #[serde(rename = "stop")]
     pub stop_time: u64,
+}
+
+fn is_zero(val: &usize) -> bool {
+    *val == 0
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -126,7 +132,7 @@ pub struct Test {
 
 impl TestRunOutput {
     pub fn has_failures(&self) -> bool {
-        self.summary.failed > 0
+        self.summary.failed > 0 || self.summary.parse_errors > 0
     }
 }
 
@@ -229,7 +235,19 @@ impl OutputFormatter for TextFormatter {
     fn format(&self, output: &TestRunOutput) -> String {
         let mut result = String::new();
 
-        if output.summary.failed == 0 {
+        if output.summary.parse_errors > 0 {
+            let files_text = if output.summary.parse_errors == 1 {
+                "file"
+            } else {
+                "files"
+            };
+            result.push_str(&format!(
+                "{} {} {} had parse errors",
+                "✗".red(),
+                output.summary.parse_errors,
+                files_text
+            ));
+        } else if output.summary.failed == 0 {
             let files_text = if output.files.len() == 1 {
                 "file"
             } else {

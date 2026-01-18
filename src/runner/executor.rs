@@ -113,6 +113,7 @@ pub async fn run_tests(
                 pending: 0,
                 skipped: 0,
                 other: 0,
+                parse_errors: 0,
                 duration_ms: start_time.elapsed().as_millis() as u64,
                 start_time: start_epoch,
                 stop_time: stop_epoch,
@@ -142,6 +143,7 @@ pub async fn run_tests(
 
     // Collect parse errors and valid files
     let mut valid_files = Vec::new();
+    let mut parse_error_count = 0;
 
     for result in parse_results {
         match result {
@@ -152,6 +154,7 @@ pub async fn run_tests(
                         if !is_json {
                             reporter.on_parse_errors(&parsed_file.errors);
                         }
+                        parse_error_count += 1;
                         // Skip files with errors in CLI mode
                         continue;
                     }
@@ -178,6 +181,7 @@ pub async fn run_tests(
                             ));
                         }
                     }
+                    parse_error_count += 1;
                 }
             },
             Err(e) => {
@@ -216,6 +220,7 @@ pub async fn run_tests(
             pending: 0,
             skipped: 0,
             other: 0,
+            parse_errors: parse_error_count,
             duration_ms: start_time.elapsed().as_millis() as u64,
             start_time: start_epoch,
             stop_time: stop_epoch,
