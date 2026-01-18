@@ -554,6 +554,28 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_run_id_dotfile() {
+        // Dotfiles like ".hone" have no stem, should fall back to filename
+        let id = generate_run_id(".hone", None, None, 0);
+        assert!(!id.is_empty(), "run_id should not be empty for dotfiles");
+        assert_eq!(id, ".hone-0");
+    }
+
+    #[test]
+    fn test_generate_run_id_no_extension() {
+        // Files without extension should use the full name as base
+        let id = generate_run_id("testfile", None, None, 0);
+        assert_eq!(id, "testfile-0");
+    }
+
+    #[test]
+    fn test_generate_run_id_full_path() {
+        // Full paths should extract just the filename stem
+        let id = generate_run_id("/path/to/test.hone", None, None, 0);
+        assert_eq!(id, "test-0");
+    }
+
+    #[test]
     fn test_escape_for_shell_string_dollar() {
         assert_eq!(escape_for_shell_string("test$x"), r"test\$x");
     }
