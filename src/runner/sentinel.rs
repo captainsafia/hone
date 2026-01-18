@@ -58,6 +58,11 @@ fn escape_for_shell_string(s: &str) -> String {
                 result.push('\\');
                 result.push(c);
             }
+            // Escape % as %% to prevent printf format injection
+            '%' => {
+                result.push('%');
+                result.push('%');
+            }
             _ => result.push(c),
         }
     }
@@ -591,6 +596,28 @@ mod tests {
         assert!(
             !wrapper.contains("test-$x-run") || wrapper.contains(r"\$"),
             "unescaped $x should not appear"
+        );
+    }
+
+    #[test]
+    fn test_escape_for_shell_string_percent() {
+        // % must be escaped as %% in printf format strings to avoid injection
+        assert_eq!(escape_for_shell_string("test%s"), "test%%s");
+        assert_eq!(escape_for_shell_string("100%"), "100%%");
+        assert_eq!(escape_for_shell_string("%d%s%x"), "%%d%%s%%x");
+    }
+
+    #[test]
+    fn test_generate_shell_wrapper_escapes_percent_in_run_id() {
+        // If run_id contains %, it must be escaped to %% to avoid printf format injection
+        let wrapper = generate_shell_wrapper("echo hi", "test-100%-run", "/tmp/stderr");
+        assert!(
+            wrapper.contains("test-100%%-run"),
+            "run_id should have % escaped to %%"
+        );
+        assert!(
+            !wrapper.contains("test-100%-run") || wrapper.contains("%%"),
+            "unescaped % should not appear in run_id"
         );
     }
 }
