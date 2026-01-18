@@ -641,4 +641,20 @@ mod tests {
         // Should be capped at MAX_TIMEOUT_MS (24 hours)
         assert_eq!(config.timeout_ms, MAX_TIMEOUT_MS);
     }
+
+    #[test]
+    fn test_create_shell_config_timeout_negative_value() {
+        // Negative values should be rejected, falling back to default
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "-5s".to_string(),
+            line: 1,
+            raw: "#!timeout -5s".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        // Should use default timeout since negative is invalid
+        assert_eq!(config.timeout_ms, 30000);
+    }
 }

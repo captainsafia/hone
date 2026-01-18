@@ -1030,6 +1030,39 @@ ASSERT exit_code == 9999999999999999999"#;
     }
 
     #[test]
+    fn test_exit_code_rejects_relational_operators() {
+        // exit_code only supports == and != operators, not <, <=, >, >=
+        let operators = ["<", "<=", ">", ">="];
+        for op in operators {
+            let content = format!(
+                r#"TEST "relational op test"
+RUN true
+ASSERT exit_code {} 0"#,
+                op
+            );
+            let result = parse_file(&content, "test.hone");
+
+            match result {
+                ParseResult::Success { file } => {
+                    assert!(
+                        !file.errors.is_empty(),
+                        "Expected error for exit_code with {} operator",
+                        op
+                    );
+                    assert!(
+                        file.errors.iter().any(|e| e.message.contains("== or !=")),
+                        "Error message should indicate only == or != are allowed for operator {}",
+                        op
+                    );
+                }
+                ParseResult::Failure { .. } => {
+                    panic!("Parser should always return Success with errors embedded");
+                }
+            }
+        }
+    }
+
+    #[test]
     fn test_malformed_test_name_produces_error() {
         // Test with unclosed string
         let content = "TEST \"unclosed string";
