@@ -341,7 +341,7 @@ pub fn parse_comparison_operator(
     start_index: usize,
 ) -> Option<(ComparisonOperator, usize)> {
     let i = skip_whitespace(input, start_index);
-    let remaining = &input[i..];
+    let remaining = input.get(i..)?;
 
     if remaining.starts_with("==") {
         Some((ComparisonOperator::Equal, i + 2))
@@ -781,5 +781,13 @@ mod tests {
         // At exactly the end of the string
         let result = skip_whitespace(input, 5);
         assert_eq!(result, 5);
+    }
+
+    #[test]
+    fn test_parse_comparison_operator_out_of_bounds() {
+        let input = "hello";
+        // Should not panic and should return None
+        let result = parse_comparison_operator(input, 100);
+        assert!(result.is_none());
     }
 }
