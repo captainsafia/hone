@@ -498,7 +498,7 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 
 #### 6.5 Documentation
 - [x] Document LSP features in main README
-- [x] Add `docs/LSP_USAGE.md` with editor setup guides
+- [x] Add `docs/lsp-usage.md` with editor setup guides
 - [x] Document logging location and debugging tips
 - [x] Add troubleshooting section for common issues
 
@@ -540,7 +540,7 @@ All phases of the LSP implementation have been successfully completed. The Hone 
 - ✅ VS Code extension configured and compiled
 - ✅ Neovim configuration provided and documented
 - ✅ Helix configuration provided and documented
-- ✅ Comprehensive user documentation in `docs/LSP_USAGE.md`
+- ✅ Comprehensive user documentation in `docs/lsp-usage.md`
 - ✅ TextMate grammar available for fallback highlighting
 
 ### Success Criteria Met
