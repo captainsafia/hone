@@ -37,7 +37,6 @@ pub fn configure() -> Result<()> {
 
     append_vim_config(&vimrc_path)?;
 
-    println!("Configured Vim");
     Ok(())
 }
 
