@@ -506,6 +506,33 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_string_literal_escape_tab() {
+        // Test \t escape sequence in double-quoted strings
+        let result = parse_string_literal("\"col1\\tcol2\"", 0);
+        assert!(result.is_some());
+        let (literal, _) = result.unwrap();
+        assert_eq!(literal.value, "col1\tcol2");
+    }
+
+    #[test]
+    fn test_parse_string_literal_escape_backslash() {
+        // Test \\ escape sequence in double-quoted strings
+        let result = parse_string_literal("\"path\\\\to\\\\file\"", 0);
+        assert!(result.is_some());
+        let (literal, _) = result.unwrap();
+        assert_eq!(literal.value, "path\\to\\file");
+    }
+
+    #[test]
+    fn test_parse_string_literal_unknown_escape() {
+        // Unknown escapes should preserve the backslash
+        let result = parse_string_literal("\"test\\xhex\"", 0);
+        assert!(result.is_some());
+        let (literal, _) = result.unwrap();
+        assert_eq!(literal.value, "test\\xhex");
+    }
+
+    #[test]
     fn test_parse_string_literal_escaped_quote() {
         // Test that escaped quotes within double-quoted strings work correctly
         let result = parse_string_literal(r#""he said \"hello\"""#, 0);
