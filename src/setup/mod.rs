@@ -78,7 +78,7 @@ impl Editor {
     }
 }
 
-fn expand_home(path: &str) -> Result<PathBuf> {
+pub fn expand_home(path: &str) -> Result<PathBuf> {
     if let Some(stripped) = path.strip_prefix("~/") {
         let home = dirs::home_dir()
             .ok_or_else(|| anyhow::anyhow!("Could not determine home directory"))?;
@@ -86,10 +86,6 @@ fn expand_home(path: &str) -> Result<PathBuf> {
     } else {
         Ok(PathBuf::from(path))
     }
-}
-
-pub fn get_config_path(path: &str) -> Result<PathBuf> {
-    expand_home(path)
 }
 
 pub fn list_editors() {

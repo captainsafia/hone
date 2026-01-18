@@ -4,7 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::setup::detect::detect_sublime;
-use crate::setup::get_config_path;
+use crate::setup::expand_home;
 
 pub fn setup() -> Result<()> {
     if !detect_sublime() {
@@ -22,11 +22,11 @@ pub fn setup() -> Result<()> {
 
 fn get_sublime_config_dir() -> Result<PathBuf> {
     if cfg!(target_os = "macos") {
-        get_config_path("~/Library/Application Support/Sublime Text/Packages/User")
+        expand_home("~/Library/Application Support/Sublime Text/Packages/User")
     } else if cfg!(target_os = "windows") {
-        get_config_path("~/AppData/Roaming/Sublime Text/Packages/User")
+        expand_home("~/AppData/Roaming/Sublime Text/Packages/User")
     } else {
-        get_config_path("~/.config/sublime-text/Packages/User")
+        expand_home("~/.config/sublime-text/Packages/User")
     }
 }
 

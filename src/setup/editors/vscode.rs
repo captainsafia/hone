@@ -4,7 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::setup::detect::detect_vscode;
-use crate::setup::get_config_path;
+use crate::setup::expand_home;
 
 pub fn setup() -> Result<()> {
     if !detect_vscode() {
@@ -35,11 +35,11 @@ pub fn setup() -> Result<()> {
 
 fn get_vscode_settings_path() -> Result<PathBuf> {
     let base_path = if cfg!(target_os = "macos") {
-        get_config_path("~/Library/Application Support/Code/User")?
+        expand_home("~/Library/Application Support/Code/User")?
     } else if cfg!(target_os = "windows") {
-        get_config_path("~/AppData/Roaming/Code/User")?
+        expand_home("~/AppData/Roaming/Code/User")?
     } else {
-        get_config_path("~/.config/Code/User")?
+        expand_home("~/.config/Code/User")?
     };
 
     Ok(base_path.join("settings.json"))
