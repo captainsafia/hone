@@ -35,7 +35,40 @@ The server communicates over stdio and follows the LSP specification.
 
 ### Editor Setup
 
-#### VS Code
+Hone provides a `setup` command to automatically configure your editor:
+
+```sh
+# Configure a single editor
+hone setup vscode
+
+# Configure multiple editors
+hone setup vscode neovim helix
+
+# List all supported editors
+hone setup
+```
+
+Supported editors:
+- **VS Code** (`vscode`, `code`) - Visual Studio Code
+- **Neovim** (`neovim`, `nvim`) - Neovim
+- **Vim** (`vim`) - Vim
+- **Helix** (`helix`, `hx`) - Helix editor
+- **Emacs** (`emacs`) - GNU Emacs
+- **Sublime Text** (`sublime`, `subl`, `sublimetext`) - Sublime Text
+- **Zed** (`zed`) - Zed editor
+
+The setup command automatically configures:
+- LSP (Language Server Protocol) integration
+- Syntax highlighting for `.hone` files
+- File associations
+
+To remove the configuration, see `hone setup --help` for manual removal instructions.
+
+#### Manual Configuration
+
+If you prefer to configure manually, here are examples for some editors:
+
+##### VS Code
 
 Install the Hone extension from the `editors/vscode` directory:
 
@@ -58,7 +91,7 @@ Or configure manually in your `settings.json`:
 }
 ```
 
-#### Neovim
+##### Neovim
 
 With `nvim-lspconfig`:
 
@@ -88,7 +121,7 @@ Set the filetype for `.hone` files in `~/.config/nvim/ftdetect/hone.vim`:
 au BufRead,BufNewFile *.hone set filetype=hone
 ```
 
-#### Helix
+##### Helix
 
 Add to your `~/.config/helix/languages.toml`:
 
@@ -105,7 +138,7 @@ command = "hone"
 args = ["lsp"]
 ```
 
-#### Other Editors
+##### Other Editors
 
 Any editor with LSP support can use Hone's language server. Configure it to:
 - Run `hone lsp` as the server command
