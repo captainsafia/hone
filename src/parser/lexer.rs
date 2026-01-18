@@ -506,6 +506,16 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_string_literal_escaped_quote() {
+        // Test that escaped quotes within double-quoted strings work correctly
+        let result = parse_string_literal(r#""he said \"hello\"""#, 0);
+        assert!(result.is_some());
+        let (literal, end_index) = result.unwrap();
+        assert_eq!(literal.value, r#"he said "hello""#);
+        assert_eq!(end_index, 19); // Full string including outer quotes
+    }
+
+    #[test]
     fn test_parse_string_literal_non_string() {
         assert!(parse_string_literal("hello", 0).is_none());
     }
