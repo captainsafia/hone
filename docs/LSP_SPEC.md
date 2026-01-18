@@ -408,9 +408,9 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
   - `expect exitcode $1`
 
 #### 4.5 Context-Aware Snippet Adaptation
-- [ ] Adjust snippets based on surrounding context
-- [ ] Avoid inserting braces if already present
-- [ ] Handle indentation correctly
+- [x] Adjust snippets based on surrounding context
+- [x] Avoid inserting braces if already present
+- [x] Handle indentation correctly
 
 #### 4.6 Shell Command Completion
 - [x] Create `src/lsp/shell.rs` with command knowledge
