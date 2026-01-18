@@ -339,7 +339,7 @@ impl Reporter for DefaultReporter {
             print!(" ({})", run_id.dimmed());
         }
         use std::io::Write;
-        std::io::stdout().flush().unwrap();
+        let _ = std::io::stdout().flush();
     }
 
     fn on_assertion_pass(&self) {
@@ -349,7 +349,7 @@ impl Reporter for DefaultReporter {
         if self.verbose {
             print!(".");
             use std::io::Write;
-            std::io::stdout().flush().unwrap();
+            let _ = std::io::stdout().flush();
         }
     }
 
