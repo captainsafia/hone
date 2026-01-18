@@ -82,7 +82,8 @@ pub async fn run_lsp_server() -> Result<()> {
         DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, Exit, Initialized,
     };
     use async_lsp::lsp_types::request::{
-        Completion, DocumentSymbolRequest, Formatting, HoverRequest, Initialize, Shutdown,
+        Completion, DocumentSymbolRequest, Formatting, HoverRequest, Initialize,
+        SemanticTokensFullRequest, Shutdown,
     };
 
     // Initialize logging first
@@ -149,6 +150,14 @@ pub async fn run_lsp_server() -> Result<()> {
                 async move {
                     tracing::debug!("Handling formatting request");
                     let result = crate::lsp::handlers::handle_formatting(&state, params);
+                    Ok(result)
+                }
+            })
+            .request::<SemanticTokensFullRequest, _>(|state, params| {
+                let state = state.clone();
+                async move {
+                    tracing::debug!("Handling semantic tokens request");
+                    let result = crate::lsp::handlers::handle_semantic_tokens(&state, params);
                     Ok(result)
                 }
             })
