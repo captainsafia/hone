@@ -1,0 +1,47 @@
+# Test environment variable escaping security
+
+#! shell: /bin/bash
+
+TEST "env with single quotes"
+
+ENV QUOTED=value with single quote: don't
+RUN echo "$QUOTED"
+ASSERT stdout contains "don't"
+
+TEST "env with backticks - should not execute"
+
+ENV BACKTICK=value with `echo hacked`
+RUN echo "$BACKTICK"
+ASSERT stdout contains "`echo hacked`"
+
+TEST "env with dollar sign - should not expand"
+
+ENV DOLLAR=value with $HOME expansion
+RUN echo "$DOLLAR"
+ASSERT stdout contains "$HOME"
+
+TEST "env with semicolon - should not execute command"
+
+ENV SEMICOLON=value; echo injected
+RUN echo "$SEMICOLON"
+ASSERT stdout contains "value"
+RUN printenv SEMICOLON
+ASSERT stdout contains "; echo injected"
+
+TEST "env with pipe - should not pipe commands"
+
+ENV PIPE=value | cat
+RUN printenv PIPE
+ASSERT stdout contains "| cat"
+
+TEST "env with ampersand - should not background"
+
+ENV AMPERSAND=value & echo background
+RUN printenv AMPERSAND
+ASSERT stdout contains "&"
+
+TEST "env with command substitution - should not execute"
+
+ENV SUBST=value with $(whoami)
+RUN echo "$SUBST"
+ASSERT stdout contains "$(whoami)"
