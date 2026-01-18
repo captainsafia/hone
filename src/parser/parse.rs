@@ -121,7 +121,21 @@ fn parse_pragma(
     let rest = content[2..].trim();
 
     // Parse key: value
-    let colon_index = rest.find(':')?;
+    let Some(colon_index) = rest.find(':') else {
+        // Missing colon - warn the user about the syntax error
+        if rest.is_empty() {
+            collector.add_warning("Invalid pragma syntax: empty pragma".to_string(), line);
+        } else {
+            collector.add_warning(
+                format!(
+                    "Invalid pragma syntax: expected 'key: value' format, got '{}'",
+                    rest
+                ),
+                line,
+            );
+        }
+        return None;
+    };
 
     let pragma_key = rest[..colon_index].trim().to_lowercase();
     let pragma_value = rest[colon_index + 1..].trim();
@@ -1046,6 +1060,52 @@ ASSERT exit_code == 9999999999999999999"#;
                     !file.errors.is_empty(),
                     "Expected error for TEST without name"
                 );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_pragma_missing_colon_produces_warning() {
+        // Pragma without colon should produce a warning (e.g., "#!shell /bin/bash" instead of "#!shell: /bin/bash")
+        let content = "#!shell /bin/bash\nTEST \"test\"";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.warnings.is_empty(),
+                    "Expected warning for pragma missing colon"
+                );
+                assert!(file
+                    .warnings
+                    .iter()
+                    .any(|w| w.message.contains("Invalid pragma syntax")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_bare_pragma_produces_warning() {
+        // Bare "#!" should produce a warning
+        let content = "#!\nTEST \"test\"";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.warnings.is_empty(),
+                    "Expected warning for bare pragma"
+                );
+                assert!(file
+                    .warnings
+                    .iter()
+                    .any(|w| w.message.contains("Invalid pragma syntax")));
             }
             ParseResult::Failure { .. } => {
                 panic!("Parser should always return Success with errors embedded");
