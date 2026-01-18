@@ -284,4 +284,222 @@ mod tests {
     fn test_normalize_file_content_preserves_internal_spacing() {
         assert_eq!(normalize_file_content("hello   world"), "hello   world");
     }
+
+    // Async tests for file assertion functions
+    use crate::parser::ast::QuoteType;
+
+    fn make_string_literal(value: &str) -> StringLiteral {
+        StringLiteral {
+            value: value.to_string(),
+            raw: format!("\"{}\"", value),
+            quote_type: QuoteType::Double,
+        }
+    }
+
+    fn make_regex_literal(pattern: &str) -> RegexLiteral {
+        RegexLiteral {
+            pattern: pattern.to_string(),
+            flags: String::new(),
+            raw: format!("/{}/", pattern),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_exists_nonexistent() {
+        let path = make_string_literal("/nonexistent/file/path/12345.txt");
+        let result = evaluate_file_predicate(&path, &FilePredicate::Exists, "/tmp").await;
+        assert!(!result.passed);
+        assert!(result.actual.contains("does not exist"));
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_exists_existing() {
+        // Create a temp file
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_exists.txt");
+        tokio::fs::write(&temp_file, "test content").await.unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let result =
+            evaluate_file_predicate(&path, &FilePredicate::Exists, temp_dir.to_str().unwrap())
+                .await;
+
+        // Cleanup
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(result.passed);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_contains_match() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_contains.txt");
+        tokio::fs::write(&temp_file, "hello world").await.unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let search = make_string_literal("world");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Contains { value: search },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(result.passed);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_contains_no_match() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_contains_no.txt");
+        tokio::fs::write(&temp_file, "hello world").await.unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let search = make_string_literal("goodbye");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Contains { value: search },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(!result.passed);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_contains_nonexistent() {
+        let path = make_string_literal("nonexistent_file.txt");
+        let search = make_string_literal("test");
+        let result =
+            evaluate_file_predicate(&path, &FilePredicate::Contains { value: search }, "/tmp")
+                .await;
+
+        assert!(!result.passed);
+        assert!(result.actual.contains("does not exist"));
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_matches_valid_regex() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_matches.txt");
+        tokio::fs::write(&temp_file, "line1\nline2\nline3")
+            .await
+            .unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let regex = make_regex_literal(r"line\d+");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Matches { value: regex },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(result.passed);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_matches_invalid_regex() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_invalid_regex.txt");
+        tokio::fs::write(&temp_file, "test content").await.unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let regex = RegexLiteral {
+            pattern: "[unclosed".to_string(),
+            flags: String::new(),
+            raw: "/[unclosed/".to_string(),
+        };
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Matches { value: regex },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(!result.passed);
+        assert!(result.error.is_some());
+        assert!(result.error.unwrap().contains("Invalid regex"));
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_equals_match() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_equals.txt");
+        tokio::fs::write(&temp_file, "exact content").await.unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let expected = make_string_literal("exact content");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Equals {
+                operator: StringComparisonOperator::Equal,
+                value: expected,
+            },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(result.passed);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_equals_normalized() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_equals_normalized.txt");
+        // File has trailing whitespace and CRLF
+        tokio::fs::write(&temp_file, "line1  \r\nline2  ")
+            .await
+            .unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        // Expected value is normalized
+        let expected = make_string_literal("line1\nline2");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Equals {
+                operator: StringComparisonOperator::Equal,
+                value: expected,
+            },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(result.passed);
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_not_equals() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_not_equals.txt");
+        tokio::fs::write(&temp_file, "content A").await.unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let expected = make_string_literal("content B");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Equals {
+                operator: StringComparisonOperator::NotEqual,
+                value: expected,
+            },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(result.passed);
+    }
 }
