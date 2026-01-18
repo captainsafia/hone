@@ -90,4 +90,27 @@ mod tests {
         let result = evaluate_exit_code_predicate(1, &predicate);
         assert_eq!(result.expected, "exit_code != 1");
     }
+
+    #[test]
+    fn test_exit_code_i32_min() {
+        let predicate = make_predicate(StringComparisonOperator::Equal, i32::MIN);
+        let result = evaluate_exit_code_predicate(i32::MIN, &predicate);
+        assert!(result.passed);
+        assert_eq!(result.actual, i32::MIN.to_string());
+    }
+
+    #[test]
+    fn test_exit_code_i32_max() {
+        let predicate = make_predicate(StringComparisonOperator::Equal, i32::MAX);
+        let result = evaluate_exit_code_predicate(i32::MAX, &predicate);
+        assert!(result.passed);
+        assert_eq!(result.actual, i32::MAX.to_string());
+    }
+
+    #[test]
+    fn test_exit_code_boundary_not_equal() {
+        let predicate = make_predicate(StringComparisonOperator::NotEqual, i32::MIN);
+        let result = evaluate_exit_code_predicate(i32::MAX, &predicate);
+        assert!(result.passed);
+    }
 }
