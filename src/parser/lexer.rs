@@ -259,8 +259,17 @@ pub fn parse_duration(input: &str, start_byte_index: usize) -> Option<(Duration,
     ))
 }
 
-pub fn parse_number(input: &str, start_byte_index: usize) -> Option<(i32, usize)> {
-    let remaining = input.get(start_byte_index..)?;
+#[derive(Debug, PartialEq)]
+pub enum ParseNumberResult {
+    Success(i32, usize),
+    Overflow,
+    NotANumber,
+}
+
+pub fn parse_number_checked(input: &str, start_byte_index: usize) -> ParseNumberResult {
+    let Some(remaining) = input.get(start_byte_index..) else {
+        return ParseNumberResult::NotANumber;
+    };
     let mut byte_offset = 0;
 
     // Skip whitespace
@@ -292,13 +301,21 @@ pub fn parse_number(input: &str, start_byte_index: usize) -> Option<(i32, usize)
     if byte_offset == num_start
         || (byte_offset == num_start + 1 && remaining.as_bytes().get(num_start) == Some(&b'-'))
     {
-        return None;
+        return ParseNumberResult::NotANumber;
     }
 
     let num_str = &remaining[num_start..byte_offset];
-    let value = num_str.parse::<i32>().ok()?;
+    match num_str.parse::<i32>() {
+        Ok(value) => ParseNumberResult::Success(value, start_byte_index + byte_offset),
+        Err(_) => ParseNumberResult::Overflow,
+    }
+}
 
-    Some((value, start_byte_index + byte_offset))
+pub fn parse_number(input: &str, start_byte_index: usize) -> Option<(i32, usize)> {
+    match parse_number_checked(input, start_byte_index) {
+        ParseNumberResult::Success(value, end_index) => Some((value, end_index)),
+        _ => None,
+    }
 }
 
 pub fn skip_whitespace(input: &str, start_byte_index: usize) -> usize {
@@ -882,5 +899,23 @@ mod tests {
             result.is_none(),
             "Value just under i32::MIN should return None"
         );
+    }
+
+    #[test]
+    fn test_parse_number_checked_overflow() {
+        let result = parse_number_checked("99999999999999999999", 0);
+        assert_eq!(result, ParseNumberResult::Overflow);
+    }
+
+    #[test]
+    fn test_parse_number_checked_not_a_number() {
+        let result = parse_number_checked("abc", 0);
+        assert_eq!(result, ParseNumberResult::NotANumber);
+    }
+
+    #[test]
+    fn test_parse_number_checked_success() {
+        let result = parse_number_checked("42", 0);
+        assert_eq!(result, ParseNumberResult::Success(42, 2));
     }
 }

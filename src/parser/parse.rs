@@ -536,12 +536,22 @@ fn parse_exit_code_assertion(
         return None;
     }
 
-    let Some((num_value, _)) = parse_number(input, end_index) else {
-        collector.add_error(
-            "Expected number after comparison operator".to_string(),
-            line,
-        );
-        return None;
+    let num_value = match parse_number_checked(input, end_index) {
+        ParseNumberResult::Success(value, _) => value,
+        ParseNumberResult::Overflow => {
+            collector.add_error(
+                "Exit code value is too large (must fit in i32 range)".to_string(),
+                line,
+            );
+            return None;
+        }
+        ParseNumberResult::NotANumber => {
+            collector.add_error(
+                "Expected number after comparison operator".to_string(),
+                line,
+            );
+            return None;
+        }
     };
 
     let string_op = match op {
@@ -964,6 +974,30 @@ ASSERT exit_code == 0"#;
                     .errors
                     .iter()
                     .any(|e| e.message.contains("Empty command")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_exit_code_overflow_error_message() {
+        let content = r#"TEST "overflow test"
+RUN true
+ASSERT exit_code == 9999999999999999999"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for overflowing exit code"
+                );
+                assert!(
+                    file.errors.iter().any(|e| e.message.contains("too large")),
+                    "Error message should mention value is too large"
+                );
             }
             ParseResult::Failure { .. } => {
                 panic!("Parser should always return Success with errors embedded");
