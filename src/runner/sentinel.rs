@@ -41,7 +41,8 @@ pub fn generate_run_id(
     }
 
     if let Some(run) = run_name {
-        parts.push(run.to_string());
+        let sanitized = run.chars().filter(|c| !c.is_control()).collect::<String>();
+        parts.push(sanitized);
     } else {
         parts.push(run_index.to_string());
     }
@@ -534,6 +535,17 @@ mod tests {
             !id.chars().any(|c| c.is_control()),
             "run_id must not contain control characters"
         );
+    }
+
+    #[test]
+    fn test_generate_run_id_strips_control_characters_from_run_name() {
+        // Named runs should also have control characters stripped
+        let id = generate_run_id("test.hone", Some("test"), Some("setup\x1fhack"), 0);
+        assert!(
+            !id.contains('\x1f'),
+            "run_id must not contain unit separator from run_name"
+        );
+        assert_eq!(id, "test-test-setuphack");
     }
 
     #[test]
