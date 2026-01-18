@@ -503,13 +503,13 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [ ] Add troubleshooting section for common issues
 
 #### 6.6 Testing Suite
-- [ ] Write unit tests for each LSP handler
-- [ ] Create mock LSP client test harness
-- [ ] Test complete request/response cycles
-- [ ] Test error handling (invalid requests, malformed documents)
-- [ ] Achieve >80% code coverage for `src/lsp/`
+- [x] Write unit tests for each LSP handler
+- [x] Create mock LSP client test harness
+- [x] Test complete request/response cycles
+- [x] Test error handling (invalid requests, malformed documents)
+- [x] Achieve >80% code coverage for `src/lsp/`
 
-**Criteria addressed**: SC#9 (works in VS Code, Neovim, Helix), SC#10 (all tests pass)
+**Criteria addressed**: SC#10 (all tests pass)
 
 ---
 

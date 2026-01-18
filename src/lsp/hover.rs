@@ -80,15 +80,13 @@ impl HoverProvider {
 
     fn get_documentation(&self, word: &str) -> Option<String> {
         match word {
-            "@test" => Some(self.test_keyword_doc()),
-            "@setup" => Some(self.setup_keyword_doc()),
-            "expect" => Some(self.expect_keyword_doc()),
-            "run" => Some(self.run_keyword_doc()),
-            "env" => Some(self.env_keyword_doc()),
+            "TEST" => Some(self.test_keyword_doc()),
+            "RUN" => Some(self.run_keyword_doc()),
+            "ASSERT" => Some(self.assert_keyword_doc()),
             "stdout" => Some(self.stdout_assertion_doc()),
             "stdout_raw" => Some(self.stdout_raw_assertion_doc()),
             "stderr" => Some(self.stderr_assertion_doc()),
-            "exitcode" => Some(self.exitcode_assertion_doc()),
+            "exitcode" | "exit_code" => Some(self.exitcode_assertion_doc()),
             "duration" => Some(self.duration_assertion_doc()),
             "file" => Some(self.file_assertion_doc()),
             _ => None,
@@ -96,133 +94,79 @@ impl HoverProvider {
     }
 
     fn test_keyword_doc(&self) -> String {
-        r#"# @test
+        r#"# TEST
 
-Define a test block that contains commands to run and assertions to verify.
+Define a test case with a name.
 
 ## Syntax
 
 ```hone
-@test "test name" {
-  run command
-  expect assertion
-}
+TEST "test name"
+RUN command
+ASSERT assertion
 ```
 
 ## Example
 
 ```hone
-@test "should list files" {
-  run ls -la
-  expect stdout {
-    contains "README.md"
-  }
-  expect exitcode 0
-}
+TEST "should list files"
+RUN ls -la
+ASSERT stdout contains "README.md"
+ASSERT exit_code == 0
 ```
 "#
         .to_string()
     }
 
-    fn setup_keyword_doc(&self) -> String {
-        r#"# @setup
+    fn assert_keyword_doc(&self) -> String {
+        r#"# ASSERT
 
-Define a setup block that runs before all tests. Used to prepare the test environment.
-
-## Syntax
-
-```hone
-@setup {
-  run command
-}
-```
-
-## Example
-
-```hone
-@setup {
-  run mkdir -p test-dir
-  env TEST_VAR=value
-}
-```
-"#
-        .to_string()
-    }
-
-    fn expect_keyword_doc(&self) -> String {
-        r#"# expect
-
-Define an assertion to verify test behavior. Must be inside a `@test` block.
+Define an assertion to verify test behavior. Must be inside a TEST block.
 
 ## Syntax
 
 ```hone
-expect <assertion-type> <predicate>
+ASSERT <assertion-type> <predicate>
 ```
 
 ## Assertion Types
 
 - `stdout` - Assert on standard output
 - `stderr` - Assert on standard error
-- `exitcode` - Assert on exit code
+- `exit_code` - Assert on exit code
 - `duration` - Assert on execution duration
 - `file` - Assert on file content
 
 ## Example
 
 ```hone
-expect stdout {
-  contains "success"
-}
-expect exitcode 0
+ASSERT stdout contains "success"
+ASSERT exit_code == 0
 ```
 "#
         .to_string()
     }
 
     fn run_keyword_doc(&self) -> String {
-        r#"# run
+        r#"# RUN
 
-Execute a shell command. Can be used in `@setup` or `@test` blocks.
+Execute a shell command.
 
 ## Syntax
 
 ```hone
-run <command>
-run "<name>" <command>
+RUN <command>
+RUN "<name>" <command>
 ```
 
 ## Example
 
 ```hone
-run echo "Hello, World!"
-run "build" cargo build --release
+RUN echo "Hello, World!"
+RUN "build" cargo build --release
 ```
 
 Named runs allow referencing specific command results in assertions.
-"#
-        .to_string()
-    }
-
-    fn env_keyword_doc(&self) -> String {
-        r#"# env
-
-Set an environment variable for test execution. Only valid in `@setup` blocks.
-
-## Syntax
-
-```hone
-env KEY=value
-```
-
-## Example
-
-```hone
-@setup {
-  env PATH=/custom/bin:$PATH
-  env DEBUG=true
-}
-```
 "#
         .to_string()
     }
@@ -401,23 +345,23 @@ mod tests {
     fn test_extract_word_at_position() {
         let provider = HoverProvider::new();
 
-        // Test extracting @test
+        // Test extracting TEST
         let (word, start, end) = provider
-            .extract_word_at_position("@test \"name\" {", 2)
+            .extract_word_at_position("TEST \"name\"", 2)
             .unwrap();
-        assert_eq!(word, "@test");
+        assert_eq!(word, "TEST");
         assert_eq!(start, 0);
-        assert_eq!(end, 5);
+        assert_eq!(end, 4);
 
-        // Test extracting expect
+        // Test extracting ASSERT
         let (word, _, _) = provider
-            .extract_word_at_position("  expect stdout {", 5)
+            .extract_word_at_position("  ASSERT stdout contains \"ok\"", 5)
             .unwrap();
-        assert_eq!(word, "expect");
+        assert_eq!(word, "ASSERT");
 
         // Test extracting stdout
         let (word, _, _) = provider
-            .extract_word_at_position("  expect stdout {", 10)
+            .extract_word_at_position("  ASSERT stdout contains \"ok\"", 10)
             .unwrap();
         assert_eq!(word, "stdout");
     }
@@ -426,10 +370,9 @@ mod tests {
     fn test_get_documentation_keywords() {
         let provider = HoverProvider::new();
 
-        assert!(provider.get_documentation("@test").is_some());
-        assert!(provider.get_documentation("@setup").is_some());
-        assert!(provider.get_documentation("expect").is_some());
-        assert!(provider.get_documentation("run").is_some());
+        assert!(provider.get_documentation("TEST").is_some());
+        assert!(provider.get_documentation("RUN").is_some());
+        assert!(provider.get_documentation("ASSERT").is_some());
     }
 
     #[test]
