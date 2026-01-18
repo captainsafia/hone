@@ -481,10 +481,10 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Verify TextMate grammar fallback works
 
 #### 6.2 Neovim Integration
-- [ ] Write example `nvim-lspconfig` configuration
-- [ ] Test with `nvim-lspconfig` setup
-- [ ] Verify diagnostics, completion, hover, and outline work
-- [ ] Document setup in README
+- [x] Write example `nvim-lspconfig` configuration
+- [x] Test with `nvim-lspconfig` setup
+- [x] Verify diagnostics, completion, hover, and outline work
+- [x] Document setup in README
 
 #### 6.3 Helix Integration
 - [ ] Add Hone configuration to `languages.toml` example
