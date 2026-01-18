@@ -199,7 +199,7 @@ pub fn handle_completion(
 
     state
         .completion_provider
-        .provide_completions(&parsed, &params)
+        .provide_completions(&parsed, &params, text)
 }
 
 pub fn handle_hover(state: &ServerState, params: HoverParams) -> Option<Hover> {
