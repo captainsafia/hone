@@ -1553,4 +1553,151 @@ ASSERT file "test.txt" matches"#;
             }
         }
     }
+
+    #[test]
+    fn test_named_target_assertion_stdout() {
+        let content = r#"TEST "named target"
+RUN build: echo "hello"
+ASSERT build.stdout contains "hello""#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Expected no errors");
+                let assert_nodes: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Assert(a) = n {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(assert_nodes.len(), 1);
+
+                if let AssertionExpression::Output {
+                    target, selector, ..
+                } = &assert_nodes[0].expression
+                {
+                    assert_eq!(target.as_deref(), Some("build"));
+                    assert!(matches!(selector, OutputSelector::Stdout));
+                } else {
+                    panic!("Expected Output assertion expression");
+                }
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_named_target_assertion_exit_code() {
+        let content = r#"TEST "named target exit"
+RUN build: echo "hello"
+ASSERT build.exit_code == 0"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Expected no errors");
+                let assert_nodes: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Assert(a) = n {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(assert_nodes.len(), 1);
+
+                if let AssertionExpression::ExitCode { target, predicate } =
+                    &assert_nodes[0].expression
+                {
+                    assert_eq!(target.as_deref(), Some("build"));
+                    assert_eq!(predicate.value, 0);
+                } else {
+                    panic!("Expected ExitCode assertion expression");
+                }
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_named_target_with_hyphen() {
+        let content = r#"TEST "hyphenated target"
+RUN my-build: echo "test"
+ASSERT my-build.stdout contains "test""#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Expected no errors");
+                let assert_nodes: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Assert(a) = n {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(assert_nodes.len(), 1);
+
+                if let AssertionExpression::Output { target, .. } = &assert_nodes[0].expression {
+                    assert_eq!(target.as_deref(), Some("my-build"));
+                } else {
+                    panic!("Expected Output assertion expression");
+                }
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_named_target_duration() {
+        let content = r#"TEST "duration target"
+RUN fast: echo "quick"
+ASSERT fast.duration < 100ms"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Expected no errors");
+                let assert_nodes: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Assert(a) = n {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(assert_nodes.len(), 1);
+
+                if let AssertionExpression::Duration { target, .. } = &assert_nodes[0].expression {
+                    assert_eq!(target.as_deref(), Some("fast"));
+                } else {
+                    panic!("Expected Duration assertion expression");
+                }
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
 }
