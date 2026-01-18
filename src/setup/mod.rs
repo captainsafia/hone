@@ -154,10 +154,7 @@ fn setup_editor(editor: Editor) -> Result<()> {
         Editor::Vim => editors::vim::configure(),
         Editor::Emacs => editors::emacs::configure(),
         Editor::Zed => editors::zed::setup(),
-        _ => anyhow::bail!(
-            "Configuration for {} is not yet implemented",
-            editor.canonical_name()
-        ),
+        Editor::Sublime => editors::sublime::setup(),
     }
 }
 
