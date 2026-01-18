@@ -47,7 +47,7 @@ pub fn parse_file(content: &str, filename: &str) -> ParseResult {
             TokenType::Test => {
                 in_pragma_section = false;
                 run_names.clear();
-                if let Some(test) = parse_test(&token.content, line_number) {
+                if let Some(test) = parse_test(&token.content, line_number, &mut collector) {
                     nodes.push(ASTNode::Test(test));
                 }
             }
@@ -213,10 +213,13 @@ fn parse_pragma(
     }
 }
 
-fn parse_test(content: &str, line: usize) -> Option<TestNode> {
+fn parse_test(content: &str, line: usize, collector: &mut ParseErrorCollector) -> Option<TestNode> {
     // TEST "name"
     let rest = &content[5..]; // After "TEST "
-    let result = parse_string_literal(rest, 0)?;
+    let Some(result) = parse_string_literal(rest, 0) else {
+        collector.add_error("Expected quoted string after TEST".to_string(), line);
+        return None;
+    };
 
     let name = result.0.value.clone();
     Some(TestNode { name, line })
@@ -702,7 +705,8 @@ mod tests {
 
     fn parse_test_name(name: &str) -> bool {
         let content = format!("TEST \"{}\"", name);
-        parse_test(&content, 1).is_some()
+        let mut collector = ParseErrorCollector::new("test.hone".to_string());
+        parse_test(&content, 1, &mut collector).is_some()
     }
 
     #[test]
@@ -997,6 +1001,50 @@ ASSERT exit_code == 9999999999999999999"#;
                 assert!(
                     file.errors.iter().any(|e| e.message.contains("too large")),
                     "Error message should mention value is too large"
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_malformed_test_name_produces_error() {
+        // Test with unclosed string
+        let content = "TEST \"unclosed string";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for malformed TEST name"
+                );
+                assert!(
+                    file.errors
+                        .iter()
+                        .any(|e| e.message.contains("Expected quoted string after TEST")),
+                    "Error message should indicate string parsing failed"
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_test_without_name_produces_error() {
+        // Test with no string at all
+        let content = "TEST ";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for TEST without name"
                 );
             }
             ParseResult::Failure { .. } => {
