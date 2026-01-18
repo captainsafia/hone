@@ -900,6 +900,71 @@ mod tests {
     }
 
     #[test]
+    fn test_pragma_env_accepts_empty_value() {
+        // Empty values are valid in shell (export FOO= sets FOO to empty string)
+        let content = "#!env: MY_VAR=";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    file.errors.is_empty(),
+                    "Expected no errors for empty env value"
+                );
+                let pragmas: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Pragma(p) = n {
+                            Some(p)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(pragmas.len(), 1);
+                assert_eq!(pragmas[0].value, "");
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_env_accepts_empty_value() {
+        // ENV statement with empty value should be valid
+        let content = "ENV MY_VAR=\nTEST \"test\"";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    file.errors.is_empty(),
+                    "Expected no errors for empty env value"
+                );
+                let envs: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Env(e) = n {
+                            Some(e)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(envs.len(), 1);
+                assert_eq!(envs[0].key, "MY_VAR");
+                assert_eq!(envs[0].value, "");
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
     fn test_duplicate_run_names_rejected() {
         let content = r#"TEST "test with duplicates"
 RUN build: echo first
