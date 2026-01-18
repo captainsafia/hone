@@ -66,15 +66,11 @@ This command configures your editor to work with Hone files (.hone) by:
 - Setting up file associations for .hone files
 
 To remove the configuration manually:
-- VS Code: Edit ~/.config/Code/User/settings.json (remove hone-related settings)
+- VS Code: Uninstall the hone extension via the Extensions panel
 - Neovim: Edit ~/.config/nvim/init.lua or init.vim (remove hone-marked sections)
-- Vim: Edit ~/.vimrc or ~/.vim/vimrc (remove hone-marked sections)
-- Helix: Edit ~/.config/helix/languages.toml (remove [[language]] entry for hone)
-- Emacs: Edit ~/.emacs.d/init.el or ~/.emacs (remove hone-marked sections)
-- Sublime: Delete ~/.config/sublime-text/Packages/User/LSP.sublime-settings and Hone.sublime-syntax
-- Zed: Edit ~/.config/zed/settings.json (remove hone-related settings)")]
+- Vim: Edit ~/.vimrc or ~/.vim/vimrc (remove hone-marked sections)")]
     Setup {
-        /// Editor(s) to configure (e.g., vscode, neovim, vim, helix, emacs, sublime, zed)
+        /// Editor(s) to configure (e.g., vscode, neovim, vim)
         editors: Vec<String>,
     },
 }

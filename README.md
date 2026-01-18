@@ -42,7 +42,7 @@ Hone provides a `setup` command to automatically configure your editor:
 hone setup vscode
 
 # Configure multiple editors
-hone setup vscode neovim helix
+hone setup vscode neovim
 
 # List all supported editors
 hone setup
@@ -52,10 +52,6 @@ Supported editors:
 - **VS Code** (`vscode`, `code`) - Visual Studio Code
 - **Neovim** (`neovim`, `nvim`) - Neovim
 - **Vim** (`vim`) - Vim
-- **Helix** (`helix`, `hx`) - Helix editor
-- **Emacs** (`emacs`) - GNU Emacs
-- **Sublime Text** (`sublime`, `subl`, `sublimetext`) - Sublime Text
-- **Zed** (`zed`) - Zed editor
 
 The setup command automatically configures:
 - LSP (Language Server Protocol) integration
@@ -121,23 +117,6 @@ Set the filetype for `.hone` files in `~/.config/nvim/ftdetect/hone.vim`:
 au BufRead,BufNewFile *.hone set filetype=hone
 ```
 
-##### Helix
-
-Add to your `~/.config/helix/languages.toml`:
-
-```toml
-[[language]]
-name = "hone"
-scope = "source.hone"
-file-types = ["hone"]
-comment-token = "#"
-language-servers = ["hone-lsp"]
-
-[language-server.hone-lsp]
-command = "hone"
-args = ["lsp"]
-```
-
 ##### Other Editors
 
 Any editor with LSP support can use Hone's language server. Configure it to:
@@ -178,10 +157,8 @@ If you see a warning about hone not being in PATH:
 
 #### Configuration changes not taking effect
 
-- **Neovim/Vim/Emacs**: Reload your init file or restart the editor
-- **VS Code/Zed**: Reload the window (Command/Ctrl+Shift+P → "Developer: Reload Window")
-- **Helix**: Restart the editor
-- **Sublime Text**: Restart Sublime Text and verify LSP package is installed
+- **Neovim/Vim**: Reload your init file or restart the editor
+- **VS Code**: Reload the window (Command/Ctrl+Shift+P → "Developer: Reload Window")
 
 #### Still having issues?
 

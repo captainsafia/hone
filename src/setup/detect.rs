@@ -9,10 +9,6 @@ pub fn is_in_path(command: &str) -> bool {
         .unwrap_or(false)
 }
 
-pub fn detect_helix() -> bool {
-    is_in_path("hx") || is_in_path("helix")
-}
-
 pub fn detect_vscode() -> bool {
     if is_in_path("code") {
         return true;
@@ -28,33 +24,6 @@ pub fn detect_vscode() -> bool {
         .exists()
     } else {
         Path::new("/usr/share/code").exists()
-    }
-}
-
-pub fn detect_zed() -> bool {
-    if is_in_path("zed") {
-        return true;
-    }
-
-    if cfg!(target_os = "macos") {
-        Path::new("/Applications/Zed.app").exists()
-    } else {
-        false
-    }
-}
-
-pub fn detect_sublime() -> bool {
-    if is_in_path("subl") {
-        return true;
-    }
-
-    if cfg!(target_os = "macos") {
-        Path::new("/Applications/Sublime Text.app").exists()
-    } else if cfg!(target_os = "windows") {
-        Path::new("C:\\Program Files\\Sublime Text\\sublime_text.exe").exists()
-            || Path::new("C:\\Program Files (x86)\\Sublime Text\\sublime_text.exe").exists()
-    } else {
-        Path::new("/opt/sublime_text/sublime_text").exists()
     }
 }
 
