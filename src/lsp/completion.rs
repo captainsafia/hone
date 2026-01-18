@@ -6,18 +6,25 @@ use async_lsp::lsp_types::{
 use crate::lsp::shell::ShellCommands;
 use crate::parser::ast::ParsedFile;
 
-/// Returns a string prefix up to `byte_idx`, clamped to the nearest valid UTF-8 boundary.
-/// If `byte_idx` is beyond the string length, returns the entire string.
-fn safe_prefix(s: &str, byte_idx: usize) -> &str {
-    if byte_idx >= s.len() {
-        return s;
+/// Converts a UTF-16 code unit offset to a byte offset in a UTF-8 string.
+/// LSP protocol uses UTF-16 code units for character positions.
+/// Returns the byte offset, or the string length if the UTF-16 offset is beyond the string.
+fn utf16_offset_to_byte_offset(s: &str, utf16_offset: usize) -> usize {
+    let mut utf16_count = 0;
+    for (byte_idx, ch) in s.char_indices() {
+        if utf16_count >= utf16_offset {
+            return byte_idx;
+        }
+        utf16_count += ch.len_utf16();
     }
-    // Find the largest valid char boundary <= byte_idx
-    let mut end = byte_idx;
-    while end > 0 && !s.is_char_boundary(end) {
-        end -= 1;
-    }
-    &s[..end]
+    s.len()
+}
+
+/// Returns a string prefix up to `utf16_offset` UTF-16 code units.
+/// If `utf16_offset` is beyond the string length, returns the entire string.
+fn safe_prefix(s: &str, utf16_offset: usize) -> &str {
+    let byte_idx = utf16_offset_to_byte_offset(s, utf16_offset);
+    &s[..byte_idx]
 }
 
 #[derive(Debug, Clone)]
@@ -324,6 +331,7 @@ mod tests {
 
     #[test]
     fn test_safe_prefix_ascii() {
+        // For ASCII, UTF-16 offset == byte offset == char count
         assert_eq!(safe_prefix("hello", 3), "hel");
         assert_eq!(safe_prefix("hello", 5), "hello");
         assert_eq!(safe_prefix("hello", 10), "hello");
@@ -332,25 +340,64 @@ mod tests {
 
     #[test]
     fn test_safe_prefix_utf8() {
-        // "日本語" is 9 bytes (3 chars × 3 bytes each)
+        // "日本語" is 9 bytes (3 chars × 3 bytes each), but 3 UTF-16 code units
         let s = "日本語";
         assert_eq!(safe_prefix(s, 0), "");
-        assert_eq!(safe_prefix(s, 1), ""); // mid-char, clamps to 0
-        assert_eq!(safe_prefix(s, 2), ""); // mid-char, clamps to 0
-        assert_eq!(safe_prefix(s, 3), "日"); // exact boundary
-        assert_eq!(safe_prefix(s, 4), "日"); // mid-char, clamps to 3
-        assert_eq!(safe_prefix(s, 6), "日本"); // exact boundary
-        assert_eq!(safe_prefix(s, 9), "日本語"); // exact boundary (full string)
+        assert_eq!(safe_prefix(s, 1), "日"); // 1 UTF-16 code unit = first char
+        assert_eq!(safe_prefix(s, 2), "日本"); // 2 UTF-16 code units
+        assert_eq!(safe_prefix(s, 3), "日本語"); // all 3 UTF-16 code units
         assert_eq!(safe_prefix(s, 100), "日本語"); // beyond length
     }
 
     #[test]
     fn test_safe_prefix_mixed() {
         // "Test 日本語" - mixed ASCII and UTF-8
+        // UTF-16: T(1) + e(1) + s(1) + t(1) + space(1) + 日(1) + 本(1) + 語(1) = 8 code units
         let s = "Test 日本語";
-        assert_eq!(safe_prefix(s, 5), "Test "); // ASCII part
-        assert_eq!(safe_prefix(s, 6), "Test "); // mid first kanji
-        assert_eq!(safe_prefix(s, 8), "Test 日"); // after first kanji
+        assert_eq!(safe_prefix(s, 5), "Test "); // ASCII part (5 UTF-16 code units)
+        assert_eq!(safe_prefix(s, 6), "Test 日"); // includes first kanji
+        assert_eq!(safe_prefix(s, 7), "Test 日本"); // includes second kanji
+        assert_eq!(safe_prefix(s, 8), "Test 日本語"); // full string
+    }
+
+    #[test]
+    fn test_utf16_offset_to_byte_offset() {
+        // ASCII: UTF-16 offset == byte offset
+        assert_eq!(utf16_offset_to_byte_offset("hello", 0), 0);
+        assert_eq!(utf16_offset_to_byte_offset("hello", 3), 3);
+        assert_eq!(utf16_offset_to_byte_offset("hello", 5), 5);
+        assert_eq!(utf16_offset_to_byte_offset("hello", 100), 5); // beyond length
+
+        // CJK: each char is 1 UTF-16 code unit but 3 bytes
+        let cjk = "日本語";
+        assert_eq!(utf16_offset_to_byte_offset(cjk, 0), 0);
+        assert_eq!(utf16_offset_to_byte_offset(cjk, 1), 3); // after 日
+        assert_eq!(utf16_offset_to_byte_offset(cjk, 2), 6); // after 本
+        assert_eq!(utf16_offset_to_byte_offset(cjk, 3), 9); // full string
+
+        // Mixed
+        let mixed = "A日B";
+        assert_eq!(utf16_offset_to_byte_offset(mixed, 0), 0);
+        assert_eq!(utf16_offset_to_byte_offset(mixed, 1), 1); // after A
+        assert_eq!(utf16_offset_to_byte_offset(mixed, 2), 4); // after 日 (1 + 3 bytes)
+        assert_eq!(utf16_offset_to_byte_offset(mixed, 3), 5); // full string (1 + 3 + 1 bytes)
+    }
+
+    #[test]
+    fn test_safe_prefix_emoji_surrogate_pair() {
+        // Emoji 🎉 (U+1F389) is 4 bytes in UTF-8, but 2 UTF-16 code units (surrogate pair)
+        let s = "A🎉B";
+        // UTF-16: A(1) + 🎉(2) + B(1) = 4 code units
+        // Bytes: A(1) + 🎉(4) + B(1) = 6 bytes
+        assert_eq!(safe_prefix(s, 0), "");
+        assert_eq!(safe_prefix(s, 1), "A"); // after A
+                                            // Position 2 is in the middle of the emoji's surrogate pair.
+                                            // We return up to the end of the last complete character before the offset,
+                                            // but since offset 2 starts the second half of the emoji, we've already
+                                            // "seen" the first code unit, so we include the whole emoji.
+        assert_eq!(safe_prefix(s, 2), "A🎉"); // mid-emoji; includes whole emoji
+        assert_eq!(safe_prefix(s, 3), "A🎉"); // after emoji
+        assert_eq!(safe_prefix(s, 4), "A🎉B"); // full string
     }
 
     #[test]
