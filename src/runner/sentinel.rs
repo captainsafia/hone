@@ -101,18 +101,14 @@ pub struct SentinelExtractResult {
 
 pub fn extract_sentinel(buffer: &str, expected_run_id: &str) -> SentinelExtractResult {
     // Sentinel might be on the same line as output if command didn't output a trailing newline
-    let sentinel_index = buffer.find(SENTINEL_PREFIX);
-
-    if sentinel_index.is_none() {
+    let Some(sentinel_index) = buffer.find(SENTINEL_PREFIX) else {
         return SentinelExtractResult {
             found: false,
             output: buffer.to_string(),
             sentinel: None,
             remaining: String::new(),
         };
-    }
-
-    let sentinel_index = sentinel_index.unwrap();
+    };
 
     let output = &buffer[..sentinel_index];
 
