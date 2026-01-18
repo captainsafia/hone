@@ -227,13 +227,13 @@ impl CompletionProvider {
                 ..Default::default()
             },
             CompletionItem {
-                label: "exitcode".to_string(),
+                label: "exit_code".to_string(),
                 kind: Some(CompletionItemKind::FUNCTION),
                 detail: Some("Assert on exit code".to_string()),
                 documentation: Some(async_lsp::lsp_types::Documentation::String(
                     "Check the exit code of the command (0-255)".to_string(),
                 )),
-                insert_text: Some("exitcode ${1:0}".to_string()),
+                insert_text: Some("exit_code == ${1:0}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
