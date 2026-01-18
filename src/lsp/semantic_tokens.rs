@@ -862,7 +862,6 @@ mod tests {
 
             // '"日本語"' length should be 5 UTF-16 code units:
             // " (1) + 日 (1) + 本 (1) + 語 (1) + " (1) = 5
-            // BUG: Currently reports 11 (bytes) instead of 5 (UTF-16 code units)
             assert_eq!(
                 token.length, 5,
                 "String length should be 5 UTF-16 code units, not 11 bytes"
