@@ -454,16 +454,16 @@ This plan provides detailed, actionable tasks organized by phase. Each task maps
 - [x] Return `TextEdit[]` with changes
 
 #### 5.4 Implement Semantic Tokens
-- [ ] Create `src/lsp/semantic_tokens.rs`
-- [ ] Register token types and modifiers in server capabilities
-- [ ] Handle `textDocument/semanticTokens/full` request
-- [ ] Emit tokens for:
+- [x] Create `src/lsp/semantic_tokens.rs`
+- [x] Register token types and modifiers in server capabilities
+- [x] Handle `textDocument/semanticTokens/full` request
+- [x] Emit tokens for:
   - Keywords (`@test`, `@setup`, `expect`) → `keyword`
   - Test names → `string`
   - Assertion names → `function`
   - Shell commands → `macro`
   - Comments → `comment`
-- [ ] Encode tokens in LSP delta format
+- [x] Encode tokens in LSP delta format
 
 **Criteria addressed**: SC#6 (hover documentation), SC#7 (outline view), SC#8 (formatting)
 

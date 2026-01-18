@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use crate::lsp::completion::CompletionProvider;
 use crate::lsp::formatting::FormattingProvider;
 use crate::lsp::hover::HoverProvider;
+use crate::lsp::semantic_tokens::SemanticTokensProvider;
 use crate::lsp::symbols::SymbolsProvider;
 
 #[derive(Debug, Clone)]
@@ -16,6 +17,7 @@ pub struct ServerState {
     pub hover_provider: HoverProvider,
     pub symbols_provider: SymbolsProvider,
     pub formatting_provider: FormattingProvider,
+    pub semantic_tokens_provider: SemanticTokensProvider,
 }
 
 impl Default for ServerState {
@@ -28,6 +30,7 @@ impl Default for ServerState {
             hover_provider: HoverProvider::new(),
             symbols_provider: SymbolsProvider::new(),
             formatting_provider: FormattingProvider::new(),
+            semantic_tokens_provider: SemanticTokensProvider::new(),
         }
     }
 }
@@ -64,6 +67,9 @@ impl ServerState {
 pub fn handle_initialize(_params: InitializeParams) -> InitializeResult {
     tracing::info!("Handling initialize request");
 
+    let semantic_tokens_provider = SemanticTokensProvider::new();
+    let legend = semantic_tokens_provider.legend();
+
     InitializeResult {
         capabilities: ServerCapabilities {
             text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
@@ -74,6 +80,14 @@ pub fn handle_initialize(_params: InitializeParams) -> InitializeResult {
             hover_provider: Some(HoverProviderCapability::Simple(true)),
             document_symbol_provider: Some(OneOf::Left(true)),
             document_formatting_provider: Some(OneOf::Left(true)),
+            semantic_tokens_provider: Some(
+                SemanticTokensServerCapabilities::SemanticTokensOptions(SemanticTokensOptions {
+                    legend,
+                    range: Some(false),
+                    full: Some(SemanticTokensFullOptions::Bool(true)),
+                    ..Default::default()
+                }),
+            ),
             ..Default::default()
         },
         server_info: Some(ServerInfo {
@@ -230,4 +244,18 @@ pub fn handle_formatting(
     let text = state.get_document(uri)?;
 
     state.formatting_provider.format_document(text, uri.path())
+}
+
+pub fn handle_semantic_tokens(
+    state: &ServerState,
+    params: SemanticTokensParams,
+) -> Option<SemanticTokensResult> {
+    let uri = &params.text_document.uri;
+    tracing::debug!("Semantic tokens requested for: {}", uri);
+
+    let text = state.get_document(uri)?;
+
+    state
+        .semantic_tokens_provider
+        .provide_semantic_tokens(uri, text)
 }
