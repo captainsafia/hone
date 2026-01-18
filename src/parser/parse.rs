@@ -251,6 +251,12 @@ fn parse_test(content: &str, line: usize, collector: &mut ParseErrorCollector) -
     };
 
     let name = result.0.value.clone();
+
+    if name.is_empty() {
+        collector.add_error("Test name cannot be empty".to_string(), line);
+        return None;
+    }
+
     Some(TestNode { name, line })
 }
 
@@ -758,6 +764,39 @@ mod tests {
         assert!(parse_test_name("test with * asterisk"));
         assert!(parse_test_name("test with | pipe"));
         assert!(parse_test_name("émojis 🎉 work too"));
+    }
+
+    #[test]
+    fn test_empty_test_name_rejected() {
+        let content = r#"TEST ""
+RUN echo hello
+ASSERT stdout contains "hello""#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Empty test name should produce an error"
+                );
+                assert!(
+                    file.errors
+                        .iter()
+                        .any(|e| e.message.contains("cannot be empty")),
+                    "Error message should mention empty test name"
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_whitespace_only_test_name_allowed() {
+        // Whitespace-only names should be allowed (for user flexibility)
+        assert!(parse_test_name(" "));
+        assert!(parse_test_name("   "));
     }
 
     #[test]
