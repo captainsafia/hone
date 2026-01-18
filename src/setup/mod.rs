@@ -114,6 +114,8 @@ pub fn list_editors() {
 }
 
 pub fn setup_editors(editor_names: Vec<String>) -> Result<()> {
+    check_hone_in_path();
+
     let mut editors = Vec::new();
 
     for name in &editor_names {
@@ -144,6 +146,31 @@ pub fn setup_editors(editor_names: Vec<String>) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn check_hone_in_path() {
+    let current_exe = match std::env::current_exe() {
+        Ok(exe) => exe,
+        Err(_) => return,
+    };
+
+    let exe_dir = match current_exe.parent() {
+        Some(dir) => dir,
+        None => return,
+    };
+
+    if let Ok(path_var) = std::env::var("PATH") {
+        for path in std::env::split_paths(&path_var) {
+            if path == exe_dir {
+                return;
+            }
+        }
+    }
+
+    eprintln!(
+        "Warning: 'hone' binary is not in PATH. Add {} to PATH for editors to find it.",
+        exe_dir.display()
+    );
 }
 
 fn setup_editor(editor: Editor) -> Result<()> {
