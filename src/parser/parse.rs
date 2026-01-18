@@ -1288,4 +1288,58 @@ ASSERT file "test.txt" invalid_predicate"#;
             }
         }
     }
+
+    #[test]
+    fn test_exit_code_missing_number_error() {
+        // exit_code with operator but no number should produce a clear error
+        let content = r#"TEST "missing number"
+RUN true
+ASSERT exit_code == "#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing number after exit_code operator"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("Expected number"),
+                    "Error should mention expected number. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_exit_code_missing_operator_error() {
+        // exit_code without operator should produce a clear error
+        let content = r#"TEST "missing operator"
+RUN true
+ASSERT exit_code 0"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing operator in exit_code assertion"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("==") && error_msg.contains("!="),
+                    "Error should mention valid operators (== or !=). Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
 }
