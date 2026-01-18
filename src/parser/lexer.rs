@@ -553,6 +553,12 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_string_literal_trailing_backslash() {
+        // A trailing backslash without a character to escape is an unterminated string
+        assert!(parse_string_literal("\"hello\\", 0).is_none());
+    }
+
+    #[test]
     fn test_parse_string_literal_at_offset() {
         let result = parse_string_literal("contains \"text\"", 9);
         assert!(result.is_some());
