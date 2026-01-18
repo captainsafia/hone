@@ -235,6 +235,11 @@ pub fn parse_duration(input: &str, start_byte_index: usize) -> Option<(Duration,
     let num_str = &remaining[num_start..byte_offset];
     let value = num_str.parse::<f64>().ok()?;
 
+    // Reject non-finite values (infinity, NaN)
+    if !value.is_finite() {
+        return None;
+    }
+
     // Parse unit
     let unit_start = byte_offset;
     for ch in remaining[byte_offset..].chars() {
@@ -250,6 +255,17 @@ pub fn parse_duration(input: &str, start_byte_index: usize) -> Option<(Duration,
         "s" => DurationUnit::Seconds,
         _ => return None,
     };
+
+    // Validate duration is reasonable (max ~1 year) to prevent overflow/confusion
+    // Check the value in milliseconds for consistent validation
+    const MAX_DURATION_MS: f64 = 365.0 * 24.0 * 60.0 * 60.0 * 1000.0; // ~31.5 billion ms
+    let value_ms = match unit {
+        DurationUnit::Seconds => value * 1000.0,
+        DurationUnit::Milliseconds => value,
+    };
+    if value_ms > MAX_DURATION_MS {
+        return None;
+    }
 
     let raw = remaining[..byte_offset].trim().to_string();
 
@@ -634,6 +650,48 @@ mod tests {
     #[test]
     fn test_parse_duration_rejects_negative() {
         assert!(parse_duration("-5s", 0).is_none());
+    }
+
+    #[test]
+    fn test_parse_duration_rejects_infinity() {
+        // Very large values that parse to f64::INFINITY should be rejected
+        let huge = format!("{}s", "9".repeat(400));
+        assert!(
+            parse_duration(&huge, 0).is_none(),
+            "parse_duration should reject values that become infinity"
+        );
+    }
+
+    #[test]
+    fn test_parse_duration_rejects_very_large_seconds() {
+        // Values larger than ~1 year should be rejected
+        let large_seconds = "999999999999s"; // ~31k years
+        assert!(
+            parse_duration(large_seconds, 0).is_none(),
+            "parse_duration should reject unreasonably large durations in seconds"
+        );
+    }
+
+    #[test]
+    fn test_parse_duration_rejects_very_large_milliseconds() {
+        // Same duration limit applies to milliseconds
+        // ~1 year = 31,536,000,000 ms, so 999,999,999,999,999 ms should be rejected
+        let large_ms = "999999999999999ms";
+        assert!(
+            parse_duration(large_ms, 0).is_none(),
+            "parse_duration should reject unreasonably large durations in milliseconds"
+        );
+    }
+
+    #[test]
+    fn test_parse_duration_accepts_reasonable_large_values() {
+        // ~11.5 days in seconds should be accepted (used in integration tests)
+        let result = parse_duration("999999s", 0);
+        assert!(result.is_some(), "~11.5 days should be acceptable");
+
+        // ~1 week in milliseconds should be accepted
+        let result = parse_duration("604800000ms", 0);
+        assert!(result.is_some(), "~1 week in ms should be acceptable");
     }
 
     #[test]
