@@ -1292,6 +1292,128 @@ ASSERT exit_code {} 0"#,
     }
 
     #[test]
+    fn test_env_rejects_invalid_key_starting_with_number() {
+        let content = "ENV 123ABC=value\nTEST \"test\"";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for invalid env key starting with number"
+                );
+                assert!(file
+                    .errors
+                    .iter()
+                    .any(|e| e.message.contains("Invalid environment variable name")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_env_rejects_key_with_hyphen() {
+        let content = "ENV MY-VAR=value\nTEST \"test\"";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for env key with hyphen"
+                );
+                assert!(file
+                    .errors
+                    .iter()
+                    .any(|e| e.message.contains("Invalid environment variable name")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_env_rejects_empty_key() {
+        let content = "ENV =value\nTEST \"test\"";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(!file.errors.is_empty(), "Expected error for empty env key");
+                assert!(file.errors.iter().any(|e| e.message.contains("empty key")));
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_env_accepts_valid_key() {
+        let content = "ENV MY_VAR_123=value\nTEST \"test\"\nRUN echo $MY_VAR_123";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    file.errors.is_empty(),
+                    "Expected no errors for valid env key"
+                );
+                let envs: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Env(e) = n {
+                            Some(e)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(envs.len(), 1);
+                assert_eq!(envs[0].key, "MY_VAR_123");
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_env_accepts_underscore_prefix() {
+        let content = "ENV _PRIVATE=value\nTEST \"test\"\nRUN echo $_PRIVATE";
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    file.errors.is_empty(),
+                    "Expected no errors for underscore-prefixed env key"
+                );
+                let envs: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Env(e) = n {
+                            Some(e)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(envs.len(), 1);
+                assert_eq!(envs[0].key, "_PRIVATE");
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
     fn test_parse_file_empty() {
         let result = parse_file("", "empty.hone");
 
