@@ -407,3 +407,192 @@ pub fn create_shell_config(
         filename: filename.to_string(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::ast::{PragmaNode, PragmaType};
+
+    #[test]
+    fn test_create_shell_config_defaults() {
+        let config = create_shell_config(&[], "test.hone", "/tmp", None);
+
+        assert_eq!(config.timeout_ms, 30000);
+        assert_eq!(config.cwd, "/tmp");
+        assert_eq!(config.filename, "test.hone");
+        assert!(config.env.contains_key("PATH"));
+        assert!(config.env.contains_key("HOME"));
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_milliseconds() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "5000ms".to_string(),
+            line: 1,
+            raw: "#!timeout 5000ms".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.timeout_ms, 5000);
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_seconds() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "10s".to_string(),
+            line: 1,
+            raw: "#!timeout 10s".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.timeout_ms, 10000);
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_fractional_seconds() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "2.5s".to_string(),
+            line: 1,
+            raw: "#!timeout 2.5s".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.timeout_ms, 2500);
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_fractional_ms() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "100.7ms".to_string(),
+            line: 1,
+            raw: "#!timeout 100.7ms".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.timeout_ms, 100);
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_zero() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "0ms".to_string(),
+            line: 1,
+            raw: "#!timeout 0ms".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.timeout_ms, 0);
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_invalid_format() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "invalid".to_string(),
+            line: 1,
+            raw: "#!timeout invalid".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.timeout_ms, 30000);
+    }
+
+    #[test]
+    fn test_create_shell_config_timeout_large_value() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Timeout,
+            key: None,
+            value: "999999s".to_string(),
+            line: 1,
+            raw: "#!timeout 999999s".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.timeout_ms, 999999000);
+    }
+
+    #[test]
+    fn test_create_shell_config_shell_pragma() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Shell,
+            key: None,
+            value: "/bin/zsh".to_string(),
+            line: 1,
+            raw: "#!shell /bin/zsh".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.shell, "/bin/zsh");
+    }
+
+    #[test]
+    fn test_create_shell_config_shell_override() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Shell,
+            key: None,
+            value: "/bin/zsh".to_string(),
+            line: 1,
+            raw: "#!shell /bin/zsh".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", Some("/bin/sh"));
+        assert_eq!(config.shell, "/bin/sh");
+    }
+
+    #[test]
+    fn test_create_shell_config_env_pragma() {
+        let pragmas = vec![PragmaNode {
+            pragma_type: PragmaType::Env,
+            key: Some("MY_VAR".to_string()),
+            value: "test_value".to_string(),
+            line: 1,
+            raw: "#!env MY_VAR=test_value".to_string(),
+        }];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.env.get("MY_VAR"), Some(&"test_value".to_string()));
+    }
+
+    #[test]
+    fn test_create_shell_config_multiple_pragmas() {
+        let pragmas = vec![
+            PragmaNode {
+                pragma_type: PragmaType::Shell,
+                key: None,
+                value: "/bin/zsh".to_string(),
+                line: 1,
+                raw: "#!shell /bin/zsh".to_string(),
+            },
+            PragmaNode {
+                pragma_type: PragmaType::Timeout,
+                key: None,
+                value: "60s".to_string(),
+                line: 2,
+                raw: "#!timeout 60s".to_string(),
+            },
+            PragmaNode {
+                pragma_type: PragmaType::Env,
+                key: Some("TEST".to_string()),
+                value: "value".to_string(),
+                line: 3,
+                raw: "#!env TEST=value".to_string(),
+            },
+        ];
+
+        let config = create_shell_config(&pragmas, "test.hone", "/tmp", None);
+        assert_eq!(config.shell, "/bin/zsh");
+        assert_eq!(config.timeout_ms, 60000);
+        assert_eq!(config.env.get("TEST"), Some(&"value".to_string()));
+    }
+}
