@@ -86,6 +86,18 @@ pub async fn run_tests(
         .unwrap_or_default()
         .as_millis() as u64;
 
+    // Validate test filter early if provided
+    let test_filter = if let Some(ref filter_pattern) = options.test_filter {
+        match TestFilter::try_from(filter_pattern.as_str()) {
+            Ok(filter) => Some(filter),
+            Err(e) => {
+                return Err(anyhow::anyhow!("Invalid test filter: {}", e));
+            }
+        }
+    } else {
+        None
+    };
+
     let mut all_files = BTreeSet::new();
     for pattern in &patterns {
         let files = resolve_files(pattern, &cwd).await?;
@@ -194,7 +206,7 @@ pub async fn run_tests(
     let mut file_results = Vec::new();
 
     for (file, ast) in valid_files {
-        let result = run_file(&ast, &file, &options, &reporter).await?;
+        let result = run_file(&ast, &file, &options, test_filter.as_ref(), &reporter).await?;
         file_results.push(result.file_result);
     }
 
@@ -290,6 +302,7 @@ async fn run_file(
     ast: &[ASTNode],
     filename: &str,
     options: &RunnerOptions,
+    test_filter: Option<&TestFilter>,
     reporter: &impl Reporter,
 ) -> anyhow::Result<FileRunResult> {
     let is_json = options.output_format == OutputFormat::Json;
@@ -324,22 +337,15 @@ async fn run_file(
     // Group nodes by TEST block
     let mut test_blocks = group_nodes_by_test(ast);
 
-    // Apply test filter if specified
-    if let Some(ref filter_pattern) = options.test_filter {
-        match TestFilter::try_from(filter_pattern.as_str()) {
-            Ok(filter) => {
-                test_blocks.retain(|block| {
-                    block
-                        .test_name
-                        .as_ref()
-                        .map(|name| filter.matches(name))
-                        .unwrap_or(false)
-                });
-            }
-            Err(e) => {
-                reporter.on_warning(&format!("Invalid test filter: {}", e));
-            }
-        }
+    // Apply test filter if provided
+    if let Some(filter) = test_filter {
+        test_blocks.retain(|block| {
+            block
+                .test_name
+                .as_ref()
+                .map(|name| filter.matches(name))
+                .unwrap_or(false)
+        });
     }
 
     let mut total_assertions_passed = 0;
