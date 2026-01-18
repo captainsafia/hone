@@ -713,7 +713,7 @@ fn parse_file_assertion(
     }
 
     collector.add_error(
-        "Expected predicate (exists, contains, ==, !=) after file path".to_string(),
+        "Expected predicate (exists, contains, matches, ==, !=) after file path".to_string(),
         line,
     );
     None
@@ -1258,6 +1258,33 @@ ASSERT exit_code {} 0"#,
             }
             ParseResult::Failure { .. } => {
                 panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_file_predicate_error_mentions_matches() {
+        // When an invalid file predicate is used, the error message should list ALL valid predicates
+        let content = r#"TEST "file predicate test"
+RUN echo hello > test.txt
+ASSERT file "test.txt" invalid_predicate"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for invalid file predicate"
+                );
+                let error_msg = &file.errors[0].message;
+                assert!(
+                    error_msg.contains("matches"),
+                    "Error message should mention 'matches' predicate. Got: {}",
+                    error_msg
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
             }
         }
     }
