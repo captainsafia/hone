@@ -279,6 +279,19 @@ fn check_assertion_types(assert_node: &crate::parser::AssertNode) -> Vec<Diagnos
                         assert_node.line,
                         "Regex pattern cannot be empty",
                     ));
+                } else {
+                    // Validate regex syntax
+                    let pattern = if value.flags.is_empty() {
+                        value.pattern.clone()
+                    } else {
+                        format!("(?{}){}", value.flags, value.pattern)
+                    };
+                    if let Err(e) = regex::Regex::new(&pattern) {
+                        diagnostics.push(create_semantic_diagnostic(
+                            assert_node.line,
+                            &format!("Invalid regex pattern: {}", e),
+                        ));
+                    }
                 }
             }
         },
@@ -336,6 +349,19 @@ fn check_assertion_types(assert_node: &crate::parser::AssertNode) -> Vec<Diagnos
                             assert_node.line,
                             "Regex pattern cannot be empty",
                         ));
+                    } else {
+                        // Validate regex syntax
+                        let pattern = if value.flags.is_empty() {
+                            value.pattern.clone()
+                        } else {
+                            format!("(?{}){}", value.flags, value.pattern)
+                        };
+                        if let Err(e) = regex::Regex::new(&pattern) {
+                            diagnostics.push(create_semantic_diagnostic(
+                                assert_node.line,
+                                &format!("Invalid regex pattern: {}", e),
+                            ));
+                        }
                     }
                 }
                 FilePredicate::Exists => {
@@ -559,5 +585,58 @@ ASSERT exit_code == 1"#;
             })
             .collect();
         assert_eq!(semantic_errors.len(), 0);
+    }
+
+    #[test]
+    fn test_invalid_regex_stdout_diagnostic() {
+        let content = r#"TEST "regex test"
+RUN echo hello
+ASSERT stdout matches /[/"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let regex_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("Invalid regex pattern"))
+            .collect();
+        assert_eq!(regex_errors.len(), 1, "Expected 1 invalid regex diagnostic");
+    }
+
+    #[test]
+    fn test_invalid_regex_file_diagnostic() {
+        let content = r#"TEST "file regex test"
+RUN echo hello
+ASSERT file "test.txt" matches /(?invalid)/"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let regex_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("Invalid regex pattern"))
+            .collect();
+        assert_eq!(
+            regex_errors.len(),
+            1,
+            "Expected 1 invalid regex diagnostic for file assertion"
+        );
+    }
+
+    #[test]
+    fn test_valid_regex_no_diagnostic() {
+        let content = r#"TEST "valid regex"
+RUN echo hello
+ASSERT stdout matches /^hello$/"#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let regex_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("Invalid regex pattern"))
+            .collect();
+        assert_eq!(
+            regex_errors.len(),
+            0,
+            "Expected no invalid regex diagnostics for valid pattern"
+        );
     }
 }
