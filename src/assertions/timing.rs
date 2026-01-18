@@ -152,6 +152,18 @@ mod tests {
     }
 
     #[test]
+    fn test_greater_than_fail() {
+        // Test that > fails at boundary (100 is not > 100)
+        let predicate = make_predicate(
+            ComparisonOperator::GreaterThan,
+            100.0,
+            DurationUnit::Milliseconds,
+        );
+        let result = evaluate_duration_predicate(100, &predicate);
+        assert!(!result.passed);
+    }
+
+    #[test]
     fn test_greater_than_or_equal_boundary() {
         let predicate = make_predicate(
             ComparisonOperator::GreaterThanOrEqual,
