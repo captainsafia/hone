@@ -157,7 +157,7 @@ impl ShellSession {
         if let Some(reader) = &mut self.stdout_reader {
             loop {
                 let mut line = String::new();
-                match timeout(Duration::from_millis(1), reader.read_line(&mut line)).await {
+                match timeout(Duration::from_millis(5), reader.read_line(&mut line)).await {
                     Ok(Ok(n)) if n > 0 => {
                         self.output_buffer.push_str(&line);
                     }
