@@ -151,12 +151,10 @@ fn parse_pragma(
 
         "env" => {
             // Parse KEY=value
-            let eq_index = pragma_value.find('=');
-            if eq_index.is_none() {
+            let Some(eq_index) = pragma_value.find('=') else {
                 collector.add_error(format!("Invalid env pragma: {}", content), line);
                 return None;
-            }
-            let eq_index = eq_index.unwrap();
+            };
             let env_key = pragma_value[..eq_index].trim().to_string();
             let env_value = pragma_value[eq_index + 1..].to_string();
 
@@ -633,13 +631,10 @@ fn parse_file_assertion(
     let mut i = 4; // After "file"
     i = skip_whitespace(input, i);
 
-    let path_result = parse_string_literal(input, i);
-    if path_result.is_none() {
+    let Some((path, end_index)) = parse_string_literal(input, i) else {
         collector.add_error("Expected quoted file path after \"file\"".to_string(), line);
         return None;
-    }
-
-    let (path, end_index) = path_result.unwrap();
+    };
     i = skip_whitespace(input, end_index);
 
     // Parse predicate
