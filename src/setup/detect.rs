@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::process::Command;
 
 pub fn is_in_path(command: &str) -> bool {
@@ -10,6 +11,24 @@ pub fn is_in_path(command: &str) -> bool {
 
 pub fn detect_helix() -> bool {
     is_in_path("hx") || is_in_path("helix")
+}
+
+pub fn detect_vscode() -> bool {
+    if is_in_path("code") {
+        return true;
+    }
+
+    if cfg!(target_os = "macos") {
+        Path::new("/Applications/Visual Studio Code.app").exists()
+    } else if cfg!(target_os = "windows") {
+        Path::new(&format!(
+            "{}\\Microsoft VS Code",
+            std::env::var("LOCALAPPDATA").unwrap_or_default()
+        ))
+        .exists()
+    } else {
+        Path::new("/usr/share/code").exists()
+    }
 }
 
 #[cfg(test)]
