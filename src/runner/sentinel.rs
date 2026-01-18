@@ -656,4 +656,21 @@ mod tests {
             "unescaped % should not appear in run_id"
         );
     }
+
+    #[test]
+    fn test_generate_shell_wrapper_escapes_single_quotes_in_stderr_path() {
+        // Single quotes in stderr_path must be escaped to prevent shell injection
+        let wrapper = generate_shell_wrapper("echo hi", "test-run", "/tmp/user's dir/stderr.txt");
+        // Single quote escaping: ' becomes '"'"' (end single-quote, double-quote single-quote, start single-quote)
+        assert!(
+            wrapper.contains(r#"'/tmp/user'"'"'s dir/stderr.txt'"#),
+            "stderr_path should have single quote properly escaped. Got: {}",
+            wrapper
+        );
+        // Verify wrapper doesn't contain unescaped single quote that would break shell
+        assert!(
+            !wrapper.contains("/tmp/user's dir/"),
+            "unescaped single quote should not appear in stderr_path"
+        );
+    }
 }
