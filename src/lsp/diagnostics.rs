@@ -212,7 +212,6 @@ fn is_unknown_syntax_warning(message: &str) -> bool {
 
 fn analyze_semantics(nodes: &[ASTNode]) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
-    let mut in_test = false;
 
     for node in nodes {
         // Skip error nodes - they've already been reported
@@ -223,7 +222,7 @@ fn analyze_semantics(nodes: &[ASTNode]) -> Vec<Diagnostic> {
 
         match node {
             ASTNode::Test(_) => {
-                in_test = true;
+                // TEST blocks are always valid
             }
             ASTNode::Assert(assert_node) => {
                 // RUN and ASSERT outside TEST blocks are valid - the runner groups
@@ -237,12 +236,9 @@ fn analyze_semantics(nodes: &[ASTNode]) -> Vec<Diagnostic> {
                 // RUN outside TEST blocks is valid - forms an implicit test block
             }
             ASTNode::Env(_) => {
-                if in_test {
-                    diagnostics.push(create_semantic_diagnostic(
-                        node.line(),
-                        "Environment variable 'env' should be defined in @setup or at the top level, not inside @test",
-                    ));
-                }
+                // ENV inside TEST blocks is valid and supported by the runner
+                // It sets the variable for subsequent RUN commands in that test block
+                // See tests/integration/test-isolation.hone and tests/integration/env-injection.hone
             }
             _ => {}
         }
@@ -743,6 +739,28 @@ ASSERT stdout contains "hello""#;
             outside_test_errors.len(),
             0,
             "RUN and ASSERT outside TEST blocks should not produce diagnostics - this is valid syntax"
+        );
+    }
+
+    #[test]
+    fn test_env_inside_test_block_is_valid() {
+        // ENV inside TEST blocks is valid and tested in integration tests
+        // (see tests/integration/test-isolation.hone and tests/integration/env-injection.hone)
+        let content = r#"TEST "ENV vars work within a test"
+ENV EXPORTED_VAR=test_value
+RUN echo $EXPORTED_VAR
+ASSERT stdout contains "test_value""#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let env_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.to_lowercase().contains("env"))
+            .collect();
+        assert_eq!(
+            env_errors.len(),
+            0,
+            "ENV inside TEST blocks should not produce diagnostics - this is valid syntax used in integration tests"
         );
     }
 }
