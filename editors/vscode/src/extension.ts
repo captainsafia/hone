@@ -3,7 +3,6 @@ import {
   LanguageClient,
   LanguageClientOptions,
   ServerOptions,
-  TransportKind,
   State
 } from 'vscode-languageclient/node';
 import { execSync } from 'child_process';
@@ -44,11 +43,10 @@ export async function activate(context: ExtensionContext) {
 
   const serverOptions: ServerOptions = {
     command: 'hone',
-    args: ['lsp'],
-    transport: TransportKind.stdio
+    args: ['lsp']
   };
 
-  log(`Server options: command='hone', args=['lsp'], transport=stdio`);
+  log(`Server options: command='hone', args=['lsp']`);
 
   const clientOptions: LanguageClientOptions = {
     documentSelector: [{ scheme: 'file', language: 'hone' }],
