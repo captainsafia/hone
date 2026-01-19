@@ -198,11 +198,7 @@ impl CompletionProvider {
         items
     }
 
-    fn assertion_completions(&self, context: &CompletionContextInfo) -> Vec<CompletionItem> {
-        let indent = context.indent;
-        let indent_str = " ".repeat(indent);
-        let inner_indent = " ".repeat(indent + 2);
-
+    fn assertion_completions(&self, _context: &CompletionContextInfo) -> Vec<CompletionItem> {
         vec![
             CompletionItem {
                 label: "stdout".to_string(),
@@ -211,7 +207,7 @@ impl CompletionProvider {
                 documentation: Some(async_lsp::lsp_types::Documentation::String(
                     "Check the standard output of the command".to_string(),
                 )),
-                insert_text: Some(format!("stdout {{\n{inner_indent}${{1:contains \"text\"}}\n{indent_str}}}", inner_indent=inner_indent, indent_str=indent_str)),
+                insert_text: Some("stdout ${1|contains,==,!=,matches|} \"${2:text}\"".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
@@ -222,7 +218,7 @@ impl CompletionProvider {
                 documentation: Some(async_lsp::lsp_types::Documentation::String(
                     "Check the standard error of the command".to_string(),
                 )),
-                insert_text: Some(format!("stderr {{\n{inner_indent}${{1:contains \"text\"}}\n{indent_str}}}", inner_indent=inner_indent, indent_str=indent_str)),
+                insert_text: Some("stderr ${1|contains,==,!=,matches|} \"${2:text}\"".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
@@ -233,7 +229,7 @@ impl CompletionProvider {
                 documentation: Some(async_lsp::lsp_types::Documentation::String(
                     "Check the exit code of the command (0-255)".to_string(),
                 )),
-                insert_text: Some("exit_code == ${1:0}".to_string()),
+                insert_text: Some("exit_code ${1|==,!=|} ${2:0}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
@@ -244,7 +240,9 @@ impl CompletionProvider {
                 documentation: Some(async_lsp::lsp_types::Documentation::String(
                     "Check the contents of a file".to_string(),
                 )),
-                insert_text: Some(format!("file \"${{1:path}}\" {{\n{inner_indent}${{2:contains \"text\"}}\n{indent_str}}}", inner_indent=inner_indent, indent_str=indent_str)),
+                insert_text: Some(
+                    "file \"${1:path}\" ${2|contains,==,!=,matches,exists|}".to_string(),
+                ),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
@@ -255,7 +253,7 @@ impl CompletionProvider {
                 documentation: Some(async_lsp::lsp_types::Documentation::String(
                     "Check how long the command took to execute".to_string(),
                 )),
-                insert_text: Some("duration < ${1:1s}".to_string()),
+                insert_text: Some("duration ${1|<,<=,>,>=|} ${2:1s}".to_string()),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
@@ -522,6 +520,92 @@ mod tests {
 
         // Should have completions for assertion types
         assert!(items.iter().any(|i| i.label == "stdout"));
+    }
+
+    #[test]
+    fn test_assertion_completions_stdout_stderr_operators() {
+        let provider = CompletionProvider::new();
+        let context = CompletionContextInfo {
+            context_type: CompletionContextType::AfterExpect,
+            current_line: "ASSERT ".to_string(),
+            prefix: "ASSERT ".to_string(),
+            indent: 0,
+        };
+
+        let items = provider.assertion_completions(&context);
+
+        let stdout = items.iter().find(|i| i.label == "stdout").unwrap();
+        assert_eq!(
+            stdout.insert_text.as_ref().unwrap(),
+            "stdout ${1|contains,==,!=,matches|} \"${2:text}\""
+        );
+
+        let stderr = items.iter().find(|i| i.label == "stderr").unwrap();
+        assert_eq!(
+            stderr.insert_text.as_ref().unwrap(),
+            "stderr ${1|contains,==,!=,matches|} \"${2:text}\""
+        );
+    }
+
+    #[test]
+    fn test_assertion_completions_exit_code_operators() {
+        let provider = CompletionProvider::new();
+        let context = CompletionContextInfo {
+            context_type: CompletionContextType::AfterExpect,
+            current_line: "ASSERT ".to_string(),
+            prefix: "ASSERT ".to_string(),
+            indent: 0,
+        };
+
+        let items = provider.assertion_completions(&context);
+        let exit_code = items.iter().find(|i| i.label == "exit_code").unwrap();
+
+        assert_eq!(
+            exit_code.insert_text.as_ref().unwrap(),
+            "exit_code ${1|==,!=|} ${2:0}"
+        );
+    }
+
+    #[test]
+    fn test_assertion_completions_file_no_curly_braces() {
+        let provider = CompletionProvider::new();
+        let context = CompletionContextInfo {
+            context_type: CompletionContextType::AfterExpect,
+            current_line: "ASSERT ".to_string(),
+            prefix: "ASSERT ".to_string(),
+            indent: 0,
+        };
+
+        let items = provider.assertion_completions(&context);
+        let file = items.iter().find(|i| i.label == "file").unwrap();
+
+        let insert_text = file.insert_text.as_ref().unwrap();
+        assert_eq!(
+            insert_text,
+            "file \"${1:path}\" ${2|contains,==,!=,matches,exists|}"
+        );
+        // Should not have block syntax (newlines or nested braces for file content)
+        assert!(!insert_text.contains('\n'));
+        assert!(!insert_text.contains("{\n"));
+    }
+
+    #[test]
+    fn test_assertion_completions_duration_all_operators() {
+        let provider = CompletionProvider::new();
+        let context = CompletionContextInfo {
+            context_type: CompletionContextType::AfterExpect,
+            current_line: "ASSERT ".to_string(),
+            prefix: "ASSERT ".to_string(),
+            indent: 0,
+        };
+
+        let items = provider.assertion_completions(&context);
+        let duration = items.iter().find(|i| i.label == "duration").unwrap();
+
+        let insert_text = duration.insert_text.as_ref().unwrap();
+        assert_eq!(insert_text, "duration ${1|<,<=,>,>=|} ${2:1s}");
+        assert!(insert_text.contains("<="));
+        assert!(insert_text.contains(">="));
     }
 
     #[test]
