@@ -29,6 +29,14 @@ export async function activate(context: ExtensionContext) {
     clientOptions
   );
 
+  client.onDidChangeState((event) => {
+    if (event.newState === 1) { // State.Stopped
+      window.showErrorMessage(
+        "Hone language server stopped. Ensure 'hone' is installed and available in your PATH."
+      );
+    }
+  });
+
   try {
     await client.start();
   } catch (error) {
