@@ -89,8 +89,11 @@ pub async fn run_lsp_server() -> Result<()> {
     // Initialize logging first
     init_logging().context("Failed to initialize logging")?;
 
-    // Log version information on startup
+    // Log version and environment information on startup
     tracing::info!("Starting Hone LSP server v{}", env!("CARGO_PKG_VERSION"));
+    tracing::info!("Process ID: {}", std::process::id());
+    tracing::info!("Current directory: {:?}", std::env::current_dir().ok());
+    tracing::info!("Executable path: {:?}", std::env::current_exe().ok());
 
     // Create the main loop and setup router
     let (mainloop, _client) = async_lsp::MainLoop::new_server(|client: ClientSocket| {
