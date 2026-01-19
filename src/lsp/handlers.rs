@@ -183,6 +183,16 @@ pub fn handle_did_save(_state: &mut ServerState, params: DidSaveTextDocumentPara
     tracing::info!("Document saved: {}", uri);
 }
 
+pub fn handle_did_change_watched_files(
+    _state: &mut ServerState,
+    params: DidChangeWatchedFilesParams,
+) {
+    tracing::debug!("Watched files changed: {} file(s)", params.changes.len());
+    for change in &params.changes {
+        tracing::debug!("  {:?}: {}", change.typ, change.uri);
+    }
+}
+
 pub fn handle_completion(
     state: &ServerState,
     params: CompletionParams,
@@ -490,6 +500,36 @@ mod tests {
 
         // State should still have the document (didSave doesn't remove it)
         assert_eq!(state.get_document(&uri), Some(&text));
+    }
+
+    #[test]
+    fn test_handle_did_change_watched_files() {
+        let mut state = ServerState::new();
+        let uri = create_test_uri("/test.hone");
+
+        let params = DidChangeWatchedFilesParams {
+            changes: vec![
+                FileEvent {
+                    uri: uri.clone(),
+                    typ: FileChangeType::CREATED,
+                },
+                FileEvent {
+                    uri: uri.clone(),
+                    typ: FileChangeType::CHANGED,
+                },
+            ],
+        };
+
+        handle_did_change_watched_files(&mut state, params);
+    }
+
+    #[test]
+    fn test_handle_did_change_watched_files_empty() {
+        let mut state = ServerState::new();
+
+        let params = DidChangeWatchedFilesParams { changes: vec![] };
+
+        handle_did_change_watched_files(&mut state, params);
     }
 
     #[test]
