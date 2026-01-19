@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  /* Base Neutrals */
-  --color-charcoal: #1E1E2E;
-  --color-slate: #2E3440;
+  /* Dark theme base */
+  --color-bg: #000000;
+  --color-surface: #0a0a0a;
+  --color-surface-elevated: #141414;
+  --color-border: #262626;
+  --color-border-subtle: #1a1a1a;
+  
+  /* Text colors */
+  --color-text: #fafafa;
+  --color-text-muted: #a1a1a1;
+  --color-text-subtle: #737373;
   
   /* Accent Colors */
-  --color-electric-blue: #61AFEF;
-  --color-spring-green: #98C379;
-  --color-coral-red: #E06C75;
-  --color-amber: #E5C07B;
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-green: #22c55e;
+  --color-amber: #f59e0b;
+  --color-red: #ef4444;
   
-  /* Secondary Support */
-  --color-soft-violet: #C678DD;
-  --color-steel-blue: #56B6C2;
+  /* Syntax highlighting colors */
+  --color-electric-blue: #60a5fa;
+  --color-spring-green: #4ade80;
+  --color-soft-violet: #a78bfa;
+  --color-coral-red: #f87171;
+  --color-steel-blue: #64748b;
   
-  /* Light mode colors */
-  --color-light-bg: #FAFAFA;
-  --color-light-surface: #FFFFFF;
-  --color-light-text: #1E1E2E;
-  --color-light-text-muted: #6B7280;
-  --color-light-border: #E5E7EB;
+  /* Gradients - subtle warm tones */
+  --color-gradient-start: #22c55e;
+  --color-gradient-end: #14b8a6;
   
   /* Font families */
   --font-sans: 'Source Sans 3', 'Source Sans Pro', ui-sans-serif, system-ui, sans-serif;
@@ -34,7 +43,7 @@
   
   body {
     font-family: var(--font-sans);
-    @apply bg-light-bg text-light-text;
+    @apply bg-bg text-text;
   }
   
   code, pre {
@@ -53,27 +62,46 @@
   .animate-bounce-slow {
     animation: bounce-slow 3s ease-in-out infinite;
   }
+  
+  @keyframes gradient-shift {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+  
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-200;
-    @apply bg-electric-blue text-white;
-    @apply hover:bg-electric-blue/90 hover:scale-105 hover:shadow-lg hover:shadow-electric-blue/25;
-    @apply active:scale-100;
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200;
+    @apply bg-text text-bg;
+    @apply hover:bg-text/90;
   }
   
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-200;
-    @apply border border-light-border bg-transparent;
-    @apply hover:bg-slate/10 hover:border-electric-blue;
-    @apply hover:scale-105;
-    @apply active:scale-100;
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200;
+    @apply border border-border bg-transparent text-text;
+    @apply hover:bg-surface-elevated hover:border-border;
   }
   
   .card {
-    @apply p-6 rounded-xl;
-    @apply bg-light-surface;
-    @apply border border-light-border;
+    @apply p-6 rounded-2xl;
+    @apply bg-surface-elevated;
+    @apply border border-border;
+  }
+  
+  .text-gradient {
+    @apply bg-gradient-to-r from-gradient-start to-gradient-end bg-clip-text text-transparent;
+  }
+  
+  .glow {
+    box-shadow: 0 0 60px -15px rgba(34, 197, 94, 0.25);
   }
 }
