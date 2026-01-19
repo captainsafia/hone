@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use hone::{run_lsp_server, run_tests, OutputFormat, RunnerOptions};
 
 mod setup;
+mod update;
 
 #[derive(Parser)]
 #[command(name = "hone")]
@@ -73,11 +74,26 @@ To remove the configuration manually:
         /// Editor(s) to configure (e.g., vscode, neovim, vim)
         editors: Vec<String>,
     },
+    /// Update Hone to a newer version
+    Update {
+        /// Target version to install (default: latest)
+        #[arg(value_name = "VERSION")]
+        version: Option<String>,
+    },
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+
+    let skip_update_check = matches!(
+        cli.command,
+        Some(Commands::Lsp) | Some(Commands::Update { .. })
+    );
+
+    if !skip_update_check {
+        update::spawn_update_check();
+    }
 
     match cli.command {
         Some(Commands::Lsp) => {
@@ -87,16 +103,21 @@ async fn main() -> anyhow::Result<()> {
         Some(Commands::Setup { editors }) => {
             if editors.is_empty() {
                 setup::list_editors();
-                Ok(())
             } else {
                 match setup::setup_editors(editors) {
-                    Ok(()) => Ok(()),
+                    Ok(()) => {}
                     Err(e) => {
                         eprintln!("Error: {}", e);
                         std::process::exit(2);
                     }
                 }
             }
+            update::show_update_notification_if_available();
+            Ok(())
+        }
+        Some(Commands::Update { version }) => {
+            update::perform_update(version).await?;
+            Ok(())
         }
         Some(Commands::Run {
             patterns,
@@ -112,6 +133,7 @@ async fn main() -> anyhow::Result<()> {
                 output_format,
             };
             let results = run_tests(patterns, options).await?;
+            update::show_update_notification_if_available();
             std::process::exit(if results.has_failures() { 1 } else { 0 });
         }
         None => {
@@ -122,6 +144,7 @@ async fn main() -> anyhow::Result<()> {
                 output_format: cli.output_format,
             };
             let results = run_tests(cli.patterns, options).await?;
+            update::show_update_notification_if_available();
             std::process::exit(if results.has_failures() { 1 } else { 0 });
         }
     }
