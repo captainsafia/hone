@@ -1,0 +1,32 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Sidebar from '../components/Sidebar.astro';
+
+interface Props {
+  title: string;
+  currentPath: string;
+  description?: string;
+}
+
+const { title, currentPath, description } = Astro.props;
+---
+
+<BaseLayout title={title} description={description}>
+  <Header currentPath={currentPath} />
+  
+  <main class="flex-1 pt-24">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="flex gap-12">
+        <Sidebar currentPath={currentPath} />
+        
+        <article class="flex-1 min-w-0 max-w-none">
+          <slot />
+        </article>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</BaseLayout>
