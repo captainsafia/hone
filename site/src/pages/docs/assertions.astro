@@ -1,0 +1,209 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+
+const stdoutAssertions = `# Contains - check if output includes text
+ASSERT stdout contains "success"
+ASSERT stdout contains "Hello, World!"
+
+# Equals - exact match
+ASSERT stdout == "exact output"
+ASSERT stdout != "not this"
+
+# Regex - pattern matching
+ASSERT stdout matches /version \\d+\\.\\d+\\.\\d+/
+ASSERT stdout matches /hello world/i  # case insensitive`;
+
+const stderrAssertions = `# Same operators work for stderr
+ASSERT stderr contains "warning"
+ASSERT stderr == ""
+ASSERT stderr matches /error: .*/`;
+
+const rawOutput = `# Access raw output with ANSI codes preserved
+ASSERT stdout.raw contains "\\x1b[32m"`;
+
+const exitCodeAssertions = `# Check exit status
+ASSERT exit_code == 0
+ASSERT exit_code != 0
+ASSERT exit_code == 42`;
+
+const durationAssertions = `# Time constraints
+ASSERT duration < 500ms
+ASSERT duration <= 2s
+ASSERT duration < 1m`;
+
+const fileExists = `# Check file existence
+ASSERT file "output.txt" exists
+ASSERT file "/tmp/cache.json" exists`;
+
+const fileContent = `# Check file contents
+ASSERT file "config.yaml" contains "enabled: true"
+ASSERT file "output.json" == '{"status": "ok"}'
+ASSERT file "version.txt" matches /v\\d+\\.\\d+/`;
+
+const namedTargets = `RUN compile: gcc main.c -o main
+RUN test: ./main --test
+
+# Reference specific commands
+ASSERT compile.exit_code == 0
+ASSERT compile.stdout contains "compiled"
+ASSERT compile.duration < 30s
+
+ASSERT test.exit_code == 0
+ASSERT test.stdout contains "PASSED"`;
+---
+
+<BaseLayout title="Assertions">
+  <Header currentPath="/docs/assertions" />
+  
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="flex gap-12">
+        <Sidebar currentPath="/docs/assertions" />
+        
+        <article class="flex-1 min-w-0 max-w-none">
+          <h1 class="text-3xl md:text-4xl font-bold mb-8">Assertions</h1>
+          
+          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+            Hone provides a rich set of assertions for verifying command output, exit codes, timing, and file contents.
+          </p>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Output Assertions</h2>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">stdout</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Assert on the standard output of the most recent (or named) command:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={stdoutAssertions} />
+          </div>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">stderr</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Assert on the standard error output:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={stderrAssertions} />
+          </div>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Raw Output</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            By default, ANSI escape codes are stripped from output. Use <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">.raw</code> to preserve them:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={rawOutput} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Exit Code Assertions</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Verify the exit status of commands:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={exitCodeAssertions} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Duration Assertions</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Check how long a command took to execute. Supports <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ms</code>, <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">s</code>, <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">m</code>, and <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">h</code> units:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={durationAssertions} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">File Assertions</h2>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Existence</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Check if a file exists:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={fileExists} />
+          </div>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Content</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Assert on file contents using the same operators as stdout:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={fileContent} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Named Run Targets</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            When you have multiple RUN commands, use named runs to assert on specific ones:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={namedTargets} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Assertion Operators</h2>
+          <div class="overflow-x-auto mb-8">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-light-border dark:border-slate">
+                  <th class="text-left py-3 pr-4 font-semibold">Operator</th>
+                  <th class="text-left py-3 pr-4 font-semibold">Description</th>
+                  <th class="text-left py-3 font-semibold">Example</th>
+                </tr>
+              </thead>
+              <tbody class="text-light-text-muted dark:text-white/70">
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">contains</td>
+                  <td class="py-3 pr-4">Substring match</td>
+                  <td class="py-3 font-mono text-xs">stdout contains "ok"</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">==</td>
+                  <td class="py-3 pr-4">Exact equality</td>
+                  <td class="py-3 font-mono text-xs">exit_code == 0</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">!=</td>
+                  <td class="py-3 pr-4">Not equal</td>
+                  <td class="py-3 font-mono text-xs">stderr != ""</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">matches</td>
+                  <td class="py-3 pr-4">Regex pattern</td>
+                  <td class="py-3 font-mono text-xs">stdout matches /v\d+/</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">exists</td>
+                  <td class="py-3 pr-4">File exists</td>
+                  <td class="py-3 font-mono text-xs">file "x.txt" exists</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">&lt;</td>
+                  <td class="py-3 pr-4">Less than</td>
+                  <td class="py-3 font-mono text-xs">duration &lt; 5s</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">&lt;=</td>
+                  <td class="py-3 pr-4">Less than or equal</td>
+                  <td class="py-3 font-mono text-xs">duration &lt;= 10s</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="mt-12 p-6 rounded-xl bg-electric-blue/10 border border-electric-blue/20">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+              <svg class="w-5 h-5 text-electric-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              Next Steps
+            </h3>
+            <p class="text-light-text-muted dark:text-white/70">
+              Learn about configuration options in the <a href="/docs/configuration" class="text-electric-blue hover:underline">Configuration</a> guide.
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</BaseLayout>

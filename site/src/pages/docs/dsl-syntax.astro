@@ -1,0 +1,184 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+
+const pragmaExample = `#! shell: /bin/zsh
+#! env: MY_VAR=value
+#! timeout: 60s`;
+
+const testExample = `TEST "descriptive test name"
+
+RUN some-command
+ASSERT exit_code == 0`;
+
+const runExample = `# Basic command
+RUN mycli init
+
+# Named run for later reference
+RUN build: mycli build --release
+
+# Chain commands
+RUN cd src && make build`;
+
+const envExample = `# Set for subsequent commands in this test
+ENV API_KEY=test123
+ENV DEBUG=true
+
+RUN mycli connect`;
+
+const assertExample = `# Output assertions
+ASSERT stdout contains "success"
+ASSERT stderr == ""
+ASSERT stdout matches /version \\d+/
+
+# Exit code
+ASSERT exit_code == 0
+ASSERT exit_code != 1
+
+# Timing
+ASSERT duration < 5s
+
+# Files
+ASSERT file "output.txt" exists
+ASSERT file "config.json" contains "enabled"`;
+
+const namedRunExample = `RUN compile: gcc main.c -o main
+RUN execute: ./main
+
+ASSERT compile.exit_code == 0
+ASSERT compile.duration < 10s
+ASSERT execute.stdout contains "Hello"`;
+
+const commentExample = `# This is a comment
+TEST "example"
+
+# Comments can appear anywhere
+RUN echo "test"  # But not inline`;
+---
+
+<BaseLayout title="DSL Syntax">
+  <Header currentPath="/docs/dsl-syntax" />
+  
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="flex gap-12">
+        <Sidebar currentPath="/docs/dsl-syntax" />
+        
+        <article class="flex-1 min-w-0 max-w-none">
+          <h1 class="text-3xl md:text-4xl font-bold mb-8">DSL Syntax</h1>
+          
+          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+            Hone uses a simple, line-oriented domain-specific language (DSL) for writing tests. This page covers all available syntax elements.
+          </p>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Pragmas</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Pragmas are file-level configuration directives that appear at the top of the file. They start with <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">#!</code>.
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={pragmaExample} />
+          </div>
+          
+          <div class="overflow-x-auto mb-8">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-light-border dark:border-slate">
+                  <th class="text-left py-3 pr-4 font-semibold">Pragma</th>
+                  <th class="text-left py-3 pr-4 font-semibold">Description</th>
+                </tr>
+              </thead>
+              <tbody class="text-light-text-muted dark:text-white/70">
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">shell:</td>
+                  <td class="py-3">Path to the shell executable (default: <code>/bin/sh</code>)</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">env:</td>
+                  <td class="py-3">Set environment variable for all tests in the file</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">timeout:</td>
+                  <td class="py-3">Maximum execution time per command (e.g., <code>30s</code>, <code>5m</code>)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">TEST Blocks</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">TEST</code> keyword starts a new test block. Tests share the same shell session but have isolated ENV variables.
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={testExample} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">RUN Commands</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">RUN</code> keyword executes a shell command. Commands can optionally be named for later reference in assertions.
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={runExample} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">ENV Statements</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ENV</code> keyword sets environment variables for subsequent commands within the current test.
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={envExample} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">ASSERT Statements</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ASSERT</code> keyword verifies conditions about command output, exit codes, timing, or files.
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={assertExample} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Named Runs</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Named runs allow you to reference specific commands in assertions using dot notation:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={namedRunExample} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Comments</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Lines starting with <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">#</code> (but not <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">#!</code>) are comments:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={commentExample} />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">String Literals</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Hone supports both single and double quoted strings:
+          </p>
+          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-8">
+            <li><strong>Double quotes</strong> — Support escape sequences: <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">"hello\nworld"</code></li>
+            <li><strong>Single quotes</strong> — Literal strings: <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">'hello\n'</code> contains backslash-n</li>
+          </ul>
+          
+          <div class="mt-12 p-6 rounded-xl bg-electric-blue/10 border border-electric-blue/20">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+              <svg class="w-5 h-5 text-electric-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              Next Steps
+            </h3>
+            <p class="text-light-text-muted dark:text-white/70">
+              Learn about all available assertion types in the <a href="/docs/assertions" class="text-electric-blue hover:underline">Assertions</a> reference.
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</BaseLayout>

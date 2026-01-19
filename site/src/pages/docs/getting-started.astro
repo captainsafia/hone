@@ -1,0 +1,150 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+
+const basicTest = `#! shell: /bin/bash
+
+TEST "my first test"
+
+RUN echo "Hello, World!"
+ASSERT exit_code == 0
+ASSERT stdout contains "Hello"`;
+
+const runTest = `hone run my-test.hone`;
+
+const outputExample = `Running my-test.hone...
+✓ my first test
+
+1 test passed`;
+
+const multipleTests = `#! shell: /bin/bash
+
+TEST "check version"
+
+RUN mycli --version
+ASSERT exit_code == 0
+ASSERT stdout matches /v\\d+\\.\\d+\\.\\d+/
+
+TEST "help command"
+
+RUN mycli --help
+ASSERT exit_code == 0
+ASSERT stdout contains "Usage:"
+
+TEST "create file"
+
+RUN mycli create output.txt
+ASSERT exit_code == 0
+ASSERT file "output.txt" exists`;
+
+const runMultiple = `# Run a single file
+hone run tests/basic.hone
+
+# Run multiple files
+hone run tests/*.hone
+
+# Run all .hone files in a directory
+hone run tests/`;
+
+const envExample = `TEST "with environment variables"
+
+ENV API_KEY=test123
+ENV DEBUG=true
+RUN mycli connect
+ASSERT exit_code == 0`;
+---
+
+<BaseLayout title="Getting Started">
+  <Header currentPath="/docs/getting-started" />
+  
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="flex gap-12">
+        <Sidebar currentPath="/docs/getting-started" />
+        
+        <article class="flex-1 min-w-0 max-w-none">
+          <h1 class="text-3xl md:text-4xl font-bold mb-8">Getting Started</h1>
+          
+          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+            Learn how to write and run your first Hone test in just a few minutes.
+          </p>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Your First Test</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Create a new file called <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">my-test.hone</code> with the following content:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={basicTest} filename="my-test.hone" />
+          </div>
+          
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Let's break down what each line does:
+          </p>
+          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-8">
+            <li><code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">#! shell: /bin/bash</code> — Sets the shell to use for running commands</li>
+            <li><code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">TEST "my first test"</code> — Declares a test with a descriptive name</li>
+            <li><code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">RUN echo "Hello, World!"</code> — Executes a shell command</li>
+            <li><code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ASSERT exit_code == 0</code> — Verifies the command succeeded</li>
+            <li><code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ASSERT stdout contains "Hello"</code> — Checks the output contains expected text</li>
+          </ul>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Running Tests</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Run your test using the Hone CLI:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={runTest} lang="bash" />
+          </div>
+          
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            You should see output like:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={outputExample} lang="bash" />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Multiple Tests</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            A test file can contain multiple tests. Each test runs in the same shell session, so state like working directory and variables persist:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={multipleTests} filename="cli-tests.hone" />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Running Multiple Files</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Hone can run multiple test files at once:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={runMultiple} lang="bash" />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Environment Variables</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Use the <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ENV</code> statement to set environment variables for your tests:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={envExample} />
+          </div>
+          
+          <div class="mt-12 p-6 rounded-xl bg-electric-blue/10 border border-electric-blue/20">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+              <svg class="w-5 h-5 text-electric-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              Next Steps
+            </h3>
+            <p class="text-light-text-muted dark:text-white/70">
+              Learn about all available commands and syntax in the <a href="/docs/dsl-syntax" class="text-electric-blue hover:underline">DSL Syntax</a> reference.
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</BaseLayout>

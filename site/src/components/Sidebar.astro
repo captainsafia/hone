@@ -1,0 +1,103 @@
+---
+interface Props {
+  currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+
+const sections = [
+  {
+    title: 'Getting Started',
+    items: [
+      { href: '/docs/installation', label: 'Installation' },
+      { href: '/docs/getting-started', label: 'Getting Started' },
+    ]
+  },
+  {
+    title: 'Reference',
+    items: [
+      { href: '/docs/dsl-syntax', label: 'DSL Syntax' },
+      { href: '/docs/assertions', label: 'Assertions' },
+      { href: '/docs/configuration', label: 'Configuration' },
+    ]
+  },
+];
+---
+
+<aside class="w-64 shrink-0 hidden lg:block">
+  <nav class="sticky top-24 space-y-8">
+    {sections.map((section) => (
+      <div>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-light-text-muted dark:text-white/50 mb-3">
+          {section.title}
+        </h3>
+        <ul class="space-y-1">
+          {section.items.map((item) => (
+            <li>
+              <a
+                href={item.href}
+                class:list={[
+                  'block px-3 py-2 rounded-lg text-sm transition-colors',
+                  currentPath === item.href
+                    ? 'bg-electric-blue/10 text-electric-blue font-medium'
+                    : 'text-light-text-muted dark:text-white/70 hover:bg-light-border dark:hover:bg-slate hover:text-light-text dark:hover:text-white'
+                ]}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </nav>
+</aside>
+
+<!-- Mobile sidebar toggle -->
+<div class="lg:hidden mb-6">
+  <button
+    id="docs-sidebar-toggle"
+    class="flex items-center gap-2 text-sm font-medium text-light-text-muted dark:text-white/70"
+  >
+    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+    Documentation Menu
+  </button>
+  
+  <nav id="docs-sidebar-mobile" class="hidden mt-4 p-4 rounded-xl bg-light-surface dark:bg-slate border border-light-border dark:border-transparent">
+    {sections.map((section) => (
+      <div class="mb-6 last:mb-0">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-light-text-muted dark:text-white/50 mb-3">
+          {section.title}
+        </h3>
+        <ul class="space-y-1">
+          {section.items.map((item) => (
+            <li>
+              <a
+                href={item.href}
+                class:list={[
+                  'block px-3 py-2 rounded-lg text-sm transition-colors',
+                  currentPath === item.href
+                    ? 'bg-electric-blue/10 text-electric-blue font-medium'
+                    : 'text-light-text-muted dark:text-white/70 hover:bg-light-border dark:hover:bg-charcoal hover:text-light-text dark:hover:text-white'
+                ]}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </nav>
+</div>
+
+<script>
+  const toggle = document.getElementById('docs-sidebar-toggle');
+  const mobile = document.getElementById('docs-sidebar-mobile');
+  
+  toggle?.addEventListener('click', () => {
+    mobile?.classList.toggle('hidden');
+  });
+</script>

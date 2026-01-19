@@ -1,0 +1,246 @@
+---
+interface Props {
+  code: string;
+  lang?: string;
+  filename?: string;
+  showLineNumbers?: boolean;
+}
+
+const { code, lang = 'hone', filename, showLineNumbers = false } = Astro.props;
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function highlightHone(code: string): string {
+  const lines = code.split('\n');
+  return lines.map((line, index) => {
+    // Escape HTML first
+    let escaped = escapeHtml(line);
+    
+    // Tokenize and highlight
+    let result = '';
+    let i = 0;
+    
+    while (i < escaped.length) {
+      // Comments (but not pragmas)
+      if (escaped[i] === '#' && escaped[i + 1] !== '!') {
+        result += `<span class="text-steel-blue">${escaped.slice(i)}</span>`;
+        break;
+      }
+      
+      // Pragmas
+      if (escaped[i] === '#' && escaped[i + 1] === '!') {
+        const colonIdx = escaped.indexOf(':', i);
+        if (colonIdx !== -1) {
+          result += `<span class="text-soft-violet">${escaped.slice(i, colonIdx + 1)}</span>`;
+          result += `<span class="text-amber">${escaped.slice(colonIdx + 1)}</span>`;
+          break;
+        }
+      }
+      
+      // Double quoted strings
+      if (escaped[i] === '"') {
+        let j = i + 1;
+        while (j < escaped.length && escaped[j] !== '"') {
+          if (escaped[j] === '\\') j++;
+          j++;
+        }
+        result += `<span class="text-spring-green">${escaped.slice(i, j + 1)}</span>`;
+        i = j + 1;
+        continue;
+      }
+      
+      // Single quoted strings
+      if (escaped[i] === "'") {
+        let j = i + 1;
+        while (j < escaped.length && escaped[j] !== "'") {
+          if (escaped[j] === '\\') j++;
+          j++;
+        }
+        result += `<span class="text-spring-green">${escaped.slice(i, j + 1)}</span>`;
+        i = j + 1;
+        continue;
+      }
+      
+      // Regex
+      if (escaped[i] === '/' && i > 0 && /\s/.test(escaped[i - 1])) {
+        let j = i + 1;
+        while (j < escaped.length && escaped[j] !== '/') {
+          if (escaped[j] === '\\') j++;
+          j++;
+        }
+        // Include flags
+        while (j + 1 < escaped.length && /[gimsu]/.test(escaped[j + 1])) j++;
+        result += `<span class="text-coral-red">${escaped.slice(i, j + 1)}</span>`;
+        i = j + 1;
+        continue;
+      }
+      
+      // Keywords
+      const keywordMatch = escaped.slice(i).match(/^(TEST|RUN|ASSERT|ENV)\b/);
+      if (keywordMatch && (i === 0 || /\s/.test(escaped[i - 1]))) {
+        result += `<span class="text-electric-blue font-medium">${keywordMatch[1]}</span>`;
+        i += keywordMatch[1].length;
+        continue;
+      }
+      
+      // Assertion targets
+      const targetMatch = escaped.slice(i).match(/^(stdout|stderr|exit_code|duration|file)\b/);
+      if (targetMatch && (i === 0 || /[\s.]/.test(escaped[i - 1]))) {
+        result += `<span class="text-soft-violet">${targetMatch[1]}</span>`;
+        i += targetMatch[1].length;
+        continue;
+      }
+      
+      // Operators
+      const opMatch = escaped.slice(i).match(/^(contains|matches|exists|==|!=|&lt;=|&gt;=|&lt;|&gt;)/);
+      if (opMatch) {
+        result += `<span class="text-amber">${opMatch[1]}</span>`;
+        i += opMatch[1].length;
+        continue;
+      }
+      
+      // Numbers with units
+      const numMatch = escaped.slice(i).match(/^(\d+(\.\d+)?)(ms|s|m|h)?\b/);
+      if (numMatch && (i === 0 || /[\s=<>]/.test(escaped[i - 1]) || escaped.slice(i-4, i) === '&lt;' || escaped.slice(i-4, i) === '&gt;')) {
+        result += `<span class="text-amber">${numMatch[0]}</span>`;
+        i += numMatch[0].length;
+        continue;
+      }
+      
+      // Named runs (word:) at line start
+      if (i === 0 || (result.length > 0 && result.endsWith(' '))) {
+        const namedMatch = escaped.slice(i).match(/^(\w+)(:)/);
+        if (namedMatch && !escaped.slice(i).startsWith('#!')) {
+          result += `<span class="text-steel-blue">${namedMatch[1]}</span><span class="text-white/50">${namedMatch[2]}</span>`;
+          i += namedMatch[0].length;
+          continue;
+        }
+      }
+      
+      result += escaped[i];
+      i++;
+    }
+    
+    if (showLineNumbers) {
+      const lineNum = `<span class="text-white/30 select-none pr-4 inline-block w-8 text-right">${index + 1}</span>`;
+      return lineNum + result;
+    }
+    return result;
+  }).join('\n');
+}
+
+function highlightBash(code: string): string {
+  const lines = code.split('\n');
+  return lines.map(line => {
+    let escaped = escapeHtml(line);
+    
+    // Comments
+    if (escaped.trim().startsWith('#')) {
+      return `<span class="text-steel-blue">${escaped}</span>`;
+    }
+    
+    let result = '';
+    let i = 0;
+    
+    while (i < escaped.length) {
+      // Double quoted strings
+      if (escaped[i] === '"') {
+        let j = i + 1;
+        while (j < escaped.length && escaped[j] !== '"') {
+          if (escaped[j] === '\\') j++;
+          j++;
+        }
+        result += `<span class="text-spring-green">${escaped.slice(i, j + 1)}</span>`;
+        i = j + 1;
+        continue;
+      }
+      
+      // Single quoted strings
+      if (escaped[i] === "'") {
+        let j = i + 1;
+        while (j < escaped.length && escaped[j] !== "'") j++;
+        result += `<span class="text-spring-green">${escaped.slice(i, j + 1)}</span>`;
+        i = j + 1;
+        continue;
+      }
+      
+      // Commands
+      const cmdMatch = escaped.slice(i).match(/^(curl|sh|cargo|npm|hone|git|cd|echo)\b/);
+      if (cmdMatch && (i === 0 || /[\s|&;]/.test(escaped[i - 1]))) {
+        result += `<span class="text-electric-blue">${cmdMatch[1]}</span>`;
+        i += cmdMatch[1].length;
+        continue;
+      }
+      
+      // Flags
+      if (escaped[i] === '-' && (i === 0 || /\s/.test(escaped[i - 1]))) {
+        const flagMatch = escaped.slice(i).match(/^--?\w+/);
+        if (flagMatch) {
+          result += `<span class="text-amber">${flagMatch[0]}</span>`;
+          i += flagMatch[0].length;
+          continue;
+        }
+      }
+      
+      result += escaped[i];
+      i++;
+    }
+    
+    return result;
+  }).join('\n');
+}
+
+const highlightedCode = lang === 'hone' 
+  ? highlightHone(code) 
+  : lang === 'bash' || lang === 'sh'
+    ? highlightBash(code)
+    : escapeHtml(code);
+---
+
+<div class="relative group rounded-xl overflow-hidden bg-slate border border-light-border dark:border-slate/50">
+  {filename && (
+    <div class="flex items-center justify-between px-4 py-2 bg-charcoal/50 border-b border-slate/50">
+      <span class="text-sm text-white/60 font-mono">{filename}</span>
+    </div>
+  )}
+  <div class="relative">
+    <button
+      class="copy-btn absolute top-3 right-3 p-2 rounded-lg bg-charcoal/80 hover:bg-charcoal text-white/60 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+      data-code={code}
+      aria-label="Copy code"
+    >
+      <svg class="w-4 h-4 copy-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+      <svg class="w-4 h-4 check-icon hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+    </button>
+    <pre class="p-4 overflow-x-auto text-sm leading-relaxed"><code class="text-white/90" set:html={highlightedCode} /></pre>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const code = btn.getAttribute('data-code') || '';
+      await navigator.clipboard.writeText(code);
+      
+      const copyIcon = btn.querySelector('.copy-icon');
+      const checkIcon = btn.querySelector('.check-icon');
+      
+      copyIcon?.classList.add('hidden');
+      checkIcon?.classList.remove('hidden');
+      
+      setTimeout(() => {
+        copyIcon?.classList.remove('hidden');
+        checkIcon?.classList.add('hidden');
+      }, 2000);
+    });
+  });
+</script>

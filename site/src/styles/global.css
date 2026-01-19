@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+@theme {
+  /* Base Neutrals */
+  --color-charcoal: #1E1E2E;
+  --color-slate: #2E3440;
+  
+  /* Accent Colors */
+  --color-electric-blue: #61AFEF;
+  --color-spring-green: #98C379;
+  --color-coral-red: #E06C75;
+  --color-amber: #E5C07B;
+  
+  /* Secondary Support */
+  --color-soft-violet: #C678DD;
+  --color-steel-blue: #56B6C2;
+  
+  /* Light mode colors */
+  --color-light-bg: #FAFAFA;
+  --color-light-surface: #FFFFFF;
+  --color-light-text: #1E1E2E;
+  --color-light-text-muted: #6B7280;
+  --color-light-border: #E5E7EB;
+  
+  /* Font families */
+  --font-sans: 'Source Sans 3', 'Source Sans Pro', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    font-family: var(--font-sans);
+    @apply bg-light-bg text-light-text;
+  }
+  
+  code, pre {
+    font-family: var(--font-mono);
+  }
+  
+  @keyframes bounce-slow {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+  
+  .animate-bounce-slow {
+    animation: bounce-slow 3s ease-in-out infinite;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-200;
+    @apply bg-electric-blue text-white;
+    @apply hover:bg-electric-blue/90 hover:scale-105 hover:shadow-lg hover:shadow-electric-blue/25;
+    @apply active:scale-100;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-lg font-medium transition-all duration-200;
+    @apply border border-light-border bg-transparent;
+    @apply hover:bg-slate/10 hover:border-electric-blue;
+    @apply hover:scale-105;
+    @apply active:scale-100;
+  }
+  
+  .card {
+    @apply p-6 rounded-xl;
+    @apply bg-light-surface;
+    @apply border border-light-border;
+  }
+}

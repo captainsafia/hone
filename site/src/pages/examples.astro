@@ -1,0 +1,316 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import CodeBlock from '../components/CodeBlock.astro';
+
+const examples = [
+  {
+    title: 'Basic',
+    description: 'Simple command and file assertions to get started.',
+    filename: 'basic.hone',
+    code: `# Example hone test file
+
+#! shell: /bin/bash
+
+TEST "echo test"
+
+RUN echo: echo "hello world"
+ASSERT exit_code == 0
+ASSERT stdout contains "hello"
+ASSERT stdout contains "world"
+
+TEST "file creation"
+
+RUN echo "test content" > /tmp/hone-test-file.txt
+ASSERT exit_code == 0
+ASSERT file "/tmp/hone-test-file.txt" exists
+ASSERT file "/tmp/hone-test-file.txt" contains "test content"
+
+TEST "error handling"
+
+RUN false
+ASSERT exit_code != 0`
+  },
+  {
+    title: 'Assertions',
+    description: 'Comprehensive examples of all assertion types.',
+    filename: 'assertions.hone',
+    code: `# Comprehensive assertion examples
+
+#! shell: /bin/bash
+
+TEST "stdout contains assertion"
+
+RUN echo "Hello, World!"
+ASSERT stdout contains "Hello"
+ASSERT stdout contains "World"
+ASSERT stdout contains ","
+
+TEST "stdout equals assertion"
+
+RUN printf "exact output"
+ASSERT stdout == "exact output"
+
+TEST "stdout not equals assertion"
+
+RUN echo "some output"
+ASSERT stdout != "different output"
+
+TEST "stdout regex matching"
+
+RUN echo "Version 1.2.3"
+ASSERT stdout matches /Version \\d+\\.\\d+\\.\\d+/
+
+TEST "case insensitive regex"
+
+RUN echo "Hello World"
+ASSERT stdout matches /hello world/i
+
+TEST "exit code assertions"
+
+RUN true
+ASSERT exit_code == 0
+
+RUN false
+ASSERT exit_code != 0
+
+# Use subshell for exit to prevent killing the shell session
+RUN (exit 42)
+ASSERT exit_code == 42
+
+TEST "stderr capture"
+
+RUN sh -c 'echo "error message" >&2'
+ASSERT stderr contains "error message"
+
+TEST "named run targets"
+
+RUN first: echo "first command"
+RUN second: echo "second command"
+ASSERT first.stdout contains "first"
+ASSERT second.stdout contains "second"
+ASSERT first.exit_code == 0
+ASSERT second.exit_code == 0`
+  },
+  {
+    title: 'Environment',
+    description: 'Setting and using environment variables in tests.',
+    filename: 'environment.hone',
+    code: `# Environment variable tests
+
+#! shell: /bin/bash
+#! env: MY_VAR=hello
+
+TEST "environment from pragma"
+
+RUN echo $MY_VAR
+ASSERT exit_code == 0
+ASSERT stdout contains "hello"
+
+TEST "environment from ENV statement"
+
+ENV GREETING=world
+RUN echo $GREETING
+ASSERT exit_code == 0
+ASSERT stdout contains "world"
+
+TEST "environment variable expansion"
+
+ENV NAME=hone
+RUN echo "Testing $NAME framework"
+ASSERT stdout contains "Testing hone framework"
+
+TEST "multiple env vars"
+
+ENV FOO=bar
+ENV BAZ=qux
+RUN echo "$FOO $BAZ"
+ASSERT stdout contains "bar qux"`
+  },
+  {
+    title: 'Filesystem',
+    description: 'File existence and content assertions.',
+    filename: 'filesystem.hone',
+    code: `# Filesystem assertion examples
+
+#! shell: /bin/bash
+
+TEST "file exists assertion"
+
+RUN touch /tmp/hone-test-exists.txt
+ASSERT file "/tmp/hone-test-exists.txt" exists
+
+TEST "file content assertions"
+
+RUN echo "test content here" > /tmp/hone-test-content.txt
+ASSERT file "/tmp/hone-test-content.txt" exists
+ASSERT file "/tmp/hone-test-content.txt" contains "test content"
+ASSERT file "/tmp/hone-test-content.txt" contains "here"
+
+TEST "file exact match"
+
+RUN printf "exact file content" > /tmp/hone-test-exact.txt
+ASSERT file "/tmp/hone-test-exact.txt" == "exact file content"
+
+TEST "file regex match"
+
+RUN echo "Version: 2.0.1" > /tmp/hone-test-version.txt
+ASSERT file "/tmp/hone-test-version.txt" matches /Version: \\d+\\.\\d+\\.\\d+/
+
+TEST "directory operations"
+
+RUN mkdir -p /tmp/hone-test-dir
+RUN touch /tmp/hone-test-dir/nested-file.txt
+ASSERT file "/tmp/hone-test-dir/nested-file.txt" exists
+
+TEST "cleanup files"
+
+RUN rm -f /tmp/hone-test-exists.txt /tmp/hone-test-content.txt /tmp/hone-test-exact.txt /tmp/hone-test-version.txt
+RUN rm -rf /tmp/hone-test-dir
+ASSERT exit_code == 0`
+  },
+  {
+    title: 'Shell State',
+    description: 'Persistent shell sessions, variables, and working directories.',
+    filename: 'shell-state.hone',
+    code: `# Shell state persistence tests
+
+#! shell: /bin/bash
+
+TEST "working directory persists"
+
+RUN cd /tmp
+RUN pwd
+ASSERT stdout contains "/tmp"
+
+TEST "shell variables persist"
+
+RUN MY_SHELL_VAR="persistent value"
+RUN echo $MY_SHELL_VAR
+ASSERT stdout contains "persistent value"
+
+TEST "command chaining"
+
+RUN echo "step1" && echo "step2"
+ASSERT stdout contains "step1"
+ASSERT stdout contains "step2"
+
+TEST "pipeline commands"
+
+RUN echo "hello world" | tr 'a-z' 'A-Z'
+ASSERT stdout contains "HELLO WORLD"
+
+TEST "command substitution"
+
+RUN echo "Current shell: $(basename $SHELL)"
+ASSERT stdout contains "Current shell:"
+
+TEST "arithmetic in shell"
+
+RUN echo $((2 + 3))
+ASSERT stdout contains "5"
+
+TEST "conditional execution"
+
+RUN true && echo "success"
+ASSERT stdout contains "success"
+
+RUN false || echo "fallback"
+ASSERT stdout contains "fallback"`
+  },
+  {
+    title: 'Strings',
+    description: 'String literal handling and escape sequences.',
+    filename: 'strings.hone',
+    code: `# String literal and escape sequence tests
+
+#! shell: /bin/bash
+
+TEST "double quoted strings with escapes"
+
+RUN echo "line1\\nline2"
+ASSERT stdout contains "line1"
+
+TEST "single quoted strings are literal"
+
+RUN echo 'no escape: \\n stays as-is'
+# In the assertion, use \\\\n to match a literal backslash-n
+ASSERT stdout contains "\\\\n"
+
+TEST "tab escape sequence"
+
+RUN printf "col1\\tcol2"
+ASSERT stdout contains "col1"
+ASSERT stdout contains "col2"
+
+TEST "special characters in strings"
+
+RUN echo "hello 'world'"
+ASSERT stdout contains "hello 'world'"
+
+TEST "unicode characters"
+
+RUN echo "Unicode: ✓ ✗ → ←"
+ASSERT stdout contains "✓"
+ASSERT stdout contains "→"
+
+TEST "empty output handling"
+
+RUN printf ""
+ASSERT exit_code == 0
+
+TEST "multiline output"
+
+RUN printf "line1\\nline2\\nline3"
+ASSERT stdout contains "line1"
+ASSERT stdout contains "line2"
+ASSERT stdout contains "line3"`
+  }
+];
+---
+
+<BaseLayout title="Examples">
+  <Header currentPath="/examples" />
+  
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="text-center mb-16">
+        <h1 class="text-3xl md:text-4xl font-bold mb-4">Examples</h1>
+        <p class="text-lg text-light-text-muted dark:text-white/70 max-w-2xl mx-auto">
+          Real-world examples of Hone test files. Copy and adapt these for your own CLI tests.
+        </p>
+      </div>
+      
+      <div class="space-y-12">
+        {examples.map((example, index) => (
+          <section id={example.filename.replace('.hone', '')} class="scroll-mt-24">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+              <div>
+                <h2 class="text-2xl font-semibold">{example.title}</h2>
+                <p class="text-light-text-muted dark:text-white/70">{example.description}</p>
+              </div>
+              <span class="text-sm font-mono text-electric-blue">{example.filename}</span>
+            </div>
+            <CodeBlock code={example.code} filename={example.filename} />
+          </section>
+        ))}
+      </div>
+      
+      <div class="mt-16 p-6 rounded-xl bg-electric-blue/10 border border-electric-blue/20 text-center">
+        <h3 class="text-lg font-semibold mb-2">Ready to write your own tests?</h3>
+        <p class="text-light-text-muted dark:text-white/70 mb-4">
+          Get started with the documentation to learn all the features.
+        </p>
+        <a href="/docs/installation" class="btn-primary">
+          Read the Docs
+          <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</BaseLayout>
