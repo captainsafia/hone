@@ -178,6 +178,11 @@ pub fn handle_did_close(state: &mut ServerState, params: DidCloseTextDocumentPar
     state.close_document(&uri);
 }
 
+pub fn handle_did_save(_state: &mut ServerState, params: DidSaveTextDocumentParams) {
+    let uri = params.text_document.uri;
+    tracing::info!("Document saved: {}", uri);
+}
+
 pub fn handle_completion(
     state: &ServerState,
     params: CompletionParams,
@@ -466,6 +471,25 @@ mod tests {
         handle_did_close(&mut state, params);
 
         assert_eq!(state.get_document(&uri), None);
+    }
+
+    #[test]
+    fn test_handle_did_save() {
+        let mut state = ServerState::new();
+        let uri = create_test_uri("/test.hone");
+        let text = "TEST \"example\"".to_string();
+
+        state.open_document(uri.clone(), text.clone());
+
+        let params = DidSaveTextDocumentParams {
+            text_document: TextDocumentIdentifier { uri: uri.clone() },
+            text: Some(text.clone()),
+        };
+
+        handle_did_save(&mut state, params);
+
+        // State should still have the document (didSave doesn't remove it)
+        assert_eq!(state.get_document(&uri), Some(&text));
     }
 
     #[test]
