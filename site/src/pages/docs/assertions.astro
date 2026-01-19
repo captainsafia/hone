@@ -1,8 +1,5 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
-import Sidebar from '../../components/Sidebar.astro';
+import DocsLayout from '../../layouts/DocsLayout.astro';
 import CodeBlock from '../../components/CodeBlock.astro';
 
 const stdoutAssertions = `# Contains - check if output includes text
@@ -56,15 +53,7 @@ ASSERT test.exit_code == 0
 ASSERT test.stdout contains "PASSED"`;
 ---
 
-<BaseLayout title="Assertions">
-  <Header currentPath="/docs/assertions" />
-  
-  <main class="flex-1">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div class="flex gap-12">
-        <Sidebar currentPath="/docs/assertions" />
-        
-        <article class="flex-1 min-w-0 max-w-none">
+<DocsLayout title="Assertions" currentPath="/docs/assertions">
           <h1 class="text-3xl md:text-4xl font-bold mb-8">Assertions</h1>
           
           <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
@@ -200,10 +189,4 @@ ASSERT test.stdout contains "PASSED"`;
               Learn about configuration options in the <a href="/docs/configuration" class="text-electric-blue hover:underline">Configuration</a> guide.
             </p>
           </div>
-        </article>
-      </div>
-    </div>
-  </main>
-  
-  <Footer />
-</BaseLayout>
+</DocsLayout>

@@ -1,8 +1,5 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
-import Sidebar from '../../components/Sidebar.astro';
+import DocsLayout from '../../layouts/DocsLayout.astro';
 import CodeBlock from '../../components/CodeBlock.astro';
 
 const pragmaExample = `#! shell: /bin/zsh
@@ -59,15 +56,7 @@ TEST "example"
 RUN echo "test"  # But not inline`;
 ---
 
-<BaseLayout title="DSL Syntax">
-  <Header currentPath="/docs/dsl-syntax" />
-  
-  <main class="flex-1">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div class="flex gap-12">
-        <Sidebar currentPath="/docs/dsl-syntax" />
-        
-        <article class="flex-1 min-w-0 max-w-none">
+<DocsLayout title="DSL Syntax" currentPath="/docs/dsl-syntax">
           <h1 class="text-3xl md:text-4xl font-bold mb-8">DSL Syntax</h1>
           
           <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
@@ -177,8 +166,4 @@ RUN echo "test"  # But not inline`;
           </div>
         </article>
       </div>
-    </div>
-  </main>
-  
-  <Footer />
-</BaseLayout>
+</DocsLayout>

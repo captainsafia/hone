@@ -1,18 +1,15 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
-import Sidebar from '../../components/Sidebar.astro';
+import DocsLayout from '../../layouts/DocsLayout.astro';
 import CodeBlock from '../../components/CodeBlock.astro';
 
-const installCmd = `# Install latest release
-curl https://i.safia.sh/captainsafia/hone | sh`;
+const installCmd = `# Install latest preview
+curl https://i.safia.sh/captainsafia/hone/preview | sh`;
 
 const specificVersion = `# Install a specific version
-curl https://i.safia.sh/captainsafia/hone/v1.0.0 | sh`;
+curl https://i.safia.sh/captainsafia/hone/v1.0.0-preview.e615276 | sh`;
 
-const prerelease = `# Install latest prerelease
-curl https://i.safia.sh/captainsafia/hone/preview | sh`;
+const stableRelease = `# Install latest stable release (when available)
+curl https://i.safia.sh/captainsafia/hone | sh`;
 
 const cargoInstall = `# Build and install from source
 cargo install --git https://github.com/captainsafia/hone`;
@@ -21,20 +18,19 @@ const verifyInstall = `# Verify installation
 hone --version`;
 ---
 
-<BaseLayout title="Installation">
-  <Header currentPath="/docs/installation" />
-  
-  <main class="flex-1 pt-24">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div class="flex gap-12">
-        <Sidebar currentPath="/docs/installation" />
-        
-        <article class="flex-1 min-w-0 max-w-none">
+<DocsLayout title="Installation" currentPath="/docs/installation">
           <h1 class="text-3xl md:text-4xl font-bold mb-8">Installation</h1>
           
           <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
             Hone is distributed as a single binary with no runtime dependencies. Choose your preferred installation method below.
           </p>
+          
+          <div class="mb-8 p-4 rounded-xl bg-amber/10 border border-amber/20">
+            <p class="text-amber font-medium mb-1">Preview Release</p>
+            <p class="text-text-muted text-sm">
+              Hone is currently in preview. APIs and features may change before the stable release.
+            </p>
+          </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Using the Installer (Recommended)</h2>
           <p class="text-light-text-muted dark:text-white/70 mb-4">
@@ -52,12 +48,12 @@ hone --version`;
             <CodeBlock code={specificVersion} lang="bash" />
           </div>
           
-          <h3 class="text-xl font-semibold mt-8 mb-4">Prerelease Versions</h3>
+          <h3 class="text-xl font-semibold mt-8 mb-4">Stable Releases</h3>
           <p class="text-light-text-muted dark:text-white/70 mb-4">
-            To get the latest prerelease with new features:
+            Once Hone reaches a stable release, you can install the latest stable version:
           </p>
           <div class="mb-6">
-            <CodeBlock code={prerelease} lang="bash" />
+            <CodeBlock code={stableRelease} lang="bash" />
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Building from Source</h2>
@@ -96,10 +92,4 @@ hone --version`;
               Ready to write your first test? Head over to the <a href="/docs/getting-started" class="text-electric-blue hover:underline">Getting Started</a> guide.
             </p>
           </div>
-        </article>
-      </div>
-    </div>
-  </main>
-  
-  <Footer />
-</BaseLayout>
+</DocsLayout>
