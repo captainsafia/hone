@@ -1,0 +1,230 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+
+const pragmaConfig = `#! shell: /bin/zsh
+#! env: NODE_ENV=test
+#! env: DEBUG=true
+#! timeout: 30s
+
+TEST "my test"
+RUN echo $NODE_ENV
+ASSERT stdout contains "test"`;
+
+const cliOptions = `# Use a custom shell
+hone run --shell /bin/zsh tests/
+
+# Show verbose output (useful for debugging)
+hone run --verbose tests/
+
+# Show version
+hone --version
+
+# Show help
+hone --help`;
+
+const lspStart = `# Start the language server
+hone lsp`;
+
+const setupEditor = `# Configure VS Code
+hone setup vscode
+
+# Configure Neovim
+hone setup neovim
+
+# Configure multiple editors
+hone setup vscode neovim
+
+# List supported editors
+hone setup`;
+
+const vscodeConfig = `{
+  "hone.languageServer": {
+    "enabled": true,
+    "command": "hone",
+    "args": ["lsp"]
+  }
+}`;
+
+const neovimConfig = `local lspconfig = require('lspconfig')
+local configs = require('lspconfig.configs')
+
+if not configs.hone then
+  configs.hone = {
+    default_config = {
+      cmd = { 'hone', 'lsp' },
+      filetypes = { 'hone' },
+      root_dir = lspconfig.util.root_pattern('.git'),
+      single_file_support = true,
+    },
+  }
+end
+
+lspconfig.hone.setup{}`;
+
+const exitCodes = `| Code | Meaning              |
+|------|----------------------|
+| 0    | All tests passed     |
+| 1    | One or more failures |`;
+---
+
+<BaseLayout title="Configuration">
+  <Header currentPath="/docs/configuration" />
+  
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="flex gap-12">
+        <Sidebar currentPath="/docs/configuration" />
+        
+        <article class="flex-1 min-w-0 max-w-none">
+          <h1 class="text-3xl md:text-4xl font-bold mb-8">Configuration</h1>
+          
+          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+            Hone can be configured through file pragmas, CLI options, and editor integration. This page covers all configuration options.
+          </p>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">File Pragmas</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Pragmas at the top of a <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">.hone</code> file configure that file's test execution:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={pragmaConfig} filename="tests/config-example.hone" />
+          </div>
+          
+          <div class="overflow-x-auto mb-8">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-light-border dark:border-slate">
+                  <th class="text-left py-3 pr-4 font-semibold">Pragma</th>
+                  <th class="text-left py-3 pr-4 font-semibold">Description</th>
+                  <th class="text-left py-3 font-semibold">Default</th>
+                </tr>
+              </thead>
+              <tbody class="text-light-text-muted dark:text-white/70">
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">shell:</td>
+                  <td class="py-3 pr-4">Shell executable path</td>
+                  <td class="py-3 font-mono">/bin/sh</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">env:</td>
+                  <td class="py-3 pr-4">Environment variable (can repeat)</td>
+                  <td class="py-3">—</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">timeout:</td>
+                  <td class="py-3 pr-4">Max execution time per command</td>
+                  <td class="py-3">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">CLI Options</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">hone</code> CLI accepts several options:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={cliOptions} lang="bash" />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Language Server (LSP)</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Hone includes a built-in Language Server that provides IDE features for <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">.hone</code> files.
+          </p>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Features</h3>
+          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-6">
+            <li><strong>Diagnostics</strong> — Real-time syntax and semantic checking</li>
+            <li><strong>Completion</strong> — Context-aware snippets for keywords and assertions</li>
+            <li><strong>Hover</strong> — Documentation for keywords and assertions</li>
+            <li><strong>Outline</strong> — Document structure view</li>
+            <li><strong>Formatting</strong> — Consistent indentation and spacing</li>
+            <li><strong>Semantic Highlighting</strong> — Rich syntax highlighting</li>
+          </ul>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Starting the Server</h3>
+          <div class="mb-6">
+            <CodeBlock code={lspStart} lang="bash" />
+          </div>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Editor Setup</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Use the <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">setup</code> command to automatically configure your editor:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={setupEditor} lang="bash" />
+          </div>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Manual VS Code Configuration</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Add to your <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">settings.json</code>:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={vscodeConfig} lang="bash" />
+          </div>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Manual Neovim Configuration</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            With <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">nvim-lspconfig</code>:
+          </p>
+          <div class="mb-8">
+            <CodeBlock code={neovimConfig} lang="bash" />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Exit Codes</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Hone uses the following exit codes:
+          </p>
+          <div class="overflow-x-auto mb-8">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-light-border dark:border-slate">
+                  <th class="text-left py-3 pr-4 font-semibold">Code</th>
+                  <th class="text-left py-3 font-semibold">Meaning</th>
+                </tr>
+              </thead>
+              <tbody class="text-light-text-muted dark:text-white/70">
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">0</td>
+                  <td class="py-3">All tests passed</td>
+                </tr>
+                <tr class="border-b border-light-border dark:border-slate/50">
+                  <td class="py-3 pr-4 font-mono">1</td>
+                  <td class="py-3">One or more tests failed</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">LSP Logs</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            LSP logs are written to platform-specific locations:
+          </p>
+          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-8">
+            <li><strong>Linux</strong> — <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">~/.local/state/hone/lsp.log</code></li>
+            <li><strong>macOS</strong> — <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">~/Library/Application Support/hone/lsp.log</code></li>
+            <li><strong>Windows</strong> — <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">%LOCALAPPDATA%\hone\lsp.log</code></li>
+          </ul>
+          
+          <div class="mt-12 p-6 rounded-xl bg-spring-green/10 border border-spring-green/20">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2 text-spring-green">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              You're all set!
+            </h3>
+            <p class="text-light-text-muted dark:text-white/70">
+              Check out the <a href="/examples" class="text-electric-blue hover:underline">Examples</a> page to see Hone in action with real-world test files.
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</BaseLayout>

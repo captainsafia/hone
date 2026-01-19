@@ -1,0 +1,105 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+
+const installCmd = `# Install latest release
+curl https://i.safia.sh/captainsafia/hone | sh`;
+
+const specificVersion = `# Install a specific version
+curl https://i.safia.sh/captainsafia/hone/v1.0.0 | sh`;
+
+const prerelease = `# Install latest prerelease
+curl https://i.safia.sh/captainsafia/hone/preview | sh`;
+
+const cargoInstall = `# Build and install from source
+cargo install --git https://github.com/captainsafia/hone`;
+
+const verifyInstall = `# Verify installation
+hone --version`;
+---
+
+<BaseLayout title="Installation">
+  <Header currentPath="/docs/installation" />
+  
+  <main class="flex-1">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="flex gap-12">
+        <Sidebar currentPath="/docs/installation" />
+        
+        <article class="flex-1 min-w-0 prose prose-lg dark:prose-invert max-w-none">
+          <h1 class="text-3xl md:text-4xl font-bold mb-8">Installation</h1>
+          
+          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+            Hone is distributed as a single binary with no runtime dependencies. Choose your preferred installation method below.
+          </p>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Using the Installer (Recommended)</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            The easiest way to install Hone is using the install script. It automatically detects your platform and downloads the appropriate binary.
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={installCmd} lang="bash" />
+          </div>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Specific Version</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            To install a specific version, append the version tag to the URL:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={specificVersion} lang="bash" />
+          </div>
+          
+          <h3 class="text-xl font-semibold mt-8 mb-4">Prerelease Versions</h3>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            To get the latest prerelease with new features:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={prerelease} lang="bash" />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Building from Source</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            If you have Rust installed, you can build Hone from source using Cargo:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={cargoInstall} lang="bash" />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Verify Installation</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            After installation, verify that Hone is available in your PATH:
+          </p>
+          <div class="mb-6">
+            <CodeBlock code={verifyInstall} lang="bash" />
+          </div>
+          
+          <h2 class="text-2xl font-semibold mt-12 mb-6">Supported Platforms</h2>
+          <p class="text-light-text-muted dark:text-white/70 mb-4">
+            Hone provides pre-built binaries for the following platforms:
+          </p>
+          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-8">
+            <li>Linux (x64, ARM64)</li>
+            <li>macOS (x64, ARM64 / Apple Silicon)</li>
+          </ul>
+          
+          <div class="mt-12 p-6 rounded-xl bg-electric-blue/10 border border-electric-blue/20">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+              <svg class="w-5 h-5 text-electric-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+              Next Steps
+            </h3>
+            <p class="text-light-text-muted dark:text-white/70">
+              Ready to write your first test? Head over to the <a href="/docs/getting-started" class="text-electric-blue hover:underline">Getting Started</a> guide.
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </main>
+  
+  <Footer />
+</BaseLayout>
