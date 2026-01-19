@@ -6,30 +6,27 @@ interface Props {
 const { currentPath = '' } = Astro.props;
 
 const navLinks = [
-  { href: '/', label: 'Home' },
   { href: '/docs/installation', label: 'Docs' },
   { href: '/examples', label: 'Examples' },
 ];
 ---
 
-<header class="sticky top-0 z-50 backdrop-blur-sm bg-light-bg/80 border-b border-light-border">
-  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex items-center h-16 gap-8">
-      <a href="/" class="font-semibold text-xl hover:text-electric-blue transition-colors">
+<header class="fixed top-0 left-0 right-0 z-50">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-4">
+    <div class="flex items-center h-14 px-4 rounded-full bg-surface/80 backdrop-blur-xl border border-border">
+      <a href="/" class="font-semibold text-lg text-text hover:text-accent transition-colors">
         Hone
       </a>
       
-      <nav class="hidden md:flex items-center gap-8">
+      <nav class="hidden md:flex items-center gap-6 ml-8">
         {navLinks.map((link) => (
           <a
             href={link.href}
             class:list={[
-              'text-sm font-medium transition-colors',
-              currentPath.startsWith(link.href) && link.href !== '/'
-                ? 'text-electric-blue'
-                : currentPath === link.href
-                  ? 'text-electric-blue'
-                  : 'text-light-text-muted hover:text-light-text'
+              'text-sm transition-colors',
+              currentPath.startsWith(link.href)
+                ? 'text-text'
+                : 'text-text-muted hover:text-text'
             ]}
           >
             {link.label}
@@ -37,12 +34,12 @@ const navLinks = [
         ))}
       </nav>
       
-      <div class="flex items-center gap-4 ml-auto">
+      <div class="flex items-center gap-3 ml-auto">
         <a
           href="https://github.com/captainsafia/hone/stargazers"
           target="_blank"
           rel="noopener noreferrer"
-          class="hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-light-text-muted hover:text-amber transition-colors"
+          class="hidden sm:inline-flex items-center gap-1.5 text-sm text-text-muted hover:text-amber transition-colors"
         >
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -53,7 +50,7 @@ const navLinks = [
           href="https://github.com/captainsafia/hone"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-light-text-muted hover:text-light-text transition-colors"
+          class="text-text-muted hover:text-text transition-colors"
           aria-label="GitHub"
         >
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -64,7 +61,7 @@ const navLinks = [
         <!-- Mobile menu button -->
         <button
           id="mobile-menu-btn"
-          class="md:hidden p-2 rounded-lg text-light-text-muted hover:bg-light-border transition-colors"
+          class="md:hidden p-2 rounded-lg text-text-muted hover:text-text transition-colors"
           aria-label="Open menu"
         >
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -76,18 +73,16 @@ const navLinks = [
   </div>
   
   <!-- Mobile menu -->
-  <div id="mobile-menu" class="hidden md:hidden border-t border-light-border">
-    <div class="px-4 py-4 space-y-2">
+  <div id="mobile-menu" class="hidden md:hidden mt-2 mx-4">
+    <div class="px-4 py-4 space-y-2 rounded-2xl bg-surface/80 backdrop-blur-xl border border-border">
       {navLinks.map((link) => (
         <a
           href={link.href}
           class:list={[
-            'block px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-            currentPath.startsWith(link.href) && link.href !== '/'
-              ? 'bg-electric-blue/10 text-electric-blue'
-              : currentPath === link.href
-                ? 'bg-electric-blue/10 text-electric-blue'
-                : 'text-light-text-muted hover:bg-light-border'
+            'block px-4 py-2 rounded-lg text-sm transition-colors',
+            currentPath.startsWith(link.href)
+              ? 'text-text bg-surface-elevated'
+              : 'text-text-muted hover:text-text hover:bg-surface-elevated'
           ]}
         >
           {link.label}
