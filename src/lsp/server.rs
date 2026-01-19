@@ -79,7 +79,8 @@ fn init_logging() -> Result<()> {
 
 pub async fn run_lsp_server() -> Result<()> {
     use async_lsp::lsp_types::notification::{
-        DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, Exit, Initialized,
+        DidChangeTextDocument, DidCloseTextDocument, DidOpenTextDocument, DidSaveTextDocument,
+        Exit, Initialized,
     };
     use async_lsp::lsp_types::request::{
         Completion, DocumentSymbolRequest, Formatting, HoverRequest, Initialize,
@@ -122,6 +123,10 @@ pub async fn run_lsp_server() -> Result<()> {
             })
             .notification::<DidCloseTextDocument>(|state, params| {
                 crate::lsp::handlers::handle_did_close(state, params);
+                ControlFlow::Continue(())
+            })
+            .notification::<DidSaveTextDocument>(|state, params| {
+                crate::lsp::handlers::handle_did_save(state, params);
                 ControlFlow::Continue(())
             })
             .request::<Completion, _>(|state, params| {
