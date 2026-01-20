@@ -34,6 +34,9 @@ jobs:
         with:
           shared-key: "linux-release"
 
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y pkg-config libssl-dev
+
       - name: Install cross-compilation tools
         uses: taiki-e/install-action@cross
 
