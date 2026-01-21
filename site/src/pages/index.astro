@@ -45,102 +45,88 @@ ASSERT file "dist/output.js" exists`;
 <BaseLayout title="Home">
   <Header currentPath="/" />
   
-  <main class="flex-1 pt-36">
+  <main class="flex-1">
     <!-- Hero Section -->
-    <section class="relative overflow-hidden">
-      <!-- Gradient orbs -->
-      <div class="absolute top-0 left-1/4 w-96 h-96 bg-gradient-start/15 rounded-full blur-3xl"></div>
-      <div class="absolute top-20 right-1/4 w-80 h-80 bg-gradient-end/15 rounded-full blur-3xl"></div>
-      
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32 relative">
-        <div class="text-center max-w-3xl mx-auto mb-16">
-          <!-- Mascot -->
-          <div class="mb-8">
-            <svg class="w-16 h-16 mx-auto animate-bounce-slow" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-              <!-- Window body -->
-              <rect x="3" y="6" width="26" height="20" rx="3" fill="#141414"/>
-              <rect x="3" y="6" width="26" height="20" rx="3" stroke="#262626" stroke-width="1"/>
-              <!-- Title bar -->
-              <rect x="3" y="6" width="26" height="5" rx="3" fill="#262626"/>
-              <rect x="3" y="9" width="26" height="2" fill="#262626"/>
-              <!-- Window buttons -->
-              <circle cx="7" cy="8.5" r="1.2" fill="#ef4444"/>
-              <circle cx="11" cy="8.5" r="1.2" fill="#f59e0b"/>
-              <circle cx="15" cy="8.5" r="1.2" fill="#22c55e"/>
-              <!-- Eyes -->
-              <circle cx="11" cy="17" r="2" fill="#3b82f6"/>
-              <circle cx="21" cy="17" r="2" fill="#3b82f6"/>
-              <!-- Eye shine -->
-              <circle cx="10" cy="16" r="0.7" fill="white"/>
-              <circle cx="20" cy="16" r="0.7" fill="white"/>
-              <!-- Happy smile -->
-              <path d="M13 21 Q16 24 19 21" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-            </svg>
-          </div>
-          
-          <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-            <span class="text-gradient">Integration testing</span>
-            <br />
-            <span class="text-text">for CLIs</span>
+    <section class="py-16 md:py-24">
+      <div class="max-w-[720px] mx-auto px-6">
+        <div class="mb-12">
+          <h1 class="text-3xl md:text-4xl font-semibold tracking-tight mb-4 text-text">
+            Integration testing for CLIs
           </h1>
-          <p class="text-lg md:text-xl text-text-muted mb-10 max-w-xl mx-auto leading-relaxed">
+          <p class="text-lg text-text-muted max-w-[480px] leading-relaxed">
             Write readable tests, run real commands, assert on output. Built for humans and AI agents.
           </p>
-          <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="/docs/installation" class="group btn-primary">
-              Get Started
-              <svg class="w-4 h-4 ml-2 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </a>
-            <a href="https://github.com/captainsafia/hone" target="_blank" rel="noopener noreferrer" class="group btn-secondary">
-              <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0012 2z"/>
-              </svg>
-              GitHub
-            </a>
-          </div>
         </div>
         
-        <!-- Code snippet -->
-        <div class="max-w-2xl mx-auto">
-          <div class="glow">
-            <CodeBlock code={heroCode} filename="test.hone" />
-          </div>
+        <div class="flex flex-wrap gap-3 mb-12">
+          <a href="/docs/installation" class="btn-primary">
+            Get Started
+          </a>
+          <a href="https://github.com/captainsafia/hone" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+            GitHub
+          </a>
         </div>
+        
+        <CodeBlock code={heroCode} filename="test.hone" />
       </div>
     </section>
     
     <!-- Install Section -->
-    <section class="py-16 border-t border-border">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row items-center gap-8">
-          <div class="flex-1 text-center md:text-left">
-            <h2 class="text-xl font-semibold mb-2 text-text">Install in seconds</h2>
-            <p class="text-text-muted">Single binary, no dependencies.</p>
+    <section class="py-12 border-t border-border">
+      <div class="max-w-[720px] mx-auto px-6">
+        <div class="flex flex-col md:flex-row md:items-center gap-6">
+          <div class="md:w-1/3">
+            <h2 class="text-lg font-medium text-text">Install</h2>
+            <p class="text-sm text-text-muted">Single binary, no dependencies.</p>
           </div>
-          <div class="flex-1 w-full">
-            <div class="font-mono text-sm rounded-xl bg-surface border border-border p-4 overflow-x-auto">
-              <div class="flex items-center gap-2">
-                <span class="text-green">$</span>
-                <span class="text-text-muted">curl https://i.safia.sh/captainsafia/hone/preview | sh</span>
-              </div>
+          <div class="md:flex-1">
+            <div class="group relative font-mono text-sm rounded-lg bg-surface border border-border p-3 overflow-x-auto">
+              <span class="text-green select-none">$ </span><span class="text-text-muted">curl https://i.safia.sh/captainsafia/hone/preview | sh</span>
+              <button
+                type="button"
+                id="install-copy-btn"
+                class="absolute top-1/2 -translate-y-1/2 right-2 p-1.5 rounded text-text-subtle hover:text-text hover:bg-surface-elevated opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-150"
+                aria-label="Copy install command"
+              >
+                <svg class="copy-icon w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <svg class="check-icon w-4 h-4 hidden text-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
       </div>
     </section>
     
+    <script is:inline>
+      const installBtn = document.getElementById('install-copy-btn');
+      const installCmd = 'curl https://i.safia.sh/captainsafia/hone/preview | sh';
+      installBtn.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(installCmd);
+        const copyIcon = installBtn.querySelector('.copy-icon');
+        const checkIcon = installBtn.querySelector('.check-icon');
+        copyIcon.classList.add('hidden');
+        checkIcon.classList.remove('hidden');
+        setTimeout(() => {
+          copyIcon.classList.remove('hidden');
+          checkIcon.classList.add('hidden');
+        }, 1500);
+      });
+    </script>
+    
     <!-- Features Section -->
-    <section class="py-24 border-t border-border">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl md:text-3xl font-bold mb-4 text-center text-text">Why Hone?</h2>
-        <p class="text-text-muted text-center mb-16 max-w-lg mx-auto">Built for developers who want simple, reliable CLI testing.</p>
+    <section class="py-16 border-t border-border">
+      <div class="max-w-[720px] mx-auto px-6">
+        <h2 class="text-xl font-semibold mb-2 text-text">Why Hone?</h2>
+        <p class="text-text-muted mb-10">Built for developers who want simple, reliable CLI testing.</p>
         
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6">
           {features.map((feature) => (
-            <div class="group">
-              <h3 class="font-medium mb-2 text-text group-hover:text-accent transition-colors">{feature.title}</h3>
+            <div>
+              <h3 class="font-medium mb-1 text-text">{feature.title}</h3>
               <p class="text-text-subtle text-sm leading-relaxed">{feature.description}</p>
             </div>
           ))}
@@ -149,24 +135,24 @@ ASSERT file "dist/output.js" exists`;
     </section>
     
     <!-- How It Works Section -->
-    <section class="py-24 border-t border-border bg-surface">
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 class="text-2xl md:text-3xl font-bold mb-16 text-center text-text">How It Works</h2>
+    <section class="py-16 border-t border-border">
+      <div class="max-w-[720px] mx-auto px-6">
+        <h2 class="text-xl font-semibold mb-10 text-text">How It Works</h2>
         
-        <div class="grid md:grid-cols-3 gap-12 text-center">
-          <div class="group">
-            <div class="text-4xl font-bold text-gradient mb-4">1</div>
+        <ol class="grid md:grid-cols-3 gap-8">
+          <li class="flex md:block gap-4">
+            <span class="text-text-subtle font-mono text-sm">01</span>
             <p class="text-sm text-text-muted">Write a <code class="text-accent">.hone</code> test file</p>
-          </div>
-          <div class="group">
-            <div class="text-4xl font-bold text-gradient mb-4">2</div>
+          </li>
+          <li class="flex md:block gap-4">
+            <span class="text-text-subtle font-mono text-sm">02</span>
             <p class="text-sm text-text-muted">Run <code class="text-accent">hone run tests/</code></p>
-          </div>
-          <div class="group">
-            <div class="text-4xl font-bold text-gradient mb-4">3</div>
+          </li>
+          <li class="flex md:block gap-4">
+            <span class="text-text-subtle font-mono text-sm">03</span>
             <p class="text-sm text-text-muted">Get clear pass/fail results</p>
-          </div>
-        </div>
+          </li>
+        </ol>
       </div>
     </section>
   </main>

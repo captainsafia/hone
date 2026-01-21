@@ -59,12 +59,12 @@ RUN echo "test"  # But not inline`;
 <DocsLayout title="DSL Syntax" currentPath="/docs/dsl-syntax">
           <h1 class="text-3xl md:text-4xl font-bold mb-8">DSL Syntax</h1>
           
-          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+          <p class="text-text-muted text-lg mb-8">
             Hone uses a simple, line-oriented domain-specific language (DSL) for writing tests. This page covers all available syntax elements.
           </p>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Pragmas</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Pragmas are file-level configuration directives that appear at the top of the file. They start with <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">#!</code>.
           </p>
           <div class="mb-6">
@@ -79,7 +79,7 @@ RUN echo "test"  # But not inline`;
                   <th class="text-left py-3 pr-4 font-semibold">Description</th>
                 </tr>
               </thead>
-              <tbody class="text-light-text-muted dark:text-white/70">
+              <tbody class="text-text-muted">
                 <tr class="border-b border-light-border dark:border-slate/50">
                   <td class="py-3 pr-4 font-mono">shell:</td>
                   <td class="py-3">Path to the shell executable (default: <code>/bin/sh</code>)</td>
@@ -97,7 +97,7 @@ RUN echo "test"  # But not inline`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">TEST Blocks</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">TEST</code> keyword starts a new test block. Tests share the same shell session but have isolated ENV variables.
           </p>
           <div class="mb-8">
@@ -105,7 +105,7 @@ RUN echo "test"  # But not inline`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">RUN Commands</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">RUN</code> keyword executes a shell command. Commands can optionally be named for later reference in assertions.
           </p>
           <div class="mb-8">
@@ -113,7 +113,7 @@ RUN echo "test"  # But not inline`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">ENV Statements</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ENV</code> keyword sets environment variables for subsequent commands within the current test.
           </p>
           <div class="mb-8">
@@ -121,7 +121,7 @@ RUN echo "test"  # But not inline`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">ASSERT Statements</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ASSERT</code> keyword verifies conditions about command output, exit codes, timing, or files.
           </p>
           <div class="mb-8">
@@ -129,7 +129,7 @@ RUN echo "test"  # But not inline`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Named Runs</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Named runs allow you to reference specific commands in assertions using dot notation:
           </p>
           <div class="mb-8">
@@ -137,7 +137,7 @@ RUN echo "test"  # But not inline`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Comments</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Lines starting with <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">#</code> (but not <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">#!</code>) are comments:
           </p>
           <div class="mb-8">
@@ -145,10 +145,10 @@ RUN echo "test"  # But not inline`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">String Literals</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Hone supports both single and double quoted strings:
           </p>
-          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-8">
+          <ul class="list-disc list-inside space-y-2 text-text-muted mb-8">
             <li><strong>Double quotes</strong> — Support escape sequences: <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">"hello\nworld"</code></li>
             <li><strong>Single quotes</strong> — Literal strings: <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">'hello\n'</code> contains backslash-n</li>
           </ul>
@@ -160,7 +160,7 @@ RUN echo "test"  # But not inline`;
               </svg>
               Next Steps
             </h3>
-            <p class="text-light-text-muted dark:text-white/70">
+            <p class="text-text-muted">
               Learn about all available assertion types in the <a href="/docs/assertions" class="text-electric-blue hover:underline">Assertions</a> reference.
             </p>
           </div>

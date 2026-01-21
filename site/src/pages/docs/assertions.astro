@@ -56,14 +56,14 @@ ASSERT test.stdout contains "PASSED"`;
 <DocsLayout title="Assertions" currentPath="/docs/assertions">
           <h1 class="text-3xl md:text-4xl font-bold mb-8">Assertions</h1>
           
-          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+          <p class="text-text-muted text-lg mb-8">
             Hone provides a rich set of assertions for verifying command output, exit codes, timing, and file contents.
           </p>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Output Assertions</h2>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">stdout</h3>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Assert on the standard output of the most recent (or named) command:
           </p>
           <div class="mb-8">
@@ -71,7 +71,7 @@ ASSERT test.stdout contains "PASSED"`;
           </div>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">stderr</h3>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Assert on the standard error output:
           </p>
           <div class="mb-8">
@@ -79,7 +79,7 @@ ASSERT test.stdout contains "PASSED"`;
           </div>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">Raw Output</h3>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             By default, ANSI escape codes are stripped from output. Use <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">.raw</code> to preserve them:
           </p>
           <div class="mb-8">
@@ -87,7 +87,7 @@ ASSERT test.stdout contains "PASSED"`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Exit Code Assertions</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Verify the exit status of commands:
           </p>
           <div class="mb-8">
@@ -95,7 +95,7 @@ ASSERT test.stdout contains "PASSED"`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Duration Assertions</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Check how long a command took to execute. Supports <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ms</code>, <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">s</code>, <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">m</code>, and <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">h</code> units:
           </p>
           <div class="mb-8">
@@ -105,7 +105,7 @@ ASSERT test.stdout contains "PASSED"`;
           <h2 class="text-2xl font-semibold mt-12 mb-6">File Assertions</h2>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">Existence</h3>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Check if a file exists:
           </p>
           <div class="mb-8">
@@ -113,7 +113,7 @@ ASSERT test.stdout contains "PASSED"`;
           </div>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">Content</h3>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Assert on file contents using the same operators as stdout:
           </p>
           <div class="mb-8">
@@ -121,7 +121,7 @@ ASSERT test.stdout contains "PASSED"`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Named Run Targets</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             When you have multiple RUN commands, use named runs to assert on specific ones:
           </p>
           <div class="mb-8">
@@ -138,7 +138,7 @@ ASSERT test.stdout contains "PASSED"`;
                   <th class="text-left py-3 font-semibold">Example</th>
                 </tr>
               </thead>
-              <tbody class="text-light-text-muted dark:text-white/70">
+              <tbody class="text-text-muted">
                 <tr class="border-b border-light-border dark:border-slate/50">
                   <td class="py-3 pr-4 font-mono">contains</td>
                   <td class="py-3 pr-4">Substring match</td>
@@ -185,7 +185,7 @@ ASSERT test.stdout contains "PASSED"`;
               </svg>
               Next Steps
             </h3>
-            <p class="text-light-text-muted dark:text-white/70">
+            <p class="text-text-muted">
               Learn about configuration options in the <a href="/docs/configuration" class="text-electric-blue hover:underline">Configuration</a> guide.
             </p>
           </div>

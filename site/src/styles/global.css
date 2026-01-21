@@ -1,39 +1,67 @@
 @import "tailwindcss";
 
 @theme {
-  /* Dark theme base */
-  --color-bg: #000000;
-  --color-surface: #0a0a0a;
-  --color-surface-elevated: #141414;
-  --color-border: #262626;
-  --color-border-subtle: #1a1a1a;
+  /* Light theme (default) */
+  --color-bg: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-surface-elevated: #ebebeb;
+  --color-border: #e0e0e0;
+  --color-border-subtle: #ececec;
   
   /* Text colors */
-  --color-text: #fafafa;
-  --color-text-muted: #a1a1a1;
+  --color-text: #171717;
+  --color-text-muted: #525252;
   --color-text-subtle: #737373;
   
-  /* Accent Colors */
+  /* Accent - restrained, for links only */
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  
+  /* Semantic colors */
+  --color-green: #16a34a;
+  --color-amber: #d97706;
+  --color-red: #dc2626;
+  
+  /* Syntax highlighting */
+  --color-electric-blue: #2563eb;
+  --color-spring-green: #16a34a;
+  --color-soft-violet: #7c3aed;
+  --color-coral-red: #dc2626;
+  --color-steel-blue: #64748b;
+  
+  /* Font families */
+  --font-sans: 'Source Sans 3', 'Source Sans Pro', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  
+  /* Layout widths */
+  --width-prose: 640px;
+  --width-wide: 720px;
+}
+
+/* Dark theme overrides */
+.dark {
+  --color-bg: #0a0a0a;
+  --color-surface: #111111;
+  --color-surface-elevated: #171717;
+  --color-border: #262626;
+  --color-border-subtle: #1f1f1f;
+  
+  --color-text: #ededed;
+  --color-text-muted: #a1a1a1;
+  --color-text-subtle: #6b6b6b;
+  
   --color-accent: #3b82f6;
   --color-accent-hover: #60a5fa;
+  
   --color-green: #22c55e;
   --color-amber: #f59e0b;
   --color-red: #ef4444;
   
-  /* Syntax highlighting colors */
   --color-electric-blue: #60a5fa;
   --color-spring-green: #4ade80;
   --color-soft-violet: #a78bfa;
   --color-coral-red: #f87171;
   --color-steel-blue: #64748b;
-  
-  /* Gradients - subtle warm tones */
-  --color-gradient-start: #22c55e;
-  --color-gradient-end: #14b8a6;
-  
-  /* Font families */
-  --font-sans: 'Source Sans 3', 'Source Sans Pro', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
 @layer base {
@@ -41,67 +69,47 @@
     scroll-behavior: smooth;
   }
   
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
   body {
     font-family: var(--font-sans);
     @apply bg-bg text-text;
+    line-height: 1.625;
   }
   
   code, pre {
     font-family: var(--font-mono);
   }
-  
-  @keyframes bounce-slow {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-8px);
-    }
-  }
-  
-  .animate-bounce-slow {
-    animation: bounce-slow 3s ease-in-out infinite;
-  }
-  
-  @keyframes gradient-shift {
-    0%, 100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
-  
-  .animate-gradient {
-    background-size: 200% 200%;
-    animation: gradient-shift 8s ease infinite;
-  }
 }
 
 @layer components {
   .btn-primary {
-    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium text-sm;
     @apply bg-text text-bg;
+    @apply transition-colors duration-150;
     @apply hover:bg-text/90;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg;
   }
   
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full font-medium text-sm transition-all duration-200;
-    @apply border border-border bg-transparent text-text;
-    @apply hover:bg-surface-elevated hover:border-border;
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium text-sm;
+    @apply border border-border bg-transparent text-text-muted;
+    @apply transition-colors duration-150;
+    @apply hover:text-text hover:border-text-subtle;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg;
   }
   
-  .card {
-    @apply p-6 rounded-2xl;
-    @apply bg-surface-elevated;
-    @apply border border-border;
-  }
-  
-  .text-gradient {
-    @apply bg-gradient-to-r from-gradient-start to-gradient-end bg-clip-text text-transparent;
-  }
-  
-  .glow {
-    box-shadow: 0 0 60px -15px rgba(34, 197, 94, 0.25);
+  .link {
+    @apply text-accent underline-offset-2;
+    @apply hover:underline;
   }
 }

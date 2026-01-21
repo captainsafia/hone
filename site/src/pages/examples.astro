@@ -273,40 +273,33 @@ ASSERT stdout contains "line3"`
 <BaseLayout title="Examples">
   <Header currentPath="/examples" />
   
-  <main class="flex-1 pt-24">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div class="text-center mb-16">
-        <h1 class="text-3xl md:text-4xl font-bold mb-4">Examples</h1>
-        <p class="text-lg text-light-text-muted dark:text-white/70 max-w-2xl mx-auto">
+  <main class="flex-1">
+    <div class="max-w-[720px] mx-auto px-6 py-16">
+      <div class="mb-12">
+        <h1 class="text-2xl font-semibold mb-3 text-text">Examples</h1>
+        <p class="text-text-muted">
           Real-world examples of Hone test files. Copy and adapt these for your own CLI tests.
         </p>
       </div>
       
-      <div class="space-y-12">
-        {examples.map((example, index) => (
-          <section id={example.filename.replace('.hone', '')} class="scroll-mt-24">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-              <div>
-                <h2 class="text-2xl font-semibold">{example.title}</h2>
-                <p class="text-light-text-muted dark:text-white/70">{example.description}</p>
-              </div>
-              <span class="text-sm font-mono text-electric-blue">{example.filename}</span>
+      <div class="space-y-16">
+        {examples.map((example) => (
+          <section id={example.filename.replace('.hone', '')}>
+            <div class="mb-4">
+              <h2 class="text-lg font-medium text-text">{example.title}</h2>
+              <p class="text-sm text-text-muted">{example.description}</p>
             </div>
             <CodeBlock code={example.code} filename={example.filename} />
           </section>
         ))}
       </div>
       
-      <div class="mt-16 p-6 rounded-xl bg-electric-blue/10 border border-electric-blue/20 text-center">
-        <h3 class="text-lg font-semibold mb-2">Ready to write your own tests?</h3>
-        <p class="text-light-text-muted dark:text-white/70 mb-4">
-          Get started with the documentation to learn all the features.
+      <div class="mt-16 py-8 border-t border-border">
+        <p class="text-text-muted mb-4">
+          Ready to write your own tests? Read the documentation.
         </p>
         <a href="/docs/installation" class="btn-primary">
           Read the Docs
-          <svg class="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-          </svg>
         </a>
       </div>
     </div>

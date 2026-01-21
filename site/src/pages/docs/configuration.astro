@@ -71,12 +71,12 @@ const exitCodes = `| Code | Meaning              |
 <DocsLayout title="Configuration" currentPath="/docs/configuration">
           <h1 class="text-3xl md:text-4xl font-bold mb-8">Configuration</h1>
           
-          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+          <p class="text-text-muted text-lg mb-8">
             Hone can be configured through file pragmas, CLI options, and editor integration. This page covers all configuration options.
           </p>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">File Pragmas</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Pragmas at the top of a <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">.hone</code> file configure that file's test execution:
           </p>
           <div class="mb-6">
@@ -92,7 +92,7 @@ const exitCodes = `| Code | Meaning              |
                   <th class="text-left py-3 font-semibold">Default</th>
                 </tr>
               </thead>
-              <tbody class="text-light-text-muted dark:text-white/70">
+              <tbody class="text-text-muted">
                 <tr class="border-b border-light-border dark:border-slate/50">
                   <td class="py-3 pr-4 font-mono">shell:</td>
                   <td class="py-3 pr-4">Shell executable path</td>
@@ -113,7 +113,7 @@ const exitCodes = `| Code | Meaning              |
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">CLI Options</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             The <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">hone</code> CLI accepts several options:
           </p>
           <div class="mb-8">
@@ -121,12 +121,12 @@ const exitCodes = `| Code | Meaning              |
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Language Server (LSP)</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Hone includes a built-in Language Server that provides IDE features for <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">.hone</code> files.
           </p>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">Features</h3>
-          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-6">
+          <ul class="list-disc list-inside space-y-2 text-text-muted mb-6">
             <li><strong>Diagnostics</strong> — Real-time syntax and semantic checking</li>
             <li><strong>Completion</strong> — Context-aware snippets for keywords and assertions</li>
             <li><strong>Hover</strong> — Documentation for keywords and assertions</li>
@@ -141,7 +141,7 @@ const exitCodes = `| Code | Meaning              |
           </div>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">Editor Setup</h3>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Use the <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">setup</code> command to automatically configure your editor:
           </p>
           <div class="mb-6">
@@ -149,7 +149,7 @@ const exitCodes = `| Code | Meaning              |
           </div>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">Manual VS Code Configuration</h3>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Add to your <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">settings.json</code>:
           </p>
           <div class="mb-6">
@@ -157,7 +157,7 @@ const exitCodes = `| Code | Meaning              |
           </div>
           
           <h3 class="text-xl font-semibold mt-8 mb-4">Manual Neovim Configuration</h3>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             With <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">nvim-lspconfig</code>:
           </p>
           <div class="mb-8">
@@ -165,7 +165,7 @@ const exitCodes = `| Code | Meaning              |
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Exit Codes</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Hone uses the following exit codes:
           </p>
           <div class="overflow-x-auto mb-8">
@@ -176,7 +176,7 @@ const exitCodes = `| Code | Meaning              |
                   <th class="text-left py-3 font-semibold">Meaning</th>
                 </tr>
               </thead>
-              <tbody class="text-light-text-muted dark:text-white/70">
+              <tbody class="text-text-muted">
                 <tr class="border-b border-light-border dark:border-slate/50">
                   <td class="py-3 pr-4 font-mono">0</td>
                   <td class="py-3">All tests passed</td>
@@ -190,10 +190,10 @@ const exitCodes = `| Code | Meaning              |
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">LSP Logs</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             LSP logs are written to platform-specific locations:
           </p>
-          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-8">
+          <ul class="list-disc list-inside space-y-2 text-text-muted mb-8">
             <li><strong>Linux</strong> — <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">~/.local/state/hone/lsp.log</code></li>
             <li><strong>macOS</strong> — <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">~/Library/Application Support/hone/lsp.log</code></li>
             <li><strong>Windows</strong> — <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">%LOCALAPPDATA%\hone\lsp.log</code></li>
@@ -206,7 +206,7 @@ const exitCodes = `| Code | Meaning              |
               </svg>
               You're all set!
             </h3>
-            <p class="text-light-text-muted dark:text-white/70">
+            <p class="text-text-muted">
               Check out the <a href="/examples" class="text-electric-blue hover:underline">Examples</a> page to see Hone in action with real-world test files.
             </p>
           </div>
