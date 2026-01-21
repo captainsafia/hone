@@ -57,22 +57,22 @@ ASSERT exit_code == 0`;
 <DocsLayout title="Getting Started" currentPath="/docs/getting-started">
           <h1 class="text-3xl md:text-4xl font-bold mb-8">Getting Started</h1>
           
-          <p class="text-light-text-muted dark:text-white/70 text-lg mb-8">
+          <p class="text-text-muted text-lg mb-8">
             Learn how to write and run your first Hone test in just a few minutes.
           </p>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Your First Test</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Create a new file called <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">my-test.hone</code> with the following content:
           </p>
           <div class="mb-6">
             <CodeBlock code={basicTest} filename="my-test.hone" />
           </div>
           
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Let's break down what each line does:
           </p>
-          <ul class="list-disc list-inside space-y-2 text-light-text-muted dark:text-white/70 mb-8">
+          <ul class="list-disc list-inside space-y-2 text-text-muted mb-8">
             <li><code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">#! shell: /bin/bash</code> — Sets the shell to use for running commands</li>
             <li><code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">TEST "my first test"</code> — Declares a test with a descriptive name</li>
             <li><code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">RUN echo "Hello, World!"</code> — Executes a shell command</li>
@@ -81,14 +81,14 @@ ASSERT exit_code == 0`;
           </ul>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Running Tests</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Run your test using the Hone CLI:
           </p>
           <div class="mb-6">
             <CodeBlock code={runTest} lang="bash" />
           </div>
           
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             You should see output like:
           </p>
           <div class="mb-8">
@@ -96,7 +96,7 @@ ASSERT exit_code == 0`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Multiple Tests</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             A test file can contain multiple tests. Each test runs in the same shell session, so state like working directory and variables persist:
           </p>
           <div class="mb-6">
@@ -104,7 +104,7 @@ ASSERT exit_code == 0`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Running Multiple Files</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Hone can run multiple test files at once:
           </p>
           <div class="mb-8">
@@ -112,7 +112,7 @@ ASSERT exit_code == 0`;
           </div>
           
           <h2 class="text-2xl font-semibold mt-12 mb-6">Environment Variables</h2>
-          <p class="text-light-text-muted dark:text-white/70 mb-4">
+          <p class="text-text-muted mb-4">
             Use the <code class="px-2 py-1 rounded bg-slate/20 dark:bg-slate text-sm font-mono">ENV</code> statement to set environment variables for your tests:
           </p>
           <div class="mb-8">
@@ -126,7 +126,7 @@ ASSERT exit_code == 0`;
               </svg>
               Next Steps
             </h3>
-            <p class="text-light-text-muted dark:text-white/70">
+            <p class="text-text-muted">
               Learn about all available commands and syntax in the <a href="/docs/dsl-syntax" class="text-electric-blue hover:underline">DSL Syntax</a> reference.
             </p>
           </div>

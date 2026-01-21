@@ -16,12 +16,12 @@ const { title, currentPath, description } = Astro.props;
 <BaseLayout title={title} description={description}>
   <Header currentPath={currentPath} />
   
-  <main class="flex-1 pt-24">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div class="flex gap-12">
+  <main class="flex-1">
+    <div class="max-w-[960px] mx-auto px-6 py-12">
+      <div class="flex gap-16">
         <Sidebar currentPath={currentPath} />
         
-        <article class="flex-1 min-w-0 max-w-none">
+        <article class="flex-1 min-w-0 max-w-[640px]">
           <slot />
         </article>
       </div>
