@@ -32,7 +32,7 @@ fn create_notifier() -> Option<ReleaseNotifier> {
 
     let config = ReleaseNotifierConfig::new(REPO)
         .check_interval(CHECK_INTERVAL_HOURS * 60 * 60)
-        .cache_file_path(cache_path.to_string_lossy().to_string());
+        .cache_file_path(cache_path.to_string_lossy().into_owned());
 
     ReleaseNotifier::new(config).ok()
 }

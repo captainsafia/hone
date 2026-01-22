@@ -92,6 +92,7 @@ hone/
 - Prefer `&str` over `String` for function parameters when ownership isn't needed
 - Use `Option` and `Result` idiomatically; avoid sentinel values
 - Prefer explicit error types over `unwrap` / `expect` patterns
+- Use `.to_string_lossy().into_owned()` instead of `.to_string_lossy().to_string()` for converting to owned string values
 
 ### Source Control Conventions
 
