@@ -14,8 +14,8 @@ use crate::runner::reporter::{
 };
 use crate::runner::shell::{create_shell_config, RunResult, ShellSession};
 use regex::Regex;
-use std::collections::{BTreeSet, HashMap};
-use std::path::{Path, PathBuf};
+use std::collections::HashMap;
+use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Default)]
@@ -79,7 +79,6 @@ pub async fn run_tests(
 ) -> anyhow::Result<TestRunOutput> {
     let is_json = options.output_format == OutputFormat::Json;
     let reporter = DefaultReporter::new(options.verbose, options.output_format);
-    let cwd = std::env::current_dir()?.to_string_lossy().to_string();
     let start_time = std::time::Instant::now();
     let start_epoch = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -98,12 +97,7 @@ pub async fn run_tests(
         None
     };
 
-    let mut all_files = BTreeSet::new();
-    for pattern in &patterns {
-        let files = resolve_files(pattern, &cwd).await?;
-        all_files.extend(files);
-    }
-    let all_files: Vec<_> = all_files.into_iter().collect();
+    let all_files = crate::runner::resolve_patterns(&patterns).await?;
 
     if all_files.is_empty() {
         if !is_json {
@@ -263,47 +257,6 @@ pub async fn run_tests(
     }
 
     Ok(output)
-}
-
-async fn resolve_files(pattern: &str, cwd: &str) -> anyhow::Result<Vec<String>> {
-    let resolved = PathBuf::from(cwd).join(pattern);
-
-    // Check if it's a direct file
-    if let Ok(metadata) = tokio::fs::metadata(&resolved).await {
-        if metadata.is_file() && pattern.ends_with(".hone") {
-            return Ok(vec![resolved.to_string_lossy().to_string()]);
-        }
-
-        if metadata.is_dir() {
-            // Use glob to find all .hone files in the directory
-            let pattern = format!("{}/**/*.hone", resolved.to_string_lossy());
-            let paths = glob::glob(&pattern)?;
-            let results: Vec<String> = paths
-                .filter_map(Result::ok)
-                .filter(|p| p.is_file())
-                .map(|p| p.to_string_lossy().to_string())
-                .collect();
-            return Ok(results);
-        }
-    }
-
-    // Use glob for pattern matching
-    let glob_pattern = if Path::new(pattern).is_absolute() {
-        pattern.to_string()
-    } else {
-        PathBuf::from(cwd)
-            .join(pattern)
-            .to_string_lossy()
-            .to_string()
-    };
-
-    let paths = glob::glob(&glob_pattern)?;
-    let results: Vec<String> = paths
-        .filter_map(Result::ok)
-        .filter(|p| p.is_file())
-        .map(|p| p.to_string_lossy().to_string())
-        .collect();
-    Ok(results)
 }
 
 async fn run_file(

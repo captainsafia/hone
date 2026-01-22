@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use hone::{run_lsp_server, run_tests, OutputFormat, RunnerOptions};
+use hone::{run_lsp_server, run_tests, run_watch_mode, OutputFormat, RunnerOptions};
 
 mod setup;
 mod update;
@@ -31,6 +31,10 @@ struct Cli {
     /// Output format
     #[arg(long = "output-format", value_enum, default_value = "text")]
     output_format: OutputFormat,
+
+    /// Watch mode: re-run tests when files change
+    #[arg(long, short)]
+    watch: bool,
 }
 
 #[derive(Subcommand)]
@@ -55,6 +59,10 @@ enum Commands {
         /// Output format
         #[arg(long = "output-format", value_enum, default_value = "text")]
         output_format: OutputFormat,
+
+        /// Watch mode: re-run tests when files change
+        #[arg(long, short)]
+        watch: bool,
     },
     /// Start the Language Server Protocol (LSP) server
     Lsp,
@@ -125,6 +133,7 @@ async fn main() -> anyhow::Result<()> {
             verbose,
             test_filter,
             output_format,
+            watch,
         }) => {
             let options = RunnerOptions {
                 shell,
@@ -132,9 +141,14 @@ async fn main() -> anyhow::Result<()> {
                 test_filter,
                 output_format,
             };
-            let results = run_tests(patterns, options).await?;
-            update::show_update_notification_if_available();
-            std::process::exit(if results.has_failures() { 1 } else { 0 });
+            if watch {
+                run_watch_mode(patterns, options).await?;
+                Ok(())
+            } else {
+                let results = run_tests(patterns, options).await?;
+                update::show_update_notification_if_available();
+                std::process::exit(if results.has_failures() { 1 } else { 0 });
+            }
         }
         None => {
             let options = RunnerOptions {
@@ -143,9 +157,14 @@ async fn main() -> anyhow::Result<()> {
                 test_filter: cli.test_filter,
                 output_format: cli.output_format,
             };
-            let results = run_tests(cli.patterns, options).await?;
-            update::show_update_notification_if_available();
-            std::process::exit(if results.has_failures() { 1 } else { 0 });
+            if cli.watch {
+                run_watch_mode(cli.patterns, options).await?;
+                Ok(())
+            } else {
+                let results = run_tests(cli.patterns, options).await?;
+                update::show_update_notification_if_available();
+                std::process::exit(if results.has_failures() { 1 } else { 0 });
+            }
         }
     }
 }
