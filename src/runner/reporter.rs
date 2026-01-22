@@ -231,13 +231,74 @@ impl OutputFormatter for JsonFormatter {
     }
 }
 
-pub struct TextFormatter {
-    pub verbose: bool,
+pub struct TextFormatter;
+
+impl TextFormatter {
+    pub fn print_header(file_count: usize, total_assertions: usize) {
+        let version = env!("CARGO_PKG_VERSION");
+        let files_text = if file_count == 1 { "file" } else { "files" };
+        let assertions_text = if total_assertions == 1 {
+            "assertion"
+        } else {
+            "assertions"
+        };
+
+        println!(
+            "hone test v{}  {}  {} {}  {}  {} {}",
+            version,
+            "•".dimmed(),
+            file_count,
+            files_text,
+            "•".dimmed(),
+            total_assertions,
+            assertions_text
+        );
+        println!();
+    }
+
+    pub fn print_file_result(
+        filename: &str,
+        passed: bool,
+        assertion_count: usize,
+        duration_ms: u64,
+    ) {
+        let status = if passed {
+            "PASS".green().to_string()
+        } else {
+            "FAIL".red().to_string()
+        };
+        let assertions_text = if assertion_count == 1 {
+            "assertion"
+        } else {
+            "assertions"
+        };
+        let duration_secs = duration_ms as f64 / 1000.0;
+
+        println!(
+            "{}  {:<24} {:>3} {}   {:.2}s",
+            status, filename, assertion_count, assertions_text, duration_secs
+        );
+    }
 }
 
 impl OutputFormatter for TextFormatter {
     fn format(&self, output: &TestRunOutput) -> String {
         let mut result = String::new();
+
+        let total_files = output.files.len();
+        let passed_files = output
+            .files
+            .iter()
+            .filter(|f| f.tests.iter().all(|t| t.status == Status::Passed))
+            .count();
+        let total_assertions: usize = output
+            .files
+            .iter()
+            .flat_map(|f| &f.tests)
+            .flat_map(|t| &t.runs)
+            .map(|r| r.assertions.len())
+            .sum();
+        let duration_secs = output.summary.duration_ms as f64 / 1000.0;
 
         if output.summary.parse_errors > 0 {
             let files_text = if output.summary.parse_errors == 1 {
@@ -252,48 +313,23 @@ impl OutputFormatter for TextFormatter {
                 files_text
             ));
         } else if output.summary.failed == 0 {
-            let files_text = if output.files.len() == 1 {
-                "file"
-            } else {
-                "files"
-            };
-            let total_assertions: usize = output
-                .files
-                .iter()
-                .flat_map(|f| &f.tests)
-                .flat_map(|t| &t.runs)
-                .map(|r| r.assertions.len())
-                .sum();
-            let assertions_text = if total_assertions == 1 {
-                "assertion"
-            } else {
-                "assertions"
-            };
             result.push_str(&format!(
-                "{} All tests passed ({} {}, {} {})",
+                "{} Passed {}/{} files ({} assertions) in {:.2}s",
                 "✓".green(),
-                output.files.len(),
-                files_text,
+                passed_files,
+                total_files,
                 total_assertions,
-                assertions_text
+                duration_secs
             ));
         } else {
-            let files_text = if output.files.len() == 1 {
-                "file"
-            } else {
-                "files"
-            };
-            let failed_files = output
-                .files
-                .iter()
-                .filter(|f| f.tests.iter().any(|t| t.status == Status::Failed))
-                .count();
+            let failed_files = total_files - passed_files;
             result.push_str(&format!(
-                "{} {} of {} {} failed",
+                "{} Failed {}/{} files ({} assertions) in {:.2}s",
                 "✗".red(),
                 failed_files,
-                output.files.len(),
-                files_text
+                total_files,
+                total_assertions,
+                duration_secs
             ));
         }
 
@@ -315,25 +351,18 @@ pub struct TestFailure {
 }
 
 pub trait Reporter {
-    fn on_file_start(&self, filename: &str);
-    fn on_run_complete(&self, run_id: &str, success: bool);
-    fn on_assertion_pass(&self);
     fn on_parse_errors(&self, errors: &[ParseErrorDetail]);
     fn on_warning(&self, message: &str);
     fn on_failure(&self, failure: &TestFailure);
 }
 
 pub struct DefaultReporter {
-    verbose: bool,
     output_format: OutputFormat,
 }
 
 impl DefaultReporter {
-    pub fn new(verbose: bool, output_format: OutputFormat) -> Self {
-        Self {
-            verbose,
-            output_format,
-        }
+    pub fn new(_verbose: bool, output_format: OutputFormat) -> Self {
+        Self { output_format }
     }
 
     fn is_json(&self) -> bool {
@@ -342,39 +371,6 @@ impl DefaultReporter {
 }
 
 impl Reporter for DefaultReporter {
-    fn on_file_start(&self, filename: &str) {
-        if !self.is_json() {
-            println!("Running {}", filename);
-        }
-    }
-
-    fn on_run_complete(&self, run_id: &str, success: bool) {
-        if self.is_json() {
-            return;
-        }
-        if success {
-            print!("{}", "✓".green());
-        } else {
-            print!("{}", "✗".red());
-        }
-        if self.verbose && !run_id.is_empty() {
-            print!(" ({})", run_id.dimmed());
-        }
-        use std::io::Write;
-        let _ = std::io::stdout().flush();
-    }
-
-    fn on_assertion_pass(&self) {
-        if self.is_json() {
-            return;
-        }
-        if self.verbose {
-            print!(".");
-            use std::io::Write;
-            let _ = std::io::stdout().flush();
-        }
-    }
-
     fn on_parse_errors(&self, errors: &[ParseErrorDetail]) {
         if self.is_json() {
             return;
@@ -400,12 +396,11 @@ impl Reporter for DefaultReporter {
         if self.is_json() {
             return;
         }
-        print_failure(failure, self.verbose);
+        print_failure(failure);
     }
 }
 
-pub fn print_failure(failure: &TestFailure, verbose: bool) {
-    println!();
+pub fn print_failure(failure: &TestFailure) {
     println!();
 
     let location_str = format!("{}:{}", failure.filename, failure.line);
@@ -426,26 +421,18 @@ pub fn print_failure(failure: &TestFailure, verbose: bool) {
         println!("{} {}", "ASSERT:".dimmed(), assertion);
     }
 
-    if let Some(ref expected) = failure.expected {
-        println!("{} {}", "Expected:".yellow(), expected);
-    }
-
-    if let Some(ref actual) = failure.actual {
-        println!("{}", "Actual:".yellow());
-        let lines: Vec<&str> = actual.split('\n').collect();
-        let display_lines = if verbose {
-            &lines[..]
-        } else {
-            &lines[..lines.len().min(10)]
-        };
-
-        for line in display_lines {
-            println!("  {} {}", " ".dimmed(), line);
+    match (&failure.expected, &failure.actual) {
+        (Some(expected), Some(actual)) => {
+            println!("{} {}", "Expected:".yellow(), expected);
+            println!("{} {}", "Actual:".yellow(), actual.trim());
         }
-
-        if !verbose && lines.len() > 10 {
-            println!("  {} ... ({} more lines)", " ".dimmed(), lines.len() - 10);
+        (Some(expected), None) => {
+            println!("{} {}", "Expected:".yellow(), expected);
         }
+        (None, Some(actual)) => {
+            println!("{} {}", "Actual:".yellow(), actual.trim());
+        }
+        (None, None) => {}
     }
 
     if let Some(ref error) = failure.error {

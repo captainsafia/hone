@@ -156,6 +156,7 @@ pub async fn run_tests(
     // Collect parse errors and valid files
     let mut valid_files = Vec::new();
     let mut parse_error_count = 0;
+    let mut total_assertions_count = 0;
 
     for result in parse_results {
         match result {
@@ -180,6 +181,11 @@ pub async fn run_tests(
                             ));
                         }
                     }
+
+                    // Count assertions in this file
+                    let file_assertions = count_assertions(&parsed_file.nodes);
+                    total_assertions_count += file_assertions;
+
                     valid_files.push((file, parsed_file.nodes));
                 }
                 ParseResult::Failure { errors, warnings } => {
@@ -200,6 +206,11 @@ pub async fn run_tests(
                 return Err(e);
             }
         }
+    }
+
+    // Print header
+    if !is_json && !valid_files.is_empty() {
+        TextFormatter::print_header(valid_files.len(), total_assertions_count);
     }
 
     // Run each file sequentially
@@ -246,11 +257,8 @@ pub async fn run_tests(
             println!("{}", formatter.format(&output));
         }
         OutputFormat::Text => {
-            let formatter = TextFormatter {
-                verbose: options.verbose,
-            };
             println!();
-            println!("{}", formatter.format(&output));
+            println!("{}", TextFormatter.format(&output));
         }
     }
 
@@ -306,18 +314,18 @@ async fn run_file(
     reporter: &impl Reporter,
 ) -> anyhow::Result<FileRunResult> {
     let is_json = options.output_format == OutputFormat::Json;
+    let file_start = std::time::Instant::now();
     let cwd = Path::new(filename)
         .parent()
         .unwrap_or(Path::new("."))
         .to_string_lossy()
-        .to_string();
+        .into_owned();
 
     let basename = Path::new(filename)
         .file_name()
         .unwrap_or_default()
-        .to_string_lossy();
-
-    reporter.on_file_start(&basename);
+        .to_string_lossy()
+        .into_owned();
 
     // Extract pragmas
     let pragmas: Vec<_> = ast
@@ -400,9 +408,7 @@ async fn run_file(
         }
     }
 
-    if !is_json {
-        println!(); // Newline after progress dots
-    }
+    let file_duration_ms = file_start.elapsed().as_millis() as u64;
 
     let file_result = FileResult {
         file: filename.to_string(),
@@ -413,18 +419,11 @@ async fn run_file(
     if let Some(ref f) = failure {
         reporter.on_failure(f);
     } else if !is_json {
-        let assertions_text = if total_assertions_passed == 1 {
-            "assertion"
-        } else {
-            "assertions"
-        };
-
-        use owo_colors::OwoColorize;
-        println!(
-            "PASS {} ({} {})",
-            basename,
+        TextFormatter::print_file_result(
+            &basename,
+            true,
             total_assertions_passed,
-            assertions_text.green()
+            file_duration_ms,
         );
     }
 
@@ -458,11 +457,18 @@ fn group_nodes_by_test(nodes: &[ASTNode]) -> Vec<TestBlock> {
     blocks
 }
 
+fn count_assertions(nodes: &[ASTNode]) -> usize {
+    nodes
+        .iter()
+        .filter(|node| matches!(node, ASTNode::Assert(_)))
+        .count()
+}
+
 async fn execute_test_block(
     block: &TestBlock,
     session: &mut ShellSession,
     filename: &str,
-    reporter: &impl Reporter,
+    _reporter: &impl Reporter,
 ) -> ExecuteResult {
     let test_start = std::time::Instant::now();
 
@@ -543,7 +549,6 @@ async fn execute_test_block(
                     .await
                 {
                     Ok(result) => {
-                        reporter.on_run_complete(&result.run_id, true);
                         if let Some(ref name) = run_node.name {
                             run_results.insert(name.clone(), result.clone());
                         }
@@ -551,8 +556,6 @@ async fn execute_test_block(
                         last_run_node = Some(run_node);
                     }
                     Err(e) => {
-                        reporter.on_run_complete("", false);
-
                         // Add the failed run
                         command_runs.push(CommandRun {
                             name: run_node.name.clone(),
@@ -664,7 +667,6 @@ async fn execute_test_block(
                 }
 
                 assertions_passed += 1;
-                reporter.on_assertion_pass();
             }
 
             _ => {}
