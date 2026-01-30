@@ -55,6 +55,18 @@ See the [installation docs](https://hone.safia.dev/docs/installation) for more o
 - [Assertions](https://hone.safia.dev/docs/assertions) — All assertion types
 - [Examples](https://hone.safia.dev/examples) — Real-world test examples
 
+## GitHub Actions
+
+Run Hone tests in your CI/CD pipelines with the official GitHub Action:
+
+```yaml
+- uses: captainsafia/hone/hone-github-action@main
+  with:
+    tests: 'tests/*.hone'
+```
+
+See the [GitHub Actions docs](https://hone.safia.dev/docs/github-actions) for more details.
+
 ## Editor Setup
 
 Hone includes a built-in Language Server. Configure your editor automatically:
