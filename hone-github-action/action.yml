@@ -1,0 +1,32 @@
+name: 'Run Hone Tests'
+description: 'Install the Hone CLI and run integration tests'
+author: 'Hone'
+
+branding:
+  icon: 'check-circle'
+  color: 'purple'
+
+inputs:
+  version:
+    description: 'Version of Hone to install (e.g., "v1.0.0"). Defaults to "preview" for the latest preview release.'
+    required: false
+    default: 'preview'
+  tests:
+    description: 'Test files or patterns to run (e.g., "tests/*.hone" or "tests/integration/api.hone tests/integration/cli.hone")'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install Hone CLI
+      shell: bash
+      run: |
+        echo "Installing Hone CLI (version: ${{ inputs.version }})"
+        curl -fsSL "https://i.safia.sh/captainsafia/hone/${{ inputs.version }}" | sh
+        echo "$HOME/.hone/bin" >> $GITHUB_PATH
+
+    - name: Run Hone tests
+      shell: bash
+      run: |
+        echo "Running Hone tests: ${{ inputs.tests }}"
+        hone run ${{ inputs.tests }}
