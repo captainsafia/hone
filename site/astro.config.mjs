@@ -9,6 +9,11 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()]
   },
+  markdown: {
+    shikiConfig: {
+      theme: 'css-variables'
+    }
+  },
   redirects: {
     '/docs': '/docs/installation'
   }
