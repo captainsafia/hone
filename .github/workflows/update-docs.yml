@@ -1,0 +1,165 @@
+# ======================================================================================
+# Workflow: Update Docs on Merge
+# ======================================================================================
+# Usage:
+#   - This workflow triggers automatically when a PR is merged to main.
+#   - The Warp Agent analyzes the merged changes and determines if documentation
+#     updates are needed.
+#
+# Setup:
+#   - Ensure WARP_API_KEY is set in Repository Secrets.
+#   - Ensure the Action has write permissions for contents and pull-requests.
+#
+# Expected Output:
+#   - If docs updates are needed: A new Pull Request (docs/update-from-pr-NUMBER) is created.
+#   - If no updates are needed: The workflow completes without creating a PR.
+#
+# When to use:
+#   - Use this to automatically keep documentation in sync with code changes.
+# ======================================================================================
+name: Update Docs on Merge
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  update_docs:
+    # Only run if the PR was merged (not just closed)
+    if: github.event.pull_request.merged == true
+    name: Check and Update Documentation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR Diff
+        id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get the diff from the merged PR
+          gh pr diff ${{ github.event.pull_request.number }} > pr_diff.txt
+          echo "Diff saved to pr_diff.txt"
+
+      - name: Construct Prompt
+        id: prompt
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const pr = context.payload.pull_request;
+
+            const description = pr.body || 'No description provided.';
+            const diffContent = fs.readFileSync('pr_diff.txt', 'utf8');
+
+            const prompt = `You are an expert technical writer and the Warp Agent.
+            You have been assigned to review a merged PR and determine if documentation updates are needed.
+
+            **Merged PR Details**:
+            - **PR Number**: #${pr.number}
+            - **Title**: ${pr.title}
+            - **Description**: ${description}
+
+            **PR Diff**:
+            The full diff of the merged changes is available in \`pr_diff.txt\` in the workspace.
+
+            **Documentation Locations**:
+            - \`docs/\` - Contains technical documentation (spec, implementation details, LSP docs)
+            - \`site/src/\` - Contains the documentation website source files
+            - \`README.md\` - Main project README
+
+            **Instructions**:
+            1.  **Analyze the Diff**:
+                -   Read \`pr_diff.txt\` to understand what code changes were made.
+                -   Focus on changes that affect user-facing behavior, APIs, configuration options, 
+                    new features, or significant bug fixes.
+
+            2.  **Review Existing Documentation**:
+                -   Check the relevant documentation files to see what is currently documented.
+                -   Look at \`docs/\` for technical specs and \`site/src/\` for the documentation website.
+
+            3.  **Determine if Updates are Needed**:
+                -   Documentation updates ARE needed if the PR introduces:
+                    - New features or commands
+                    - Changes to existing behavior or APIs
+                    - New configuration options
+                    - Breaking changes
+                    - Significant bug fixes that users should know about
+                -   Documentation updates are NOT needed for:
+                    - Internal refactoring with no user-facing changes
+                    - Test-only changes
+                    - CI/build infrastructure changes
+                    - Code style or formatting changes
+
+            4.  **If Updates are Needed**:
+                -   Make the necessary documentation changes to the appropriate files.
+                -   Keep the documentation style consistent with existing docs.
+                -   Be concise and clear.
+
+            5.  **Output**:
+                -   If you made documentation changes, provide a brief summary of what you updated.
+                -   If no documentation changes are needed, explain why (e.g., "No user-facing changes").
+            `;
+            core.setOutput('prompt', prompt);
+
+      - name: Run Warp Agent
+        uses: warpdotdev/warp-agent-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        id: agent
+        with:
+          prompt: ${{ steps.prompt.outputs.prompt }}
+          warp_api_key: ${{ secrets.WARP_API_KEY }}
+          profile: ${{ vars.WARP_AGENT_PROFILE || '' }}
+
+      - name: Create PR if Changes Made
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          AGENT_OUTPUT: ${{ steps.agent.outputs.agent_output }}
+        run: |
+          # Remove temporary files that should not be committed
+          rm -f pr_diff.txt
+
+          # Check for changes
+          if [[ -z $(git status --porcelain) ]]; then
+            echo "No documentation changes needed."
+            exit 0
+          fi
+
+          BRANCH_NAME="docs/update-from-pr-$PR_NUMBER"
+
+          git config user.name "Warp Agent"
+          git config user.email "agent@warp.dev"
+
+          git checkout -b "$BRANCH_NAME"
+          git add .
+          git commit -m "docs: update documentation for PR #$PR_NUMBER
+
+          Co-Authored-By: Warp <agent@warp.dev>"
+          git push origin "$BRANCH_NAME" --force
+
+          # Create PR
+          TITLE="docs: Update documentation for PR #$PR_NUMBER"
+          BODY="This PR updates documentation based on changes from #$PR_NUMBER.
+
+          **Agent Summary**:
+          $AGENT_OUTPUT
+
+          ---
+          *This PR was automatically generated by the Warp Agent.*
+
+          Co-Authored-By: Warp <agent@warp.dev>"
+
+          # Create PR and capture URL
+          PR_URL=$(gh pr create --title "$TITLE" --body "$BODY" --base main --head "$BRANCH_NAME")
+
+          echo "Created documentation PR: $PR_URL"
