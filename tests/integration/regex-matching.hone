@@ -11,6 +11,7 @@ ASSERT stdout matches /test\.string/
 TEST "string contains"
 RUN echo "Hello World"
 ASSERT stdout contains "World"
+ASSERT stdout not contains "Goodbye"
 
 TEST "string exact equals"
 RUN echo "exact"

@@ -1,5 +1,7 @@
 use crate::assertions::AssertionResult;
-use crate::parser::ast::{FilePredicate, RegexLiteral, StringComparisonOperator, StringLiteral};
+use crate::parser::ast::{
+    FilePredicate, RegexLiteral, StringComparisonOperator, StringContainmentOperator, StringLiteral,
+};
 use std::path::{Path, PathBuf};
 
 struct FileExistsResult {
@@ -17,8 +19,8 @@ pub async fn evaluate_file_predicate(
 
     match predicate {
         FilePredicate::Exists => evaluate_file_exists(&resolved_path, &file_path.raw, cwd).await,
-        FilePredicate::Contains { value } => {
-            evaluate_file_contains(&resolved_path, value, &file_path.raw, cwd).await
+        FilePredicate::Contains { operator, value } => {
+            evaluate_file_contains(&resolved_path, operator, value, &file_path.raw, cwd).await
         }
         FilePredicate::Matches { value } => {
             evaluate_file_matches(&resolved_path, value, &file_path.raw, cwd).await
@@ -142,6 +144,7 @@ async fn read_file_content(
 
 async fn evaluate_file_contains(
     file_path: &Path,
+    operator: &StringContainmentOperator,
     value: &StringLiteral,
     path_raw: &str,
     cwd: &str,
@@ -151,12 +154,19 @@ async fn evaluate_file_contains(
         return err;
     }
 
-    let passed = content.contains(&value.value);
-    AssertionResult::new(
-        passed,
-        format!("file {} to contain {}", path_raw, value.raw),
-        content,
-    )
+    let contains = content.contains(&value.value);
+    let (passed, expected) = match operator {
+        StringContainmentOperator::Contains => (
+            contains,
+            format!("file {} to contain {}", path_raw, value.raw),
+        ),
+        StringContainmentOperator::NotContains => (
+            !contains,
+            format!("file {} not to contain {}", path_raw, value.raw),
+        ),
+    };
+
+    AssertionResult::new(passed, expected, content)
 }
 
 async fn evaluate_file_matches(
@@ -340,7 +350,10 @@ mod tests {
         let search = make_string_literal("world");
         let result = evaluate_file_predicate(
             &path,
-            &FilePredicate::Contains { value: search },
+            &FilePredicate::Contains {
+                operator: StringContainmentOperator::Contains,
+                value: search,
+            },
             temp_dir.to_str().unwrap(),
         )
         .await;
@@ -360,7 +373,10 @@ mod tests {
         let search = make_string_literal("goodbye");
         let result = evaluate_file_predicate(
             &path,
-            &FilePredicate::Contains { value: search },
+            &FilePredicate::Contains {
+                operator: StringContainmentOperator::Contains,
+                value: search,
+            },
             temp_dir.to_str().unwrap(),
         )
         .await;
@@ -374,12 +390,68 @@ mod tests {
     async fn test_evaluate_file_contains_nonexistent() {
         let path = make_string_literal("nonexistent_file.txt");
         let search = make_string_literal("test");
-        let result =
-            evaluate_file_predicate(&path, &FilePredicate::Contains { value: search }, "/tmp")
-                .await;
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Contains {
+                operator: StringContainmentOperator::Contains,
+                value: search,
+            },
+            "/tmp",
+        )
+        .await;
 
         assert!(!result.passed);
         assert!(result.actual.contains("does not exist"));
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_not_contains_match() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_not_contains.txt");
+        tokio::fs::write(&temp_file, "hello world").await.unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let search = make_string_literal("goodbye");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Contains {
+                operator: StringContainmentOperator::NotContains,
+                value: search,
+            },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(result.passed);
+        assert_eq!(
+            result.expected,
+            format!("file {} not to contain \"goodbye\"", path.raw)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_evaluate_file_not_contains_no_match() {
+        let temp_dir = std::env::temp_dir();
+        let temp_file = temp_dir.join("hone_test_not_contains_no.txt");
+        tokio::fs::write(&temp_file, "hello world").await.unwrap();
+
+        let path = make_string_literal(temp_file.file_name().unwrap().to_str().unwrap());
+        let search = make_string_literal("hello");
+        let result = evaluate_file_predicate(
+            &path,
+            &FilePredicate::Contains {
+                operator: StringContainmentOperator::NotContains,
+                value: search,
+            },
+            temp_dir.to_str().unwrap(),
+        )
+        .await;
+
+        let _ = tokio::fs::remove_file(&temp_file).await;
+
+        assert!(!result.passed);
     }
 
     #[tokio::test]
@@ -516,7 +588,10 @@ mod tests {
         let search = make_string_literal("test");
         let result = evaluate_file_predicate(
             &path,
-            &FilePredicate::Contains { value: search },
+            &FilePredicate::Contains {
+                operator: StringContainmentOperator::Contains,
+                value: search,
+            },
             temp_dir.to_str().unwrap(),
         )
         .await;

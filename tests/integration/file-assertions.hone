@@ -7,6 +7,7 @@ ASSERT file "testfile.txt" exists
 TEST "file content check"
 RUN echo "test content" > contentfile.txt
 ASSERT file "contentfile.txt" contains "test content"
+ASSERT file "contentfile.txt" not contains "goodbye"
 
 TEST "file exact content"
 RUN printf "exact" > exactfile.txt

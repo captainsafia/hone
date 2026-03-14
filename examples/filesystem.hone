@@ -13,6 +13,7 @@ RUN echo "test content here" > /tmp/hone-test-content.txt
 ASSERT file "/tmp/hone-test-content.txt" exists
 ASSERT file "/tmp/hone-test-content.txt" contains "test content"
 ASSERT file "/tmp/hone-test-content.txt" contains "here"
+ASSERT file "/tmp/hone-test-content.txt" not contains "missing"
 
 TEST "file exact match"
 
