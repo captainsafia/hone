@@ -24,12 +24,14 @@ TEST "echo works"
 RUN echo "Hello, World!"
 ASSERT exit_code == 0
 ASSERT stdout contains "Hello"
+ASSERT stdout not contains "Goodbye"
 
 TEST "file creation"
 
 RUN echo "test content" > output.txt
 ASSERT file "output.txt" exists
 ASSERT file "output.txt" contains "test content"
+ASSERT file "output.txt" not contains "error"
 ```
 
 Run the tests:

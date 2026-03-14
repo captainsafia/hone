@@ -201,7 +201,10 @@ fn extract_assertion_name(assert: &crate::parser::ast::AssertNode) -> String {
             };
 
             let predicate_str = match predicate {
-                crate::parser::ast::OutputPredicate::Contains { .. } => "contains",
+                crate::parser::ast::OutputPredicate::Contains { operator, .. } => match operator {
+                    crate::parser::ast::StringContainmentOperator::Contains => "contains",
+                    crate::parser::ast::StringContainmentOperator::NotContains => "not contains",
+                },
                 crate::parser::ast::OutputPredicate::Matches { .. } => "matches",
                 crate::parser::ast::OutputPredicate::Equals { .. } => "equals",
             };
@@ -297,6 +300,44 @@ mod tests {
         assert_eq!(children.len(), 1);
         assert_eq!(children[0].name, "expect exitcode");
         assert_eq!(children[0].kind, SymbolKind::PROPERTY);
+    }
+
+    #[test]
+    fn test_symbols_with_not_contains_assertion() {
+        let parsed = ParsedFile {
+            filename: "test.hone".to_string(),
+            pragmas: vec![],
+            nodes: vec![
+                ASTNode::Test(TestNode {
+                    name: "my test".to_string(),
+                    line: 1,
+                }),
+                ASTNode::Assert(AssertNode {
+                    expression: AssertionExpression::Output {
+                        target: None,
+                        selector: OutputSelector::Stdout,
+                        predicate: OutputPredicate::Contains {
+                            operator: StringContainmentOperator::NotContains,
+                            value: StringLiteral {
+                                value: "oops".to_string(),
+                                raw: "\"oops\"".to_string(),
+                                quote_type: QuoteType::Double,
+                            },
+                        },
+                    },
+                    line: 2,
+                    raw: "ASSERT stdout not contains \"oops\"".to_string(),
+                }),
+            ],
+            warnings: vec![],
+            errors: vec![],
+        };
+
+        let provider = SymbolsProvider::new();
+        let symbols = provider.provide_symbols(&parsed);
+        let children = symbols[0].children.as_ref().unwrap();
+
+        assert_eq!(children[0].name, "expect stdout not contains");
     }
 
     #[test]

@@ -497,7 +497,40 @@ fn parse_output_assertion(
         return Some(AssertionExpression::Output {
             target,
             selector,
-            predicate: OutputPredicate::Contains { value: string_lit },
+            predicate: OutputPredicate::Contains {
+                operator: StringContainmentOperator::Contains,
+                value: string_lit,
+            },
+        });
+    }
+
+    if match_word(input, i, "not") {
+        i += 3;
+        i = skip_whitespace(input, i);
+
+        if !match_word(input, i, "contains") {
+            collector.add_error("Expected \"contains\" after \"not\"".to_string(), line);
+            return None;
+        }
+
+        i += 8;
+        i = skip_whitespace(input, i);
+
+        let Some((string_lit, _)) = parse_string_literal(input, i) else {
+            collector.add_error(
+                "Expected quoted string after \"not contains\"".to_string(),
+                line,
+            );
+            return None;
+        };
+
+        return Some(AssertionExpression::Output {
+            target,
+            selector,
+            predicate: OutputPredicate::Contains {
+                operator: StringContainmentOperator::NotContains,
+                value: string_lit,
+            },
         });
     }
 
@@ -555,7 +588,7 @@ fn parse_output_assertion(
 
     collector.add_error(
         format!(
-            "Expected predicate (contains, matches, ==, !=) after \"{}\"",
+            "Expected predicate (contains, not contains, matches, ==, !=) after \"{}\"",
             selector_str
         ),
         line,
@@ -682,7 +715,39 @@ fn parse_file_assertion(
 
         return Some(AssertionExpression::File {
             path,
-            predicate: FilePredicate::Contains { value: string_lit },
+            predicate: FilePredicate::Contains {
+                operator: StringContainmentOperator::Contains,
+                value: string_lit,
+            },
+        });
+    }
+
+    if match_word(input, i, "not") {
+        i += 3;
+        i = skip_whitespace(input, i);
+
+        if !match_word(input, i, "contains") {
+            collector.add_error("Expected \"contains\" after \"not\"".to_string(), line);
+            return None;
+        }
+
+        i += 8;
+        i = skip_whitespace(input, i);
+
+        let Some((string_lit, _)) = parse_string_literal(input, i) else {
+            collector.add_error(
+                "Expected quoted string after \"not contains\"".to_string(),
+                line,
+            );
+            return None;
+        };
+
+        return Some(AssertionExpression::File {
+            path,
+            predicate: FilePredicate::Contains {
+                operator: StringContainmentOperator::NotContains,
+                value: string_lit,
+            },
         });
     }
 
@@ -731,7 +796,8 @@ fn parse_file_assertion(
     }
 
     collector.add_error(
-        "Expected predicate (exists, contains, matches, ==, !=) after file path".to_string(),
+        "Expected predicate (exists, contains, not contains, matches, ==, !=) after file path"
+            .to_string(),
         line,
     );
     None
@@ -1180,7 +1246,7 @@ ASSERT exit_code {} 0"#,
 
     #[test]
     fn test_stdout_rejects_relational_operators() {
-        // stdout only supports ==, !=, contains, matches - not <, <=, >, >=
+        // stdout only supports ==, !=, contains, not contains, matches - not <, <=, >, >=
         let operators = ["<", "<=", ">", ">="];
         for op in operators {
             let content = format!(
@@ -1199,9 +1265,9 @@ ASSERT stdout {} "hello""#,
                         op
                     );
                     assert!(
-                        file.errors
-                            .iter()
-                            .any(|e| e.message.contains("contains, matches, ==, !=")),
+                        file.errors.iter().any(|e| e
+                            .message
+                            .contains("contains, not contains, matches, ==, !=")),
                         "Error message should indicate valid predicates for operator {}",
                         op
                     );
@@ -1215,7 +1281,7 @@ ASSERT stdout {} "hello""#,
 
     #[test]
     fn test_stderr_rejects_relational_operators() {
-        // stderr only supports ==, !=, contains, matches - not <, <=, >, >=
+        // stderr only supports ==, !=, contains, not contains, matches - not <, <=, >, >=
         let operators = ["<", "<=", ">", ">="];
         for op in operators {
             let content = format!(
@@ -1234,9 +1300,9 @@ ASSERT stderr {} "hello""#,
                         op
                     );
                     assert!(
-                        file.errors
-                            .iter()
-                            .any(|e| e.message.contains("contains, matches, ==, !=")),
+                        file.errors.iter().any(|e| e
+                            .message
+                            .contains("contains, not contains, matches, ==, !=")),
                         "Error message should indicate valid predicates for operator {}",
                         op
                     );
@@ -1733,6 +1799,96 @@ ASSERT stdout contains"#;
     }
 
     #[test]
+    fn test_output_not_contains_parses() {
+        let content = r#"TEST "not contains"
+RUN echo hello
+ASSERT stdout not contains "goodbye""#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Expected no errors");
+                let assert_nodes: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Assert(a) = n {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                if let AssertionExpression::Output {
+                    predicate:
+                        OutputPredicate::Contains {
+                            operator: StringContainmentOperator::NotContains,
+                            value,
+                        },
+                    ..
+                } = &assert_nodes[0].expression
+                {
+                    assert_eq!(value.value, "goodbye");
+                } else {
+                    panic!("Expected stdout not contains assertion expression");
+                }
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_output_not_contains_missing_contains_error() {
+        let content = r#"TEST "missing contains"
+RUN echo hello
+ASSERT stdout not foo"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for invalid predicate after 'not'"
+                );
+                assert_eq!(
+                    file.errors[0].message,
+                    "Expected \"contains\" after \"not\""
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_output_not_contains_missing_string_error() {
+        let content = r#"TEST "missing string"
+RUN echo hello
+ASSERT stdout not contains"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing string after 'not contains'"
+                );
+                assert_eq!(
+                    file.errors[0].message,
+                    "Expected quoted string after \"not contains\""
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
     fn test_output_matches_missing_regex_error() {
         // stdout matches without regex should produce a clear error
         let content = r#"TEST "missing regex"
@@ -1841,6 +1997,54 @@ ASSERT file "test.txt" contains"#;
     }
 
     #[test]
+    fn test_file_not_contains_missing_contains_error() {
+        let content = r#"TEST "missing contains"
+RUN echo hello > test.txt
+ASSERT file "test.txt" not foo"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for invalid file predicate after 'not'"
+                );
+                assert_eq!(
+                    file.errors[0].message,
+                    "Expected \"contains\" after \"not\""
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
+    fn test_file_not_contains_missing_string_error() {
+        let content = r#"TEST "missing string"
+RUN echo hello > test.txt
+ASSERT file "test.txt" not contains"#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(
+                    !file.errors.is_empty(),
+                    "Expected error for missing string after file not contains"
+                );
+                assert_eq!(
+                    file.errors[0].message,
+                    "Expected quoted string after \"not contains\""
+                );
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success with errors embedded");
+            }
+        }
+    }
+
+    #[test]
     fn test_file_matches_missing_regex_error() {
         // file matches without regex should produce a clear error
         let content = r#"TEST "missing regex"
@@ -1898,6 +2102,52 @@ ASSERT build.stdout contains "hello""#;
                     assert!(matches!(selector, OutputSelector::Stdout));
                 } else {
                     panic!("Expected Output assertion expression");
+                }
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_named_target_assertion_stdout_not_contains() {
+        let content = r#"TEST "named target"
+RUN build: echo "hello"
+ASSERT build.stdout not contains "goodbye""#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Expected no errors");
+                let assert_nodes: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Assert(a) = n {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(assert_nodes.len(), 1);
+
+                if let AssertionExpression::Output {
+                    target,
+                    selector,
+                    predicate:
+                        OutputPredicate::Contains {
+                            operator: StringContainmentOperator::NotContains,
+                            value,
+                        },
+                } = &assert_nodes[0].expression
+                {
+                    assert_eq!(target.as_deref(), Some("build"));
+                    assert!(matches!(selector, OutputSelector::Stdout));
+                    assert_eq!(value.value, "goodbye");
+                } else {
+                    panic!("Expected Output not contains assertion expression");
                 }
             }
             ParseResult::Failure { .. } => {
@@ -1971,6 +2221,50 @@ ASSERT my-build.stdout contains "test""#;
                     assert_eq!(target.as_deref(), Some("my-build"));
                 } else {
                     panic!("Expected Output assertion expression");
+                }
+            }
+            ParseResult::Failure { .. } => {
+                panic!("Parser should always return Success");
+            }
+        }
+    }
+
+    #[test]
+    fn test_file_assertion_not_contains() {
+        let content = r#"TEST "file predicate"
+RUN echo "hello" > test.txt
+ASSERT file "test.txt" not contains "goodbye""#;
+        let result = parse_file(content, "test.hone");
+
+        match result {
+            ParseResult::Success { file } => {
+                assert!(file.errors.is_empty(), "Expected no errors");
+                let assert_nodes: Vec<_> = file
+                    .nodes
+                    .iter()
+                    .filter_map(|n| {
+                        if let ASTNode::Assert(a) = n {
+                            Some(a)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                assert_eq!(assert_nodes.len(), 1);
+
+                if let AssertionExpression::File {
+                    path,
+                    predicate:
+                        FilePredicate::Contains {
+                            operator: StringContainmentOperator::NotContains,
+                            value,
+                        },
+                } = &assert_nodes[0].expression
+                {
+                    assert_eq!(path.value, "test.txt");
+                    assert_eq!(value.value, "goodbye");
+                } else {
+                    panic!("Expected File not contains assertion expression");
                 }
             }
             ParseResult::Failure { .. } => {

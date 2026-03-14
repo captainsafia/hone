@@ -180,6 +180,7 @@ Assert on standard output content.
 ## Predicates
 
 - `contains "text"` - Output contains the text
+- `not contains "text"` - Output does not contain the text
 - `matches /regex/` - Output matches the regex pattern
 - `equals "text"` or `== "text"` - Output equals the text exactly
 - `!= "text"` - Output does not equal the text
@@ -207,6 +208,7 @@ Assert on raw standard output content (without ANSI escape sequences stripped).
 
 Same as `stdout`:
 - `contains "text"`
+- `not contains "text"`
 - `matches /regex/`
 - `equals "text"` or `== "text"`
 - `!= "text"`
@@ -230,6 +232,7 @@ Assert on standard error content.
 ## Predicates
 
 - `contains "text"` - Error output contains the text
+- `not contains "text"` - Error output does not contain the text
 - `matches /regex/` - Error output matches the regex pattern
 - `equals "text"` or `== "text"` - Error output equals the text exactly
 - `!= "text"` - Error output does not equal the text
@@ -319,6 +322,7 @@ Assert on file content or existence.
 
 - `exists` - File exists
 - `contains "text"` - File contains the text
+- `not contains "text"` - File does not contain the text
 - `matches /regex/` - File content matches the regex pattern
 - `equals "text"` or `== "text"` - File content equals the text exactly
 - `!= "text"` - File content does not equal the text

@@ -96,8 +96,15 @@ pub enum StringComparisonOperator {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum StringContainmentOperator {
+    Contains,
+    NotContains,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum OutputPredicate {
     Contains {
+        operator: StringContainmentOperator,
         value: StringLiteral,
     },
     Matches {
@@ -125,6 +132,7 @@ pub struct DurationPredicate {
 pub enum FilePredicate {
     Exists,
     Contains {
+        operator: StringContainmentOperator,
         value: StringLiteral,
     },
     Matches {

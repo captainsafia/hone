@@ -207,7 +207,9 @@ impl CompletionProvider {
                 documentation: Some(async_lsp::lsp_types::Documentation::String(
                     "Check the standard output of the command".to_string(),
                 )),
-                insert_text: Some("stdout ${1|contains,==,!=,matches|} \"${2:text}\"".to_string()),
+                insert_text: Some(
+                    "stdout ${1|contains,not contains,==,!=,matches|} \"${2:text}\"".to_string(),
+                ),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
@@ -218,7 +220,9 @@ impl CompletionProvider {
                 documentation: Some(async_lsp::lsp_types::Documentation::String(
                     "Check the standard error of the command".to_string(),
                 )),
-                insert_text: Some("stderr ${1|contains,==,!=,matches|} \"${2:text}\"".to_string()),
+                insert_text: Some(
+                    "stderr ${1|contains,not contains,==,!=,matches|} \"${2:text}\"".to_string(),
+                ),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
             },
@@ -241,7 +245,8 @@ impl CompletionProvider {
                     "Check the contents of a file".to_string(),
                 )),
                 insert_text: Some(
-                    "file \"${1:path}\" ${2|contains,==,!=,matches,exists|}".to_string(),
+                    "file \"${1:path}\" ${2|contains,not contains,==,!=,matches,exists|}"
+                        .to_string(),
                 ),
                 insert_text_format: Some(InsertTextFormat::SNIPPET),
                 ..Default::default()
@@ -537,13 +542,13 @@ mod tests {
         let stdout = items.iter().find(|i| i.label == "stdout").unwrap();
         assert_eq!(
             stdout.insert_text.as_ref().unwrap(),
-            "stdout ${1|contains,==,!=,matches|} \"${2:text}\""
+            "stdout ${1|contains,not contains,==,!=,matches|} \"${2:text}\""
         );
 
         let stderr = items.iter().find(|i| i.label == "stderr").unwrap();
         assert_eq!(
             stderr.insert_text.as_ref().unwrap(),
-            "stderr ${1|contains,==,!=,matches|} \"${2:text}\""
+            "stderr ${1|contains,not contains,==,!=,matches|} \"${2:text}\""
         );
     }
 
@@ -582,7 +587,7 @@ mod tests {
         let insert_text = file.insert_text.as_ref().unwrap();
         assert_eq!(
             insert_text,
-            "file \"${1:path}\" ${2|contains,==,!=,matches,exists|}"
+            "file \"${1:path}\" ${2|contains,not contains,==,!=,matches,exists|}"
         );
         // Should not have block syntax (newlines or nested braces for file content)
         assert!(!insert_text.contains('\n'));

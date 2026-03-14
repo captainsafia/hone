@@ -1,6 +1,7 @@
 use crate::assertions::AssertionResult;
 use crate::parser::ast::{
-    OutputPredicate, OutputSelector, RegexLiteral, StringComparisonOperator, StringLiteral,
+    OutputPredicate, OutputSelector, RegexLiteral, StringComparisonOperator,
+    StringContainmentOperator, StringLiteral,
 };
 use crate::runner::shell::RunResult;
 
@@ -14,19 +15,26 @@ pub fn get_output_value<'a>(result: &'a RunResult, selector: &OutputSelector) ->
 
 pub fn evaluate_output_predicate(output: &str, predicate: &OutputPredicate) -> AssertionResult {
     match predicate {
-        OutputPredicate::Contains { value } => evaluate_contains(output, value),
+        OutputPredicate::Contains { operator, value } => evaluate_contains(output, operator, value),
         OutputPredicate::Matches { value } => evaluate_matches(output, value),
         OutputPredicate::Equals { operator, value } => evaluate_equals(output, operator, value),
     }
 }
 
-fn evaluate_contains(output: &str, value: &StringLiteral) -> AssertionResult {
-    let passed = output.contains(&value.value);
-    AssertionResult::new(
-        passed,
-        format!("to contain {}", value.raw),
-        output.to_string(),
-    )
+fn evaluate_contains(
+    output: &str,
+    operator: &StringContainmentOperator,
+    value: &StringLiteral,
+) -> AssertionResult {
+    let contains = output.contains(&value.value);
+    let (passed, expected) = match operator {
+        StringContainmentOperator::Contains => (contains, format!("to contain {}", value.raw)),
+        StringContainmentOperator::NotContains => {
+            (!contains, format!("not to contain {}", value.raw))
+        }
+    };
+
+    AssertionResult::new(passed, expected, output.to_string())
 }
 
 fn evaluate_matches(output: &str, value: &RegexLiteral) -> AssertionResult {
@@ -93,7 +101,7 @@ fn normalize_whitespace(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::ast::{QuoteType, RegexLiteral, StringLiteral};
+    use crate::parser::ast::{QuoteType, RegexLiteral, StringContainmentOperator, StringLiteral};
     use crate::runner::shell::RunResult;
 
     #[test]
@@ -144,8 +152,9 @@ mod tests {
             raw: "\"hello\"".to_string(),
             quote_type: QuoteType::Double,
         };
-        let result = evaluate_contains("hello world", &value);
+        let result = evaluate_contains("hello world", &StringContainmentOperator::Contains, &value);
         assert!(result.passed);
+        assert_eq!(result.expected, "to contain \"hello\"");
     }
 
     #[test]
@@ -155,7 +164,7 @@ mod tests {
             raw: "\"goodbye\"".to_string(),
             quote_type: QuoteType::Double,
         };
-        let result = evaluate_contains("hello world", &value);
+        let result = evaluate_contains("hello world", &StringContainmentOperator::Contains, &value);
         assert!(!result.passed);
     }
 
@@ -166,7 +175,38 @@ mod tests {
             raw: "\"test\"".to_string(),
             quote_type: QuoteType::Double,
         };
-        let result = evaluate_contains("", &value);
+        let result = evaluate_contains("", &StringContainmentOperator::Contains, &value);
+        assert!(!result.passed);
+    }
+
+    #[test]
+    fn test_evaluate_not_contains_match() {
+        let value = StringLiteral {
+            value: "goodbye".to_string(),
+            raw: "\"goodbye\"".to_string(),
+            quote_type: QuoteType::Double,
+        };
+        let result = evaluate_contains(
+            "hello world",
+            &StringContainmentOperator::NotContains,
+            &value,
+        );
+        assert!(result.passed);
+        assert_eq!(result.expected, "not to contain \"goodbye\"");
+    }
+
+    #[test]
+    fn test_evaluate_not_contains_no_match() {
+        let value = StringLiteral {
+            value: "hello".to_string(),
+            raw: "\"hello\"".to_string(),
+            quote_type: QuoteType::Double,
+        };
+        let result = evaluate_contains(
+            "hello world",
+            &StringContainmentOperator::NotContains,
+            &value,
+        );
         assert!(!result.passed);
     }
 

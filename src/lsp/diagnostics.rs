@@ -1,6 +1,6 @@
 use crate::parser::{
     parse_file, ASTNode, AssertionExpression, ComparisonOperator, FilePredicate, OutputPredicate,
-    ParseResult,
+    ParseResult, StringContainmentOperator,
 };
 use async_lsp::lsp_types::*;
 
@@ -252,12 +252,19 @@ fn check_assertion_types(assert_node: &crate::parser::AssertNode) -> Vec<Diagnos
 
     match &assert_node.expression {
         AssertionExpression::Output { predicate, .. } => match predicate {
-            OutputPredicate::Contains { value } => {
+            OutputPredicate::Contains { operator, value } => {
                 // `contains ""` is nonsensical - every string contains empty string
                 if value.value.is_empty() {
+                    let predicate_name = match operator {
+                        StringContainmentOperator::Contains => "contains",
+                        StringContainmentOperator::NotContains => "not contains",
+                    };
                     diagnostics.push(create_semantic_diagnostic(
                         assert_node.line,
-                        "String comparison value cannot be empty for 'contains'",
+                        &format!(
+                            "String comparison value cannot be empty for '{}'",
+                            predicate_name
+                        ),
                     ));
                 }
             }
@@ -330,12 +337,19 @@ fn check_assertion_types(assert_node: &crate::parser::AssertNode) -> Vec<Diagnos
             }
 
             match predicate {
-                FilePredicate::Contains { value } => {
+                FilePredicate::Contains { operator, value } => {
                     // `contains ""` is nonsensical - every string contains empty string
                     if value.value.is_empty() {
+                        let predicate_name = match operator {
+                            StringContainmentOperator::Contains => "contains",
+                            StringContainmentOperator::NotContains => "not contains",
+                        };
                         diagnostics.push(create_semantic_diagnostic(
                             assert_node.line,
-                            "String comparison value cannot be empty for 'contains'",
+                            &format!(
+                                "String comparison value cannot be empty for '{}'",
+                                predicate_name
+                            ),
                         ));
                     }
                 }
@@ -718,6 +732,44 @@ ASSERT file "test.txt" contains """#;
             empty_errors.len(),
             1,
             "ASSERT file \"x\" contains \"\" should produce a diagnostic"
+        );
+    }
+
+    #[test]
+    fn test_empty_string_not_contains_is_invalid() {
+        let content = r#"TEST "empty not contains check"
+RUN true
+ASSERT stdout not contains """#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let empty_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("not contains"))
+            .collect();
+        assert_eq!(
+            empty_errors.len(),
+            1,
+            "ASSERT stdout not contains \"\" should produce a diagnostic"
+        );
+    }
+
+    #[test]
+    fn test_file_empty_string_not_contains_is_invalid() {
+        let content = r#"TEST "empty file not contains check"
+RUN true
+ASSERT file "test.txt" not contains """#;
+
+        let diagnostics = generate_diagnostics(&Url::parse("file:///test.hone").unwrap(), content);
+
+        let empty_errors: Vec<_> = diagnostics
+            .iter()
+            .filter(|d| d.message.contains("not contains"))
+            .collect();
+        assert_eq!(
+            empty_errors.len(),
+            1,
+            "ASSERT file \"x\" not contains \"\" should produce a diagnostic"
         );
     }
 
