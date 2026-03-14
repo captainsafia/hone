@@ -17,6 +17,9 @@ Assert on the standard output of the most recent (or named) command:
 ASSERT stdout contains "success"
 ASSERT stdout contains "Hello, World!"
 
+# Not contains - check output does NOT include text
+ASSERT stdout not contains "error"
+
 # Equals - exact match
 ASSERT stdout == "exact output"
 ASSERT stdout != "not this"
@@ -33,6 +36,7 @@ Assert on the standard error output:
 ```hone
 # Same operators work for stderr
 ASSERT stderr contains "warning"
+ASSERT stderr not contains "fatal"
 ASSERT stderr == ""
 ASSERT stderr matches /error: .*/
 ```
@@ -87,6 +91,7 @@ Assert on file contents using the same operators as stdout:
 ```hone
 # Check file contents
 ASSERT file "config.yaml" contains "enabled: true"
+ASSERT file "config.yaml" not contains "debug: true"
 ASSERT file "output.json" == '{"status": "ok"}'
 ASSERT file "version.txt" matches /v\d+\.\d+/
 ```
@@ -113,6 +118,7 @@ ASSERT test.stdout contains "PASSED"
 | Operator | Description | Example |
 |----------|-------------|---------|
 | `contains` | Substring match | `stdout contains "ok"` |
+| `not contains` | Negative substring match | `stdout not contains "error"` |
 | `==` | Exact equality | `exit_code == 0` |
 | `!=` | Not equal | `stderr != ""` |
 | `matches` | Regex pattern | `stdout matches /v\d+/` |

@@ -67,6 +67,7 @@ The `ASSERT` keyword verifies conditions about command output, exit codes, timin
 ```hone
 # Output assertions
 ASSERT stdout contains "success"
+ASSERT stdout not contains "error"
 ASSERT stderr == ""
 ASSERT stdout matches /version \d+/
 
@@ -80,6 +81,7 @@ ASSERT duration < 5s
 # Files
 ASSERT file "output.txt" exists
 ASSERT file "config.json" contains "enabled"
+ASSERT file "config.json" not contains "disabled"
 ```
 
 ## Named Runs

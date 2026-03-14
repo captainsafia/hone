@@ -297,6 +297,7 @@ Predicates:
 * `contains <string>` — substring search (literal, not regex)
   * The string is treated as literal text
   * Regex special characters like `.` `*` `[` are treated as literal
+* `not contains <string>` — negative substring search (passes when text is NOT present)
 * `matches <regex>` — regular expression match
   * Format: `/pattern/flags`
   * Supports JavaScript regex syntax and flags (i, g, m, etc.)
@@ -375,6 +376,7 @@ ASSERT file "out.txt" == "exact contents\n"
 
 * `exists` — file exists at path
 * `contains <string>` — file contains substring (literal, not regex)
+* `not contains <string>` — file does not contain substring
 * `matches <regex>` — file content matches regex pattern
 * `== <string>` — exact content equality (after whitespace normalization)
 * `!= <string>` — content inequality

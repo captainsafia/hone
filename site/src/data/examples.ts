@@ -40,6 +40,7 @@ RUN echo "Hello, World!"
 ASSERT stdout contains "Hello"
 ASSERT stdout contains "World"
 ASSERT stdout contains ","
+ASSERT stdout not contains "Goodbye"
 
 TEST "stdout equals assertion"
 
@@ -77,6 +78,7 @@ TEST "stderr capture"
 
 RUN sh -c 'echo "error message" >&2'
 ASSERT stderr contains "error message"
+ASSERT stderr not contains "success"
 
 TEST "named run targets"
 
@@ -141,6 +143,7 @@ RUN echo "test content here" > /tmp/hone-test-content.txt
 ASSERT file "/tmp/hone-test-content.txt" exists
 ASSERT file "/tmp/hone-test-content.txt" contains "test content"
 ASSERT file "/tmp/hone-test-content.txt" contains "here"
+ASSERT file "/tmp/hone-test-content.txt" not contains "missing"
 
 TEST "file exact match"
 
