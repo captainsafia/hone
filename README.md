@@ -42,8 +42,6 @@ hone run example.hone
 
 ## Installation
 
-> **Note:** Hone is currently in preview. APIs and features may change.
-
 ```sh
 curl https://i.safia.sh/captainsafia/hone/preview | sh
 ```
